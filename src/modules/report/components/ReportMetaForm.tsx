@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { ReportMetadata } from '../types/report.types';
+import { ReportMetadata, RequirableField } from '../types/report.types';
+import { getRequiredFields, getMissingRequiredFields } from '../utils/reportValidation';
 
 export interface IReportMetaFormProps {
   metadata: ReportMetadata;
@@ -8,6 +9,8 @@ export interface IReportMetaFormProps {
   onMetadataChange: <K extends keyof ReportMetadata>(field: K, value: ReportMetadata[K]) => void;
   isExisting: boolean;
   disabled?: boolean;
+  /** When true, blank required fields are highlighted with an error message. */
+  showErrors?: boolean;
 }
 
 export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
@@ -15,8 +18,19 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
   dateStr,
   onDateChange,
   onMetadataChange,
-  disabled = false
+  disabled = false,
+  showErrors = false
 }) => {
+  const required = getRequiredFields(metadata);
+  const missing = showErrors ? getMissingRequiredFields(metadata) : [];
+  const isReq = (f: RequirableField): boolean => required.indexOf(f) !== -1;
+  const isBad = (f: RequirableField): boolean => missing.indexOf(f) !== -1;
+  const mark = (f: RequirableField): React.ReactNode =>
+    isReq(f) ? <span className="report-required-mark" aria-hidden="true"> *</span> : null;
+  const err = (f: RequirableField): React.ReactNode =>
+    isBad(f) ? <span className="report-field-error" role="alert">Bắt buộc nhập, không được để trống</span> : null;
+  const cls = (f: RequirableField): string => `input${isBad(f) ? ' input--danger' : ''}`;
+
   return (
     <>
       <div className="card report-info-card">
@@ -64,47 +78,56 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
         <div className="report-info-grid-2x2">
           {/* Row 1, Col 1: Vị trí / Trạm */}
           <div className="field">
-            <label className="field__label">Vị trí / Trạm (Location)</label>
+            <label htmlFor="report-location-input" className="field__label">Vị trí / Trạm (Location){mark('location')}</label>
             <input
+              id="report-location-input"
               type="text"
-              className="input"
+              className={cls('location')}
+              required={isReq('location')}
+              aria-invalid={isBad('location')}
               value={metadata.location || ''}
               onChange={(e) => onMetadataChange('location', e.target.value)}
               disabled={disabled}
             />
+            {err('location')}
           </div>
 
           {/* Row 1, Col 2: Số báo cáo (Report No) */}
           <div className="field">
             <label htmlFor="report-no-input" className="field__label">
-              Số BCN (Report no.)
+              Số BCN (Report no.){mark('reportNo')}
             </label>
             <input
               id="report-no-input"
               type="text"
-              className="input"
+              className={cls('reportNo')}
+              required={isReq('reportNo')}
+              aria-invalid={isBad('reportNo')}
               placeholder="VD: 041"
-              // value={metadata.reportNo || ''}
-              value={''}
+              value={metadata.reportNo || ''}
               onChange={(e) => onMetadataChange('reportNo', e.target.value)}
               disabled={disabled}
             />
+            {err('reportNo')}
           </div>
 
           {/* Row 2, Col 1: Ca làm việc (Shift) */}
           <div className="field">
             <label htmlFor="report-shift-input" className="field__label">
-              Ca làm việc (Shift)
+              Ca làm việc (Shift){mark('shift')}
             </label>
             <input
               id="report-shift-input"
               type="text"
-              className="input"
+              className={cls('shift')}
+              required={isReq('shift')}
+              aria-invalid={isBad('shift')}
               placeholder="VD: Cả ngày (2 ca), Ca ngày..."
               value={metadata.shift || ''}
               onChange={(e) => onMetadataChange('shift', e.target.value)}
               disabled={disabled}
             />
+            {err('shift')}
           </div>
 
           {/* Row 2, Col 2: Người báo cáo (Email) */}
@@ -170,17 +193,19 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
 
             <div className="field">
               <label className="field__label field__label--bilingual">
-                <span className="field__label-main">Nhiệt độ max</span>
+                <span className="field__label-main">Nhiệt độ max{mark('maxTemp')}</span>
                 <span className="field__label-sub">Max temp</span>
               </label>
               <input
                 type="text"
-                className="input"
+                className={cls('maxTemp')}
+                aria-invalid={isBad('maxTemp')}
                 placeholder="VD: 33 °C"
                 value={metadata.maxTemp || ''}
                 onChange={(e) => onMetadataChange('maxTemp', e.target.value)}
                 disabled={disabled}
               />
+              {err('maxTemp')}
             </div>
 
             <div className="field">
@@ -222,15 +247,17 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
           </div>
 
           <div className="field" style={{ marginTop: '14px' }}>
-            <label className="field__label">Tóm tắt | Summary</label>
+            <label className="field__label">Tóm tắt | Summary{mark('summary')}</label>
             <textarea
-              className="textarea"
+              className={`textarea${isBad('summary') ? ' input--danger' : ''}`}
+              aria-invalid={isBad('summary')}
               rows={3}
               placeholder="Nhập tóm tắt công việc trong ngày và giải trình (nếu có)..."
               value={metadata.summary || ''}
               onChange={(e) => onMetadataChange('summary', e.target.value)}
               disabled={disabled}
             />
+            {err('summary')}
           </div>
         </div>
       </div>

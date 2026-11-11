@@ -14,6 +14,7 @@ import {
 import { ReportDataService } from '../services/ReportDataService';
 import { formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 import { recalculateAllRates } from '../utils/reportTaskTree';
+import { getMissingRequiredFields, getFieldLabel } from '../utils/reportValidation';
 import { ReportMetaForm } from '../components/ReportMetaForm';
 import { ReportTaskTable } from '../components/ReportTaskTable';
 import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
@@ -52,6 +53,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   const [isSaving, setIsSaving] = React.useState<boolean>(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = React.useState<boolean>(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState<boolean>(false);
+  const [showRequiredErrors, setShowRequiredErrors] = React.useState<boolean>(false);
   const [showPrintPreview, setShowPrintPreview] = React.useState<boolean>(false);
   const [toast, setToast] = React.useState<ToastState | null>(null);
 
@@ -68,6 +70,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
           role.siteManager
         );
         setDoc(result.doc);
+        setShowRequiredErrors(false);
         setTemplateBuffer(result.templateBuffer);
         setHasUnsavedChanges(false);
       } catch (err: unknown) {
@@ -306,9 +309,33 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     });
   };
 
+  /** Returns true when all required fields are filled; otherwise highlights them and warns. */
+  const ensureRequiredFilled = (action: string): boolean => {
+    if (!doc) return false;
+    const missing = getMissingRequiredFields(doc.metadata);
+    if (missing.length === 0) return true;
+    setShowRequiredErrors(true);
+    setToast({
+      type: 'error',
+      text: `Không thể ${action}. Vui lòng nhập: ${missing.map(getFieldLabel).join(', ')}.`
+    });
+    window.setTimeout(() => {
+      const el = document.querySelector<HTMLElement>('.report-info-card [aria-invalid="true"]');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus({ preventScroll: true });
+      }
+    }, 0);
+    return false;
+  };
+
+  const handleOpenPrint = (): void => {
+    if (ensureRequiredFilled('xuất báo cáo')) setShowPrintPreview(true);
+  };
+
   // Save report (6-sheet workbook)
   const handleSave = async (): Promise<void> => {
-    if (!doc) return;
+    if (!doc || !ensureRequiredFilled('lưu báo cáo')) return;
     setIsSaving(true);
     try {
       const res = await dataService.saveReport(doc, templateBuffer);
@@ -391,7 +418,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             <button
               type="button"
               className="btn btn--secondary"
-              onClick={() => setShowPrintPreview(true)}
+              onClick={handleOpenPrint}
               disabled={isLoading || !doc || Boolean(doc.templateUpdateRequired)}
               title="Xem bản in 2 trang A4 và xuất PDF"
             >
@@ -560,6 +587,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             onMetadataChange={handleMetadataChange}
             isExisting={!!doc.isExisting}
             disabled={isSaving}
+            showErrors={showRequiredErrors}
           />
 
           <ReportSectionsEditor

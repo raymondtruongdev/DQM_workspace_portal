@@ -10,7 +10,12 @@ export interface TemplateVersionInfo {
   timeLastModified?: string;
 }
 
+/** Metadata fields a template may flag as required (column `Required` of sheet 01_General). */
+export type RequirableField = 'location' | 'reportNo' | 'shift' | 'maxTemp' | 'summary';
+
 export interface ReportMetadata {
+  /** Fields that must be filled before saving/printing (from template flag). */
+  requiredFields?: RequirableField[];
   docTitle: string;             // e.g. "BÁO CÁO NGÀY" or "BÁO CÁO TUẦN"
   docTitleEn: string;           // e.g. "DAILY REPORT"
   subTitle: string;             // e.g. "Tuyến Metro số 2 – Gói thầu M2.1..."

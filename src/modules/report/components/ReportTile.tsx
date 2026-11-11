@@ -51,16 +51,11 @@ export const ReportTile: React.FC<IReportTileProps> = ({ role, onClick }) => {
       </div>
 
       <div className="report-tile-footer">
-        <div className="report-tile-meta">
-          <Icon name="person" size={16} />
-          <span className="report-tile-manager-text">
-            {role.siteManager || 'Chỉ huy trưởng'}
-          </span>
+        <Icon name="person" size={16} />
+        <div className="report-tile-manager">
+          <span className="report-tile-manager-text">{role.siteManager || 'Chỉ huy trưởng'}</span>
+          {role.email && <span className="report-tile-manager-email">{role.email}</span>}
         </div>
-        <span className="report-tile-cta">
-          Nhập báo cáo
-          <Icon name="chevron-right" size={16} />
-        </span>
       </div>
     </div>
   );

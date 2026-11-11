@@ -7,9 +7,11 @@ import {
   ReportDoc,
   ReportMetadata,
   ReportTaskRow,
+  RequirableField,
   WorkQtyRow
 } from '../types/report.types';
 import { recalculateAllRates } from './reportTaskTree';
+import { REQUIRABLE_FIELDS, getRequiredFields } from './reportValidation';
 
 async function getXlsx(): Promise<typeof XLSXTypes> {
   return await import(/* webpackChunkName: 'xlsx' */ 'xlsx');
@@ -220,6 +222,8 @@ export async function parseReportDocFromBuffer(
   if (hasMultiSheet) {
     // 1. Parse 01_General
     const wsGen = wb.Sheets['01_General'] || wb.Sheets[wb.SheetNames[0]];
+    const requiredFields: RequirableField[] = [];
+    let hasRequiredColumn = false;
     if (wsGen) {
       const rows: unknown[][] = XLSX.utils.sheet_to_json(wsGen, { header: 1, defval: '' });
       for (let r = 0; r < rows.length; r++) {
@@ -228,6 +232,11 @@ export async function parseReportDocFromBuffer(
         const key = String(row[0] || '').trim().toLowerCase();
         const val = String(row[1] ?? '').trim();
         if (!key || key === 'key') continue;
+        const reqEntry = REQUIRABLE_FIELDS[key];
+        if (reqEntry && row[3] !== undefined && String(row[3]).trim() !== '') {
+          hasRequiredColumn = true;
+          if (parseIsLocked(row[3], false)) requiredFields.push(reqEntry.field);
+        }
 
         if (key === 'doctile' || key === 'doctitle') metadata.docTitle = val || metadata.docTitle;
         else if (key === 'doctileen' || key === 'doctitleen') metadata.docTitleEn = val || metadata.docTitleEn;
@@ -268,6 +277,7 @@ export async function parseReportDocFromBuffer(
         else if (key === 'engineerack') metadata.engineerAck = val;
         else if (key === 'approvalcomment') metadata.approvalComment = val;
       }
+      if (hasRequiredColumn) metadata.requiredFields = requiredFields;
     }
 
     // 2. Parse 02_Manpower
@@ -530,7 +540,13 @@ export async function encodeReportDocToBuffer(
   const m = doc.metadata;
 
   // 1. Sheet 01_General
-  const generalRows: (string | number)[][] = [
+  const requiredNow = getRequiredFields(m);
+  const req = (key: string): string => {
+    const entry = REQUIRABLE_FIELDS[key.toLowerCase()];
+    return entry ? (requiredNow.indexOf(entry.field) !== -1 ? 'TRUE' : 'FALSE') : '';
+  };
+  const withReq = (row: (string | number)[]): (string | number)[] => [...row, req(String(row[0]))];
+  const generalRowsRaw: (string | number)[][] = [
     ['Key', 'Value', 'Mô tả'],
     ['DocTile', m.docTitle || 'BÁO CÁO NGÀY', 'Tiêu đề chính (VI)'],
     ['DocTileEn', m.docTitleEn || 'DAILY REPORT', 'Tiêu đề chính (EN)'],
@@ -571,8 +587,11 @@ export async function encodeReportDocToBuffer(
     ['EngineerAck', m.engineerAck || '', 'TVGS xác nhận'],
     ['ApprovalComment', m.approvalComment || '', 'Ý kiến duyệt']
   ];
+  const generalRows = generalRowsRaw.map((row, i) =>
+    i === 0 ? [...row, 'Required'] : withReq(row)
+  );
   const wsGeneral = XLSX.utils.aoa_to_sheet(generalRows);
-  wsGeneral['!cols'] = [{ wch: 22 }, { wch: 70 }, { wch: 35 }];
+  wsGeneral['!cols'] = [{ wch: 22 }, { wch: 70 }, { wch: 35 }, { wch: 10 }];
   XLSX.utils.book_append_sheet(wb, wsGeneral, '01_General');
 
   // 2. Sheet 02_Manpower

@@ -112,35 +112,47 @@
 
 .report-tile-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
   padding-top: var(--space-3);
   border-top: 1px dashed var(--color-border);
   font-size: var(--text-xs);
 }
 
-.report-tile-meta {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.report-tile-footer > .icon {
+  flex: none;
+  margin-top: 2px;
   color: var(--color-text-subtle);
+}
+
+.report-tile-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .report-tile-manager-text {
   font-weight: 500;
   color: var(--color-text-secondary);
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
-.report-tile-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 600;
-  color: var(--color-accent);
+.report-tile-manager-email {
+  color: var(--color-text-subtle);
+  overflow-wrap: anywhere;
+}
+
+.report-required-mark {
+  color: var(--color-danger-text);
+  font-weight: 700;
+}
+
+.report-field-error {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-danger-text);
 }
 
 /* ==========================================================================
@@ -1139,11 +1151,6 @@
   .report-tile {
     min-width: 0;
     min-height: 0;
-  }
-
-  .report-tile-footer {
-    flex-wrap: wrap;
-    gap: var(--space-2);
   }
 
   .report-landing-container,
