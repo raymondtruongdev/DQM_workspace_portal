@@ -2,20 +2,12 @@ import * as React from 'react';
 import { RoleEntry, ToastState } from '../../../core/types';
 import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { formatDateToYYYYMMDD } from '../../../core/utils';
-import {
-  EquipmentRow,
-  IssueRow,
-  ManpowerRow,
-  MaterialRow,
-  ReportDoc,
-  ReportMetadata,
-  WorkQtyRow
-} from '../types/report.types';
+import { ReportDoc, ReportMetadata, ReportSection } from '../types/report.types';
 import { ReportDataService } from '../services/ReportDataService';
 import { formatTemplateVersionDisplay } from '../utils/reportFileNaming';
-import { buildSectionNumbering, ReportSectionId } from '../utils/reportSections';
+import { buildSectionNumbering } from '../utils/reportSections';
 import { recalculateAllRates } from '../utils/reportTaskTree';
-import { getMissingRequiredFields, getFieldLabel } from '../utils/reportValidation';
+import { getMissingRequiredFields, getFieldLabel, getMissingFormFields } from '../utils/reportValidation';
 import { ReportMetaForm } from '../components/ReportMetaForm';
 import { ReportTaskTable } from '../components/ReportTaskTable';
 import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
@@ -28,18 +20,6 @@ export interface IReportEntryViewProps {
   dataService: ReportDataService;
   onBack: () => void;
 }
-
-const SECTION_NAV_LABELS: Record<ReportSectionId, string> = {
-  general: 'Thời tiết',
-  manpower: 'Nhân lực',
-  equipment: 'Thiết bị',
-  workqty: 'Khối lượng',
-  materials: 'Vật tư',
-  worksplan: 'Công việc',
-  issues: 'Vướng mắc',
-  hse: 'HSE & Ảnh',
-  signoff: 'Ký duyệt'
-};
 
 export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   role,
@@ -129,33 +109,9 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   };
 
   // Dynamic table handlers
-  const handleManpowerChange = (manpower: ManpowerRow[]): void => {
+  const handleSectionChange = (section: ReportSection): void => {
     if (!doc) return;
-    setDoc({ ...doc, manpower });
-    setHasUnsavedChanges(true);
-  };
-
-  const handleEquipmentChange = (equipment: EquipmentRow[]): void => {
-    if (!doc) return;
-    setDoc({ ...doc, equipment });
-    setHasUnsavedChanges(true);
-  };
-
-  const handleWorkItemsChange = (workItems: WorkQtyRow[]): void => {
-    if (!doc) return;
-    setDoc({ ...doc, workItems });
-    setHasUnsavedChanges(true);
-  };
-
-  const handleMaterialsChange = (materials: MaterialRow[]): void => {
-    if (!doc) return;
-    setDoc({ ...doc, materials });
-    setHasUnsavedChanges(true);
-  };
-
-  const handleIssuesChange = (issues: IssueRow[]): void => {
-    if (!doc) return;
-    setDoc({ ...doc, issues });
+    setDoc({ ...doc, sections: doc.sections.map((x) => (x.key === section.key ? section : x)) });
     setHasUnsavedChanges(true);
   };
 
@@ -215,11 +171,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
         prev
           ? {
               ...prev,
-              photos: uploadedList,
-              metadata: {
-                ...prev.metadata,
-                photosCount: uploadedList.length
-              }
+              photos: uploadedList
             }
           : null
       );
@@ -249,11 +201,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
         prev
           ? {
               ...prev,
-              photos: remaining,
-              metadata: {
-                ...prev.metadata,
-                photosCount: remaining.length
-              }
+              photos: remaining
             }
           : null
       );
@@ -314,14 +262,16 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   const ensureRequiredFilled = (action: string): boolean => {
     if (!doc) return false;
     const missing = getMissingRequiredFields(doc.metadata);
-    if (missing.length === 0) return true;
+    const missingForm = getMissingFormFields(doc);
+    if (missing.length === 0 && missingForm.length === 0) return true;
     setShowRequiredErrors(true);
+    const labels = missing.map(getFieldLabel).concat(missingForm.map((m) => m.label));
     setToast({
       type: 'error',
-      text: `Không thể ${action}. Vui lòng nhập: ${missing.map(getFieldLabel).join(', ')}.`
+      text: `Không thể ${action}. Vui lòng nhập: ${labels.join(', ')}.`
     });
     window.setTimeout(() => {
-      const el = document.querySelector<HTMLElement>('.report-info-card [aria-invalid="true"]');
+      const el = document.querySelector<HTMLElement>('[aria-invalid="true"]');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         el.focus({ preventScroll: true });
@@ -469,7 +419,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
               className="chip"
               onClick={() => scrollToSection(item.anchor)}
             >
-              {item.roman}. {SECTION_NAV_LABELS[item.id]}
+              {item.roman}. {item.label}
             </button>
           ))}
         </div>
@@ -595,12 +545,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             doc={doc}
             disabled={isSaving}
             isUploadingPhoto={isUploadingPhoto}
-            onMetadataChange={handleMetadataChange}
-            onManpowerChange={handleManpowerChange}
-            onEquipmentChange={handleEquipmentChange}
-            onWorkItemsChange={handleWorkItemsChange}
-            onMaterialsChange={handleMaterialsChange}
-            onIssuesChange={handleIssuesChange}
+            showErrors={showRequiredErrors}
+            onSectionChange={handleSectionChange}
             onUploadPhotos={handleUploadPhotos}
             onDeletePhoto={handleDeletePhoto}
           />

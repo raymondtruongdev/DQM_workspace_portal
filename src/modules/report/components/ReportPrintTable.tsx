@@ -1,0 +1,84 @@
+import * as React from 'react';
+import { ReportTable } from '../types/report.types';
+import {
+  columnAlign,
+  columnTotal,
+  firstTotalIndex,
+  formatNumber,
+  hasTotals,
+  splitLabel,
+  toneOf
+} from '../utils/reportTable';
+
+export interface IReportPrintTableProps {
+  table: ReportTable;
+  roman: string;
+}
+
+/** Mục dạng bảng trong bản in A4 (dùng class `bcn-*` do ReportPrintPreviewModal định nghĩa). */
+export const ReportPrintTable: React.FC<IReportPrintTableProps> = ({ table, roman }) => {
+  const { columns, rows } = table;
+  const defaultWidth = 100 / Math.max(1, columns.length);
+  const totalSpan = firstTotalIndex(table);
+
+  const cellClass = (align: string, tone?: string): string =>
+    [align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : '', tone ? `bcn-tone-${tone}` : '']
+      .filter(Boolean)
+      .join(' ');
+
+  return (
+    <>
+      <div className="bcn-sec-title">
+        {roman}. {table.title} {table.titleEn && <span>| {table.titleEn}</span>}
+      </div>
+      <table className="bcn-table">
+        <thead>
+          <tr className="bcn-th-row">
+            {columns.map((col) => {
+              const lbl = splitLabel(col.label);
+              return (
+                <th key={col.code} style={{ width: `${col.width || defaultWidth}%` }}>
+                  {lbl.vi} {lbl.en && <span>| {lbl.en}</span>}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.id || i}>
+              {columns.map((col) => {
+                const v = r.values[col.code];
+                const text = col.type === 'number' || col.type === 'calc' ? formatNumber(v ?? 0) : v ?? '';
+                return (
+                  <td key={col.code} className={cellClass(columnAlign(col), toneOf(col, v))}>
+                    {text}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+          {hasTotals(table) && (
+            <tr className="bcn-total-row">
+              <td colSpan={totalSpan}>
+                Tổng <span>| Total</span>
+              </td>
+              {columns.slice(totalSpan).map((col) => (
+                <td key={col.code} className="text-right">
+                  {col.total ? columnTotal(table, col).toLocaleString('vi-VN') : ''}
+                </td>
+              ))}
+            </tr>
+          )}
+          {table.summary && (
+            <tr>
+              <td colSpan={columns.length}>
+                <strong>Tóm tắt | Summary:</strong> {table.summary}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </>
+  );
+};

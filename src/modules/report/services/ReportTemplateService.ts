@@ -1,5 +1,6 @@
 import { ReportDoc, TemplateVersionInfo } from '../types/report.types';
-import { getDefaultDailyReportSections, parseReportDocFromBuffer } from '../utils/reportCodec';
+import { parseReportDocFromBuffer } from '../utils/reportCodec';
+import { applyFormDefaults } from '../utils/reportForm';
 import { ReportFileService } from './ReportFileService';
 
 export class ReportTemplateService {
@@ -28,52 +29,26 @@ export class ReportTemplateService {
     let doc: ReportDoc;
     if (buffer) {
       doc = await parseReportDocFromBuffer(buffer, docId, unit, dateStr);
+    } else if (docId !== 'WeeklyReport') {
+      throw new Error(`Chưa có template cho ${unit} trong thư mục _template/. Vui lòng tải template lên SharePoint.`);
     } else {
-      // Fallback if template file has not been uploaded to _template yet
-      const defaults = getDefaultDailyReportSections(unit);
       doc = {
         docId,
         unit,
         dateStr,
         metadata: {
-          docTitle: docId === 'WeeklyReport' ? 'BÁO CÁO TUẦN' : 'BÁO CÁO NGÀY',
-          docTitleEn: docId === 'WeeklyReport' ? 'WEEKLY REPORT' : 'DAILY REPORT',
-          subTitle:
-            'Tuyến Metro số 2 – Gói thầu M2.1 Tham Lương – Bến Thành | HCMC Metro Line 2 – Package M2.1',
-          docCode: `HCM2_1-23_CS-MAUR_TCJV-CPZZ-${unit}-CWS-RP-041-S3-C01_BCN`,
+          docTitle: 'BÁO CÁO TUẦN',
+          docTitleEn: 'WEEKLY REPORT',
+          subTitle: '',
+          docCode: '',
           templateVersion: `default_${unit}`,
           location: `${unit} – Ga ${unit}`,
           reportNo: '001',
-          shift: 'Cả ngày (2 ca)',
+          shift: '',
           email: currentUserEmail,
-          updateTime: new Date().toISOString(),
-          weatherAM: 'Nắng',
-          weatherPM: 'Nắng',
-          maxTemp: '33 °C',
-          hrsLost: 0,
-          progressEval: 'Đạt',
-          summary: '',
-          worksToday: '',
-          planTomorrow: '',
-          hseIncidents: 0,
-          hseInspections: 0,
-          inspectionRequests: 0,
-          newNCR: 0,
-          photosCount: 0,
-          incidentDetails: 'Không có | None',
-          engineerInstructions: '',
-          planSummary: '',
-          preparedBy: currentUserEmail,
-          siteManager: siteManager || '',
-          tcjvRep: '',
-          engineerAck: '',
-          approvalComment: ''
+          updateTime: new Date().toISOString()
         },
-        manpower: defaults.manpower,
-        equipment: defaults.equipment,
-        workItems: defaults.workItems,
-        materials: defaults.materials,
-        issues: defaults.issues,
+        sections: [],
         tasks: []
       };
     }
@@ -93,15 +68,10 @@ export class ReportTemplateService {
     }
     doc.metadata.docCode = doc.metadata.docCode.replace(/ST\d+/gi, unit);
     doc.metadata.email = currentUserEmail;
-    if (!doc.metadata.preparedBy) {
-      doc.metadata.preparedBy = currentUserEmail;
-    }
-    if (siteManager && !doc.metadata.siteManager) {
-      doc.metadata.siteManager = siteManager;
-    }
     doc.metadata.updateTime = new Date().toISOString();
     doc.dateStr = dateStr;
     doc.templateUpdateRequired = false;
+    doc = applyFormDefaults(doc, { unit, email: currentUserEmail, siteManager });
 
     return {
       doc,

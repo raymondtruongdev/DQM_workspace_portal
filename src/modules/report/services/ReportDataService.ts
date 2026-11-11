@@ -1,5 +1,6 @@
 import { ReportDoc, ReportPhotoFile, TemplateVersionInfo } from '../types/report.types';
 import { parseReportDocFromBuffer, encodeReportDocToBuffer } from '../utils/reportCodec';
+import { applyFormDefaults } from '../utils/reportForm';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
 import { ReportFileService } from './ReportFileService';
 import { ReportTemplateService } from './ReportTemplateService';
@@ -54,17 +55,12 @@ export class ReportDataService {
     }));
 
     if (existingFile && existingFile.buffer) {
-      const doc = await parseReportDocFromBuffer(existingFile.buffer, docId, unit, dateStr);
+      let doc = await parseReportDocFromBuffer(existingFile.buffer, docId, unit, dateStr);
       doc.eTag = existingFile.eTag;
       doc.isExisting = true;
       doc.photos = photos;
       doc.latestTemplateInfo = latestTemplateInfo;
-      if (photos.length > 0) {
-        doc.metadata.photosCount = photos.length;
-      }
-      if (siteManager && !doc.metadata.siteManager) {
-        doc.metadata.siteManager = siteManager;
-      }
+      doc = applyFormDefaults(doc, { unit, email: currentUserEmail, siteManager });
 
       const isOutdated = isTemplateVersionOutdated(doc.metadata.templateVersion, latestTemplateInfo);
       if (isOutdated) {
@@ -88,21 +84,15 @@ export class ReportDataService {
     // Try loading from the adjacent / closest previous day's report first
     const prevReport = await this._fileService.getPreviousReportFile(unit, docId, dateStr);
     if (prevReport && prevReport.buffer) {
-      const doc = await parseReportDocFromBuffer(prevReport.buffer, docId, unit, dateStr);
+      let doc = await parseReportDocFromBuffer(prevReport.buffer, docId, unit, dateStr);
       doc.dateStr = dateStr;
       doc.isExisting = false;
       doc.eTag = undefined;
       doc.copiedFromDate = prevReport.sourceDateStr;
       doc.photos = photos;
       doc.latestTemplateInfo = latestTemplateInfo;
-      doc.metadata.photosCount = photos.length;
       doc.metadata.email = currentUserEmail;
-      if (!doc.metadata.preparedBy) {
-        doc.metadata.preparedBy = currentUserEmail;
-      }
-      if (siteManager && !doc.metadata.siteManager) {
-        doc.metadata.siteManager = siteManager;
-      }
+      doc = applyFormDefaults(doc, { unit, email: currentUserEmail, siteManager });
       doc.metadata.updateTime = new Date().toISOString();
 
       const isOutdated = isTemplateVersionOutdated(doc.metadata.templateVersion, latestTemplateInfo);
@@ -134,9 +124,6 @@ export class ReportDataService {
     );
 
     templateResult.doc.photos = photos;
-    if (photos.length > 0) {
-      templateResult.doc.metadata.photosCount = photos.length;
-    }
 
     return {
       doc: templateResult.doc,
@@ -170,7 +157,6 @@ export class ReportDataService {
       newDoc.isExisting = currentDoc.isExisting;
       if (currentDoc.photos && currentDoc.photos.length > 0) {
         newDoc.photos = currentDoc.photos;
-        newDoc.metadata.photosCount = currentDoc.photos.length;
       }
     }
     newDoc.templateUpdateRequired = false;

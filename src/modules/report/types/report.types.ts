@@ -11,8 +11,9 @@ export interface TemplateVersionInfo {
 }
 
 /** Metadata fields a template may flag as required (column `Required` of sheet 01_General). */
-export type RequirableField = 'location' | 'reportNo' | 'shift' | 'maxTemp' | 'summary';
+export type RequirableField = 'location' | 'reportNo' | 'shift';
 
+/** Thông tin chung của báo cáo (sheet 01_General). Nội dung báo cáo nằm trong các mục (sections). */
 export interface ReportMetadata {
   /** Fields that must be filled before saving/printing (from template flag). */
   requiredFields?: RequirableField[];
@@ -26,93 +27,81 @@ export interface ReportMetadata {
   shift: string;                // e.g. "Cả ngày (2 ca)"
   email: string;                // User email
   updateTime: string;           // ISO 8601 or formatted string
-  // I. General & Weather
-  weatherAM: string;            // "Nắng"
-  weatherPM: string;            // "Mưa to"
-  maxTemp: string;              // "33 °C"
-  hrsLost?: number;             // 1.5
-  progressEval: string;         // "Đạt" | "Chậm" | "Vượt"
-  summary: string;              // I. Tóm tắt | Summary
-  manpowerSummary?: string;     // II. Tóm tắt nhân lực
-  equipmentSummary?: string;    // III. Tóm tắt thiết bị
-  workQtySummary?: string;      // IV. Tóm tắt khối lượng
-  materialsSummary?: string;    // V. Tóm tắt vật tư
-  worksPlanSummary?: string;    // VI. Tóm tắt công việc & kế hoạch
-  issuesSummary?: string;       // VII. Tóm tắt vướng mắc
-  // VI. Works Today & Plan for Tomorrow
-  worksToday: string;
-  planTomorrow: string;
-  // VIII. HSE – Quality – Engineer's Instructions
-  hseIncidents?: number;
-  hseInspections?: number;
-  inspectionRequests?: number;
-  newNCR?: number;
-  photosCount?: number;
-  photosFolder?: string;
-  incidentDetails: string;
-  engineerInstructions: string;
-  planSummary: string;
-  // Sign-off & Data Checks
-  preparedBy: string;
-  siteManager: string;
-  tcjvRep: string;
-  engineerAck: string;
-  approvalComment: string;
 }
 
-export interface ManpowerRow {
-  id: string;
-  org: string;        // Đơn vị | Org.
-  category: string;   // Loại | Category
-  nos?: number;       // Số người | Nos.
-  hrs?: number;       // Giờ/người | Hrs
-  manHrs?: number;    // Giờ công | Man-hrs
-  isLocked?: boolean; // Khoá không cho xoá / sửa tên đơn vị
+export type CellValue = string | number | undefined;
+export type ColumnType = 'text' | 'number' | 'select' | 'calc';
+export type ColumnTone = 'danger' | 'warning';
+
+/** Cột của bảng động, khai báo trong sheet (dòng mã cột + nhãn + spec). */
+export interface TableColumn {
+  code: string;                       // Mã cột, ví dụ "Nos"
+  label: string;                      // "Giờ công | Man-hrs"
+  spec: string;                       // Nguyên văn spec trong sheet, ví dụ "number;total;w=14"
+  type: ColumnType;
+  options?: string[];                 // select:A/B/C
+  formula?: string;                   // calc:Nos*Hrs
+  key?: boolean;                      // dòng IsLocked => ô này chỉ đọc
+  total?: boolean;                    // có dòng Tổng
+  align?: 'left' | 'center' | 'right';
+  width?: number;                     // % bề rộng (tuỳ chọn)
+  defaultValue?: string;              // giá trị khi thêm dòng; {unit}, {n3}
+  tones?: Record<string, ColumnTone>; // tô màu theo giá trị (select)
 }
 
-export interface EquipmentRow {
+export interface TableRow {
   id: string;
-  equipment: string;  // Thiết bị | Equipment
-  qty?: number;       // SL | Qty
-  hrs?: number;       // Giờ HĐ | Hrs
-  status: string;     // Tình trạng | Status
-  remark: string;     // Ghi chú | Remark
-  isLocked?: boolean; // Khoá không cho xoá
+  isLocked?: boolean;
+  values: Record<string, CellValue>;
 }
 
-export interface WorkQtyRow {
-  id: string;
-  activityId: string; // Activity ID
-  item: string;       // Hạng mục | Item
-  unit: string;       // ĐV | Unit
-  plan?: number;      // KH ngày | Plan
-  actual?: number;    // Thực hiện | Actual
-  percent?: number;   // %
-  remark: string;     // Ghi chú | Remark
-  isLocked?: boolean; // Khoá không cho xoá / sửa mã Activity ID
+/** Một mục dạng bảng, mỗi mục = một sheet 0N_<Tên> trong template/báo cáo. */
+export interface ReportTable {
+  kind: 'table';
+  key: string;        // tên sheet (không tiền tố số), chữ thường: "manpower"
+  sheetBase: string;  // tên sheet gốc không tiền tố: "Manpower"
+  title: string;      // "NHÂN LỰC"
+  titleEn: string;    // "MANPOWER"
+  shortTitle: string; // nhãn thanh nhảy nhanh
+  summary: string;    // Tóm tắt | Summary
+  columns: TableColumn[];
+  rows: TableRow[];
 }
 
-export interface MaterialRow {
-  id: string;
-  material: string;   // Vật tư | Material
-  unit: string;       // ĐV | Unit
-  recv?: number;      // Nhập về | Recv.
-  used?: number;      // Sử dụng | Used
-  mirMar: string;     // Phiếu MIR/MAR
-  isLocked?: boolean; // Khoá không cho xoá
+export type FieldType = 'text' | 'textarea' | 'number' | 'select' | 'photos';
+
+/** Trường của mục dạng form (một dòng trong sheet form). */
+export interface FormField {
+  key: string;
+  label: string;                // "Sáng | AM"
+  spec: string;                 // Nguyên văn spec trong sheet
+  type: FieldType;
+  options?: string[];           // select:A/B/C
+  full?: boolean;               // trải hết hàng
+  span?: number;                // số cột lưới chiếm (mặc định 1)
+  rows?: number;                // số dòng của textarea
+  placeholder?: string;
+  defaultValue?: string;        // giá trị khi trống; {user} {siteManager} {unit} được điền tự động
+  required?: boolean;           // cột Required của sheet
+  value: CellValue;
 }
 
-export interface IssueRow {
-  id: string;
-  issueId: string;      // Mã | ID
-  description: string;  // Nội dung | Description
-  severity: string;     // Mức | Sev. ("Cao", "Trung bình", "Thấp")
-  criticalPath: string; // Găng | CP ("Có", "–")
-  owner: string;        // Bên xử lý | By
-  dueDate: string;      // Hạn | Due
-  status: string;       // Trạng thái ("Mở", "Đang xử lý", "Đóng")
-  isLocked?: boolean;   // Khoá không cho xoá
+/** Một mục dạng form (thời tiết, công việc, HSE, ký duyệt…): mỗi sheet form = một mục. */
+export interface ReportForm {
+  kind: 'form';
+  key: string;
+  sheetBase: string;
+  title: string;
+  titleEn: string;
+  shortTitle: string;
+  columns: number;              // số cột lưới (và số cột bảng khi in)
+  sign: boolean;                // in dạng khung chữ ký
+  summary: string;              // Tóm tắt | Summary (dòng 2 của sheet)
+  showSummary: boolean;         // có hiện ô Tóm tắt không
+  fields: FormField[];
 }
+
+export type ReportSection = ReportTable | ReportForm;
 
 export interface ReportPhotoFile {
   name: string;
@@ -136,21 +125,13 @@ export interface ReportTaskNode extends ReportTaskRow {
   children: ReportTaskNode[];
 }
 
-/** Bảng dữ liệu mà template có thể có hoặc không (mỗi bảng = một sheet). */
-export type ReportSectionKey = 'manpower' | 'equipment' | 'workqty' | 'materials' | 'issues';
-
 export interface ReportDoc {
-  /** Các bảng có trong template/báo cáo này. Không khai báo = đủ mọi bảng. */
-  sections?: ReportSectionKey[];
   docId: string;          // "DailyReport" | "WeeklyReport"
   unit: string;           // e.g. "ST01", "ST06"
   dateStr: string;        // "YYYY-MM-DD"
   metadata: ReportMetadata;
-  manpower: ManpowerRow[];
-  equipment: EquipmentRow[];
-  workItems: WorkQtyRow[];
-  materials: MaterialRow[];
-  issues: IssueRow[];
+  /** Các mục của báo cáo (bảng hoặc form), theo thứ tự sheet trong template. */
+  sections: ReportSection[];
   tasks: ReportTaskRow[]; // Used for WeeklyReport or legacy tree-table
   photos?: ReportPhotoFile[];
   eTag?: string;

@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { ReportDoc } from '../types/report.types';
-import { buildSectionNumbering, hasSection } from '../utils/reportSections';
+import { buildSectionNumbering } from '../utils/reportSections';
+import { ReportPrintTable } from './ReportPrintTable';
+import { ReportPrintForm } from './ReportPrintForm';
 import { formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 
 export interface IReportPrintPreviewModalProps {
@@ -24,14 +26,12 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
   const m = doc.metadata;
   const num = buildSectionNumbering(doc);
 
-  const totalNos = doc.manpower.reduce((acc, r) => acc + (r.nos || 0), 0);
-  const totalManHrs = doc.manpower.reduce((acc, r) => acc + (r.manHrs || 0), 0);
   // URL tuyệt đối để iframe in tải được ảnh (cùng phiên đăng nhập SharePoint)
   const photoItems = (doc.photos || []).map((ph) => ({
     name: ph.name,
     url: new URL(ph.serverRelativeUrl, window.location.href).href
   }));
-  const photosCount = doc.photos && doc.photos.length > 0 ? doc.photos.length : m.photosCount ?? 0;
+  const photosCount = doc.photos ? doc.photos.length : 0;
 
   const handlePrint = (): void => {
     if (!printAreaRef.current) return;
@@ -202,11 +202,15 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
       background: #f3f4f6;
       font-weight: 700;
     }
+    .bcn-total-row td span {
+      font-weight: 400;
+      color: #4b5563;
+    }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
     .font-bold { font-weight: 700; }
-    .sev-cao { color: #b91c1c; font-weight: 700; }
-    .sev-tb { color: #9a3412; font-weight: 700; }
+    .bcn-tone-danger { color: #b91c1c; font-weight: 700; }
+    .bcn-tone-warning { color: #9a3412; font-weight: 700; }
     .bcn-preline { white-space: pre-line; }
     .bcn-sign-box {
       height: 110px; /* chừa chỗ trống phía trên tên để ký */
@@ -407,476 +411,23 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
                 </tbody>
               </table>
 
-              {/* I. THÔNG TIN CHUNG & THỜI TIẾT */}
-              <div className="bcn-sec-title">
-                I. THÔNG TIN CHUNG &amp; THỜI TIẾT <span>| GENERAL &amp; WEATHER</span>
-              </div>
-              <table className="bcn-table">
-                <thead>
-                  <tr className="bcn-th-row">
-                    <th style={{ width: '16%' }}>
-                      Sáng <span>| AM</span>
-                    </th>
-                    <th style={{ width: '16%' }}>
-                      Chiều <span>| PM</span>
-                    </th>
-                    <th style={{ width: '22%' }}>
-                      Nhiệt độ max <span>| Max temp</span>
-                    </th>
-                    <th style={{ width: '24%' }}>
-                      Giờ mất do thời tiết <span>| Hrs lost</span>
-                    </th>
-                    <th style={{ width: '22%' }}>
-                      Đánh giá tiến độ <span>| Progress</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="text-center">{m.weatherAM}</td>
-                    <td className="text-center">{m.weatherPM}</td>
-                    <td className="text-center">
-                      {m.maxTemp ? (m.maxTemp.includes('°C') ? m.maxTemp : `${m.maxTemp} °C`) : ''}
-                    </td>
-                    <td className="text-center">
-                      {m.hrsLost !== undefined ? String(m.hrsLost).replace('.', ',') : '0'}
-                    </td>
-                    <td className="text-center font-bold">{m.progressEval}</td>
-                  </tr>
-                  <tr>
-                    <td colSpan={5}>
-                      <strong>Tóm tắt | Summary:</strong> {m.summary}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              {/* II. NHÂN LỰC | MANPOWER */}
-              {hasSection(doc, 'manpower') && (
-                <>
-                  <div className="bcn-sec-title">
-                    {num.roman('manpower')}. NHÂN LỰC <span>| MANPOWER</span>
-                  </div>
-                  <table className="bcn-table">
-                    <thead>
-                      <tr className="bcn-th-row">
-                        <th style={{ width: '20%' }}>
-                          Đơn vị <span>| Org.</span>
-                        </th>
-                        <th style={{ width: '38%' }}>
-                          Loại <span>| Category</span>
-                        </th>
-                        <th style={{ width: '14%' }}>
-                          Số người <span>| Nos.</span>
-                        </th>
-                        <th style={{ width: '14%' }}>
-                          Giờ/người <span>| Hrs</span>
-                        </th>
-                        <th style={{ width: '14%' }}>
-                          Giờ công <span>| Man-hrs</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {doc.manpower.map((r, i) => (
-                        <tr key={r.id || i}>
-                          <td>{r.org}</td>
-                          <td>{r.category}</td>
-                          <td className="text-right">{r.nos ?? 0}</td>
-                          <td className="text-right">{r.hrs ?? 0}</td>
-                          <td className="text-right">{(r.manHrs || 0).toLocaleString('vi-VN')}</td>
-                        </tr>
-                      ))}
-                      <tr className="bcn-total-row">
-                        <td colSpan={2}>
-                          Tổng <span style={{ fontWeight: 400, color: '#4b5563' }}>| Total</span>
-                        </td>
-                        <td className="text-right">{totalNos.toLocaleString('vi-VN')}</td>
-                        <td />
-                        <td className="text-right">{totalManHrs.toLocaleString('vi-VN')}</td>
-                      </tr>
-                      {m.manpowerSummary && (
-                        <tr>
-                          <td colSpan={5}>
-                            <strong>Tóm tắt | Summary:</strong> {m.manpowerSummary}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </>
+              {/* Các mục của báo cáo (mỗi sheet của template = một mục, theo thứ tự sheet) */}
+              {doc.sections.map((sec) =>
+                sec.kind === 'table' ? (
+                  <ReportPrintTable key={sec.key} table={sec} roman={num.roman(sec.key)} />
+                ) : (
+                  <ReportPrintForm
+                    key={sec.key}
+                    form={sec}
+                    roman={num.roman(sec.key)}
+                    photoCount={photosCount}
+                    photoItems={photoItems}
+                  />
+                )
               )}
 
-              {/* III. THIẾT BỊ | EQUIPMENT */}
-              {hasSection(doc, 'equipment') && (
-                <>
-                  <div className="bcn-sec-title">
-                    {num.roman('equipment')}. THIẾT BỊ <span>| EQUIPMENT</span>
-                  </div>
-                  <table className="bcn-table">
-                    <thead>
-                      <tr className="bcn-th-row">
-                        <th style={{ width: '36%' }}>
-                          Thiết bị <span>| Equipment</span>
-                        </th>
-                        <th style={{ width: '10%' }}>
-                          SL <span>| Qty</span>
-                        </th>
-                        <th style={{ width: '12%' }}>
-                          Giờ HĐ <span>| Hrs</span>
-                        </th>
-                        <th style={{ width: '16%' }}>
-                          Tình trạng <span>| Status</span>
-                        </th>
-                        <th style={{ width: '26%' }}>
-                          Ghi chú <span>| Remark</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {doc.equipment.map((r, i) => (
-                        <tr key={r.id || i}>
-                          <td>{r.equipment}</td>
-                          <td className="text-right">{r.qty ?? 0}</td>
-                          <td className="text-right">
-                            {r.hrs !== undefined ? String(r.hrs).replace('.', ',') : '0'}
-                          </td>
-                          <td className="text-center">{r.status}</td>
-                          <td>{r.remark}</td>
-                        </tr>
-                      ))}
-                      {m.equipmentSummary && (
-                        <tr>
-                          <td colSpan={5}>
-                            <strong>Tóm tắt | Summary:</strong> {m.equipmentSummary}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {/* IV. KHỐI LƯỢNG THỰC HIỆN | WORK QUANTITIES */}
-              {hasSection(doc, 'workqty') && (
-                <>
-                  <div className="bcn-sec-title">
-                    {num.roman('workqty')}. KHỐI LƯỢNG THỰC HIỆN <span>| WORK QUANTITIES</span>
-                  </div>
-                  <table className="bcn-table">
-                    <thead>
-                      <tr className="bcn-th-row">
-                        <th style={{ width: '16%' }}>Activity ID</th>
-                        <th style={{ width: '30%' }}>
-                          Hạng mục <span>| Item</span>
-                        </th>
-                        <th style={{ width: '8%' }}>
-                          ĐV <span>| Unit</span>
-                        </th>
-                        <th style={{ width: '10%' }}>
-                          KH ngày <span>| Plan</span>
-                        </th>
-                        <th style={{ width: '10%' }}>
-                          Thực hiện <span>| Actual</span>
-                        </th>
-                        <th style={{ width: '8%' }}>%</th>
-                        <th style={{ width: '18%' }}>
-                          Ghi chú <span>| Remark</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {doc.workItems.map((r, i) => (
-                        <tr key={r.id || i}>
-                          <td>{r.activityId}</td>
-                          <td>{r.item}</td>
-                          <td className="text-center">{r.unit}</td>
-                          <td className="text-right">{r.plan ?? 0}</td>
-                          <td className="text-right">{r.actual ?? 0}</td>
-                          <td className="text-right">{r.percent !== undefined ? `${r.percent}%` : ''}</td>
-                          <td>{r.remark}</td>
-                        </tr>
-                      ))}
-                      {m.workQtySummary && (
-                        <tr>
-                          <td colSpan={7}>
-                            <strong>Tóm tắt | Summary:</strong> {m.workQtySummary}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {/* V. VẬT TƯ | MATERIALS */}
-              {hasSection(doc, 'materials') && (
-                <>
-                  <div className="bcn-sec-title">
-                    {num.roman('materials')}. VẬT TƯ <span>| MATERIALS</span>
-                  </div>
-                  <table className="bcn-table">
-                    <thead>
-                      <tr className="bcn-th-row">
-                        <th style={{ width: '38%' }}>
-                          Vật tư <span>| Material</span>
-                        </th>
-                        <th style={{ width: '10%' }}>
-                          ĐV <span>| Unit</span>
-                        </th>
-                        <th style={{ width: '13%' }}>
-                          Nhập về <span>| Recv.</span>
-                        </th>
-                        <th style={{ width: '13%' }}>
-                          Sử dụng <span>| Used</span>
-                        </th>
-                        <th style={{ width: '26%' }}>Phiếu MIR/MAR</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {doc.materials.map((r, i) => (
-                        <tr key={r.id || i}>
-                          <td>{r.material}</td>
-                          <td className="text-center">{r.unit}</td>
-                          <td className="text-right">
-                            {r.recv !== undefined ? String(r.recv).replace('.', ',') : '0'}
-                          </td>
-                          <td className="text-right">
-                            {r.used !== undefined ? String(r.used).replace('.', ',') : '0'}
-                          </td>
-                          <td>{r.mirMar}</td>
-                        </tr>
-                      ))}
-                      {m.materialsSummary && (
-                        <tr>
-                          <td colSpan={5}>
-                            <strong>Tóm tắt | Summary:</strong> {m.materialsSummary}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {/* VI. CÔNG VIỆC THỰC HIỆN & KẾ HOẠCH NGÀY MAI */}
-              <div className="bcn-sec-title">
-                {num.roman('worksplan')}. CÔNG VIỆC THỰC HIỆN &amp; KẾ HOẠCH NGÀY MAI{' '}
-                <span>| WORKS TODAY &amp; PLAN FOR TOMORROW</span>
-              </div>
-              <table className="bcn-table">
-                <thead>
-                  <tr className="bcn-th-row">
-                    <th style={{ width: '50%' }}>
-                      Hôm nay <span>| Today</span>
-                    </th>
-                    <th style={{ width: '50%' }}>
-                      Ngày mai <span>| Tomorrow</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="bcn-preline" style={{ verticalAlign: 'top' }}>
-                      {m.worksToday}
-                    </td>
-                    <td className="bcn-preline" style={{ verticalAlign: 'top' }}>
-                      {m.planTomorrow}
-                    </td>
-                  </tr>
-                  {m.worksPlanSummary && (
-                    <tr>
-                      <td colSpan={2}>
-                        <strong>Tóm tắt | Summary:</strong> {m.worksPlanSummary}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              {/* VII. VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ */}
-              {hasSection(doc, 'issues') && (
-                <>
-                  <div className="bcn-sec-title">
-                    {num.roman('issues')}. VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ <span>| OPEN ISSUES &amp; CONSTRAINTS</span>
-                  </div>
-                  <table className="bcn-table">
-                    <thead>
-                      <tr className="bcn-th-row">
-                        <th style={{ width: '13%' }}>
-                          Mã <span>| ID</span>
-                        </th>
-                        <th style={{ width: '38%' }}>
-                          Nội dung <span>| Description</span>
-                        </th>
-                        <th style={{ width: '10%' }}>
-                          Mức <span>| Sev.</span>
-                        </th>
-                        <th style={{ width: '8%' }}>
-                          Găng <span>| CP</span>
-                        </th>
-                        <th style={{ width: '15%' }}>
-                          Bên xử lý <span>| By</span>
-                        </th>
-                        <th style={{ width: '8%' }}>
-                          Hạn <span>| Due</span>
-                        </th>
-                        <th style={{ width: '8%' }}>Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {doc.issues.map((r, i) => (
-                        <tr key={r.id || i}>
-                          <td>{r.issueId}</td>
-                          <td>{r.description}</td>
-                          <td
-                            className={`text-center ${
-                              r.severity === 'Cao' ? 'sev-cao' : r.severity === 'Trung bình' ? 'sev-tb' : ''
-                            }`}
-                          >
-                            {r.severity}
-                          </td>
-                          <td className="text-center font-bold">{r.criticalPath}</td>
-                          <td>{r.owner}</td>
-                          <td className="text-center">{r.dueDate}</td>
-                          <td className="text-center">{r.status}</td>
-                        </tr>
-                      ))}
-                      {m.issuesSummary && (
-                        <tr>
-                          <td colSpan={7}>
-                            <strong>Tóm tắt | Summary:</strong> {m.issuesSummary}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {/* VIII. AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS */}
-              <div className="bcn-sec-title">
-                {num.roman('hse')}. AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS{' '}
-                <span>| HSE – QUALITY – ENGINEER&apos;S INSTRUCTIONS</span>
-              </div>
-              <table className="bcn-table">
-                <thead>
-                  <tr className="bcn-th-row">
-                    <th style={{ width: '18%' }}>
-                      Sự cố HSE <span>| Incidents</span>
-                    </th>
-                    <th style={{ width: '24%' }}>
-                      Kiểm tra ATLĐ <span>| HSE inspections</span>
-                    </th>
-                    <th style={{ width: '19%' }}>
-                      Nghiệm thu <span>| IR</span>
-                    </th>
-                    <th style={{ width: '19%' }}>
-                      NCR mới <span>| New NCR</span>
-                    </th>
-                    <th style={{ width: '20%' }}>
-                      Ảnh hiện trường <span>| Photos</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="text-center">{m.hseIncidents ?? 0}</td>
-                    <td className="text-center">{m.hseInspections ?? 0}</td>
-                    <td className="text-center">{m.inspectionRequests ?? 0}</td>
-                    <td className="text-center">{m.newNCR ?? 0}</td>
-                    <td className="text-center">{photosCount} ảnh</td>
-                  </tr>
-                  <tr>
-                    <td colSpan={5}>
-                      <strong>Mô tả sự cố | Incident details:</strong> {m.incidentDetails || 'Không có | None'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colSpan={5}>
-                      <strong>Chỉ thị/ý kiến TVGS | Engineer&apos;s instructions:</strong>{' '}
-                      {m.engineerInstructions}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colSpan={5}>
-                      <strong>Kế hoạch ngày mai (tóm tắt) | Plan summary:</strong> {m.planSummary}
-                    </td>
-                  </tr>
-                  {photoItems.length > 0 && (
-                    <tr className="bcn-photo-row">
-                      <td colSpan={5}>
-                        <strong>Ảnh hiện trường | Site photos ({photoItems.length}):</strong>
-                        <div className="bcn-photo-grid">
-                          {photoItems.map((ph) => (
-                            <figure key={ph.url} className="bcn-photo-item">
-                              <img src={ph.url} alt={ph.name} />
-                              <figcaption className="bcn-photo-cap">{ph.name}</figcaption>
-                            </figure>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              {/* SIGNATURES TABLE */}
               <div className="bcn-keep-together">
-                <table className="bcn-table" style={{ marginTop: '8px' }}>
-                  <thead>
-                    <tr className="bcn-th-row">
-                      <th style={{ width: '25%' }}>
-                        Người lập
-                        <br />
-                        <span>Prepared by</span>
-                      </th>
-                      <th style={{ width: '25%' }}>
-                        Trưởng ga / CHT
-                        <br />
-                        <span>Site manager</span>
-                      </th>
-                      <th style={{ width: '25%' }}>
-                        Đại diện TCJV
-                        <br />
-                        <span>TCJV representative</span>
-                      </th>
-                      <th style={{ width: '25%' }}>
-                        TVGS xác nhận
-                        <br />
-                        <span>Engineer acknowledged</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="bcn-sign-box">
-                        <div style={{ fontWeight: 600 }}>
-                          {m.preparedBy || m.email || '[Người lập]'}
-                        </div>
-                      </td>
-                      <td className="bcn-sign-box">
-                        <div style={{ fontWeight: 600 }}>
-                          {m.siteManager || '[Trưởng ga]'}
-                        </div>
-                      </td>
-                      <td className="bcn-sign-box">
-                        <div style={{ fontWeight: 600 }}>{m.tcjvRep || ''}</div>
-                      </td>
-                      <td className="bcn-sign-box">
-                        <div style={{ fontWeight: 600 }}>{m.engineerAck || ''}</div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                {/* FOOTER NOTE */}
                 <div className="bcn-footer-note">
-                  {m.approvalComment && (
-                    <div>
-                      <strong>Ý kiến duyệt:</strong> {m.approvalComment}
-                    </div>
-                  )}
                   <div>
                     Sinh tự động từ Microsoft 365 (SharePoint)
                   </div>

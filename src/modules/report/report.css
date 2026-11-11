@@ -494,33 +494,21 @@
   width: 100%;
 }
 
-.report-weather-grid {
+/* Lưới trường của mục dạng form (số cột lấy từ dòng Layout của sheet) */
+.report-form-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--report-form-cols, 2), minmax(0, 1fr));
   gap: 16px;
   align-items: end;
 }
 
-.report-two-col-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  align-items: end;
+.report-form-cell {
+  grid-column: span var(--report-cell-span, 1);
+  min-width: 0;
 }
 
-.report-hse-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
-  align-items: end;
-}
-
-.report-signoff-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 24px;
-  row-gap: 16px;
-  align-items: end;
+.report-form-cell--full {
+  grid-column: 1 / -1;
 }
 
 /* Editable Tables */
@@ -1058,13 +1046,8 @@
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   }
 
-  .report-weather-grid,
-  .report-hse-kpi-grid {
+  .report-form-grid--wide {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .report-signoff-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1089,16 +1072,21 @@
     justify-content: flex-start;
   }
 
-  .report-info-grid-2x2,
-  .report-two-col-grid {
+  .report-info-grid-2x2 {
     grid-template-columns: 1fr;
     gap: 14px;
   }
 
-  .report-weather-grid,
-  .report-hse-kpi-grid,
-  .report-signoff-grid {
+  .report-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-form-cell {
+    grid-column: span 1;
+  }
+
+  .report-form-cell--area {
+    grid-column: 1 / -1;
   }
 
   .bcn-a4-page {
@@ -1163,9 +1151,7 @@
     align-items: stretch;
   }
   .report-info-grid-2x2,
-  .report-weather-grid,
-  .report-hse-kpi-grid,
-  .report-signoff-grid {
+  .report-form-grid {
     grid-template-columns: 1fr;
   }
 }
