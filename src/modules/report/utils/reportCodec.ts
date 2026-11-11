@@ -6,12 +6,19 @@ import {
   MaterialRow,
   ReportDoc,
   ReportMetadata,
+  ReportSectionKey,
   ReportTaskRow,
   RequirableField,
   WorkQtyRow
 } from '../types/report.types';
 import { recalculateAllRates } from './reportTaskTree';
+import { TABLE_SECTIONS, SECTION_SHEET_NAME, findSectionSheet, hasSection } from './reportSections';
 import { REQUIRABLE_FIELDS, getRequiredFields } from './reportValidation';
+
+function getSectionSheet(wb: XLSXTypes.WorkBook, key: ReportSectionKey): XLSXTypes.WorkSheet | undefined {
+  const name = findSectionSheet(wb.SheetNames, key);
+  return name ? wb.Sheets[name] : undefined;
+}
 
 async function getXlsx(): Promise<typeof XLSXTypes> {
   return await import(/* webpackChunkName: 'xlsx' */ 'xlsx');
@@ -282,7 +289,7 @@ export async function parseReportDocFromBuffer(
 
     // 2. Parse 02_Manpower
     const manpower: ManpowerRow[] = [];
-    const wsMp = wb.Sheets['02_Manpower'];
+    const wsMp = getSectionSheet(wb, 'manpower');
     if (wsMp) {
       const rows: unknown[][] = XLSX.utils.sheet_to_json(wsMp, { header: 1, defval: '' });
       for (let r = 1; r < rows.length; r++) {
@@ -309,7 +316,7 @@ export async function parseReportDocFromBuffer(
 
     // 3. Parse 03_Equipment
     const equipment: EquipmentRow[] = [];
-    const wsEq = wb.Sheets['03_Equipment'];
+    const wsEq = getSectionSheet(wb, 'equipment');
     if (wsEq) {
       const rows: unknown[][] = XLSX.utils.sheet_to_json(wsEq, { header: 1, defval: '' });
       for (let r = 1; r < rows.length; r++) {
@@ -329,7 +336,7 @@ export async function parseReportDocFromBuffer(
 
     // 4. Parse 04_WorkQty
     const workItems: WorkQtyRow[] = [];
-    const wsWq = wb.Sheets['04_WorkQty'];
+    const wsWq = getSectionSheet(wb, 'workqty');
     if (wsWq) {
       const rows: unknown[][] = XLSX.utils.sheet_to_json(wsWq, { header: 1, defval: '' });
       for (let r = 1; r < rows.length; r++) {
@@ -359,7 +366,7 @@ export async function parseReportDocFromBuffer(
 
     // 5. Parse 05_Materials
     const materials: MaterialRow[] = [];
-    const wsMat = wb.Sheets['05_Materials'];
+    const wsMat = getSectionSheet(wb, 'materials');
     if (wsMat) {
       const rows: unknown[][] = XLSX.utils.sheet_to_json(wsMat, { header: 1, defval: '' });
       for (let r = 1; r < rows.length; r++) {
@@ -379,7 +386,7 @@ export async function parseReportDocFromBuffer(
 
     // 6. Parse 06_Issues
     const issues: IssueRow[] = [];
-    const wsIss = wb.Sheets['06_Issues'];
+    const wsIss = getSectionSheet(wb, 'issues');
     if (wsIss) {
       const rows: unknown[][] = XLSX.utils.sheet_to_json(wsIss, { header: 1, defval: '' });
       for (let r = 1; r < rows.length; r++) {
@@ -409,7 +416,8 @@ export async function parseReportDocFromBuffer(
       workItems,
       materials,
       issues,
-      tasks: []
+      tasks: [],
+      sections: TABLE_SECTIONS.filter((k) => findSectionSheet(wb.SheetNames, k) !== undefined)
     };
     return doc;
   }
@@ -527,8 +535,8 @@ export async function parseReportDocFromBuffer(
 }
 
 /**
- * Encode ReportDoc into a 6-sheet Excel ArrayBuffer:
- * 01_General, 02_Manpower, 03_Equipment, 04_WorkQty, 05_Materials, 06_Issues
+ * Encode ReportDoc into an Excel ArrayBuffer: 01_General + only the table sheets the template has
+ * (Manpower, Equipment, WorkQty, Materials, Issues), numbered consecutively.
  */
 export async function encodeReportDocToBuffer(
   doc: ReportDoc,
@@ -594,7 +602,15 @@ export async function encodeReportDocToBuffer(
   wsGeneral['!cols'] = [{ wch: 22 }, { wch: 70 }, { wch: 35 }, { wch: 10 }];
   XLSX.utils.book_append_sheet(wb, wsGeneral, '01_General');
 
-  // 2. Sheet 02_Manpower
+  // Chỉ ghi các bảng template có; số thứ tự sheet liên tục (02_, 03_, …)
+  let sheetNo = 1;
+  const appendSection = (key: ReportSectionKey, ws: XLSXTypes.WorkSheet): void => {
+    if (!hasSection(doc, key)) return;
+    sheetNo += 1;
+    XLSX.utils.book_append_sheet(wb, ws, `${('0' + sheetNo).slice(-2)}_${SECTION_SHEET_NAME[key]}`);
+  };
+
+  // 2. Sheet Manpower
   const mpRows: (string | number)[][] = [['Org', 'Category', 'Nos', 'Hrs', 'ManHrs', 'IsLocked']];
   doc.manpower.forEach((r) => {
     const nos = r.nos ?? 0;
@@ -604,7 +620,7 @@ export async function encodeReportDocToBuffer(
   });
   const wsMp = XLSX.utils.aoa_to_sheet(mpRows);
   wsMp['!cols'] = [{ wch: 16 }, { wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 12 }];
-  XLSX.utils.book_append_sheet(wb, wsMp, '02_Manpower');
+  appendSection('manpower', wsMp);
 
   // 3. Sheet 03_Equipment
   const eqRows: (string | number)[][] = [['Equipment', 'Qty', 'Hrs', 'Status', 'Remark', 'IsLocked']];
@@ -620,7 +636,7 @@ export async function encodeReportDocToBuffer(
   });
   const wsEq = XLSX.utils.aoa_to_sheet(eqRows);
   wsEq['!cols'] = [{ wch: 32 }, { wch: 10 }, { wch: 12 }, { wch: 16 }, { wch: 28 }, { wch: 12 }];
-  XLSX.utils.book_append_sheet(wb, wsEq, '03_Equipment');
+  appendSection('equipment', wsEq);
 
   // 4. Sheet 04_WorkQty
   const wqRows: (string | number)[][] = [['ActivityID', 'Item', 'Unit', 'Plan', 'Actual', 'Percent', 'Remark', 'IsLocked']];
@@ -641,7 +657,7 @@ export async function encodeReportDocToBuffer(
   });
   const wsWq = XLSX.utils.aoa_to_sheet(wqRows);
   wsWq['!cols'] = [{ wch: 18 }, { wch: 34 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 24 }, { wch: 12 }];
-  XLSX.utils.book_append_sheet(wb, wsWq, '04_WorkQty');
+  appendSection('workqty', wsWq);
 
   // 5. Sheet 05_Materials
   const matRows: (string | number)[][] = [['Material', 'Unit', 'Recv', 'Used', 'MirMar', 'IsLocked']];
@@ -657,7 +673,7 @@ export async function encodeReportDocToBuffer(
   });
   const wsMat = XLSX.utils.aoa_to_sheet(matRows);
   wsMat['!cols'] = [{ wch: 30 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 28 }, { wch: 12 }];
-  XLSX.utils.book_append_sheet(wb, wsMat, '05_Materials');
+  appendSection('materials', wsMat);
 
   // 6. Sheet 06_Issues
   const issRows: (string | number)[][] = [
@@ -677,17 +693,18 @@ export async function encodeReportDocToBuffer(
   });
   const wsIss = XLSX.utils.aoa_to_sheet(issRows);
   wsIss['!cols'] = [{ wch: 16 }, { wch: 50 }, { wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 12 }, { wch: 14 }, { wch: 12 }];
-  XLSX.utils.book_append_sheet(wb, wsIss, '06_Issues');
+  appendSection('issues', wsIss);
 
   // Optional: If tasks exist (WeeklyReport), also include a 07_Tasks sheet
   if (doc.tasks && doc.tasks.length > 0) {
+    sheetNo += 1;
     const taskRows: (string | number)[][] = [['ID', 'Tên công việc', 'Tỉ lệ hoàn thành', 'Khối lượng', 'Đơn vị']];
     doc.tasks.forEach((t) => {
       taskRows.push([t.id, t.taskName, t.completionRate ?? '', t.quantity ?? '', t.unit || '']);
     });
     const wsTasks = XLSX.utils.aoa_to_sheet(taskRows);
     wsTasks['!cols'] = [{ wch: 10 }, { wch: 35 }, { wch: 18 }, { wch: 14 }, { wch: 12 }];
-    XLSX.utils.book_append_sheet(wb, wsTasks, '07_Tasks');
+    XLSX.utils.book_append_sheet(wb, wsTasks, `${('0' + sheetNo).slice(-2)}_Tasks`);
   }
 
   const array = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });

@@ -9,6 +9,7 @@ import {
   WorkQtyRow
 } from '../types/report.types';
 import { Icon } from '../../../core/components/Icon';
+import { buildSectionNumbering, hasSection } from '../utils/reportSections';
 
 export interface IReportSectionsEditorProps {
   doc: ReportDoc;
@@ -91,6 +92,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const { metadata, manpower, equipment, workItems, materials, issues, photos = [] } = doc;
+  const num = buildSectionNumbering(doc);
 
   // Totals for Manpower
   const totalNos = manpower.reduce((acc, r) => acc + (r.nos || 0), 0);
@@ -259,527 +261,535 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
   return (
     <div className="report-sections-stack">
       {/* II. NHÂN LỰC | MANPOWER */}
-      <div id="report-sec-2" className="section-card">
-        <div className="section-card__banner">
-          <span className="section-card__title">
-            II. NHÂN LỰC <span className="section-card__title-sub">| MANPOWER</span>
-          </span>
-          <button
-            type="button"
-            className="btn btn--light btn--sm"
-            onClick={addManpowerRow}
-            disabled={disabled}
-          >
-            + Thêm nhân lực
-          </button>
-        </div>
-
-        <div className="table-responsive">
-          <table className="portal-table report-grid-table">
-            <thead>
-              <tr>
-                <th style={{ width: '16%' }}>Đơn vị | Org.</th>
-                <th style={{ width: '32%' }}>Loại | Category</th>
-                <th style={{ width: '16%', textAlign: 'right' }}>Số người | Nos.</th>
-                <th style={{ width: '16%', textAlign: 'right' }}>Giờ/người | Hrs</th>
-                <th style={{ width: '14%', textAlign: 'right' }}>Giờ công | Man-hrs</th>
-                <th style={{ width: '6%', textAlign: 'center' }} />
-              </tr>
-            </thead>
-            <tbody>
-              {manpower.map((row, idx) => (
-                <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
-                  <td>
-                    <input
-                      type="text"
-                      className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
-                      value={row.org}
-                      onChange={(e) => updateManpowerRow(idx, { org: e.target.value })}
-                      disabled={disabled}
-                      readOnly={Boolean(row.isLocked)}
-                      placeholder="Đơn vị..."
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
-                      value={row.category}
-                      onChange={(e) => updateManpowerRow(idx, { category: e.target.value })}
-                      disabled={disabled}
-                      readOnly={Boolean(row.isLocked)}
-                      placeholder="Loại nhân lực..."
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      className="input input--cell text-right"
-                      value={row.nos !== undefined ? row.nos : ''}
-                      onChange={(e) => updateManpowerRow(idx, { nos: parseInputNum(e.target.value) })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      className="input input--cell text-right"
-                      value={row.hrs !== undefined ? row.hrs : ''}
-                      onChange={(e) => updateManpowerRow(idx, { hrs: parseInputNum(e.target.value) })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td className="text-right font-semibold">{(row.manHrs || 0).toLocaleString('vi-VN')}</td>
-                  <td className="text-center">
-                    {row.isLocked ? (
-                      <span
-                        className="report-row-lock-badge"
-                        title="Mục cố định theo template (không được xoá)"
-                      >
-                        <Icon name="lock" size={16} />
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn--ghost-danger btn--icon btn--sm"
-                        onClick={() => removeManpowerRow(idx)}
-                        disabled={disabled}
-                        title="Xoá dòng"
-                      >
-                        <Icon name="dismiss" size={16} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              <tr className="report-table-total-row">
-                <td colSpan={2}>
-                  <strong>Tổng | Total</strong>
-                </td>
-                <td className="text-right">
-                  <strong>{totalNos.toLocaleString('vi-VN')}</strong>
-                </td>
-                <td />
-                <td className="text-right">
-                  <strong>{totalManHrs.toLocaleString('vi-VN')}</strong>
-                </td>
-                <td />
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <div className="field">
-            <label className="field__label">Tóm tắt | Summary</label>
-            <textarea
-              className="textarea"
-              rows={2}
-              placeholder="Nhập tóm tắt tình hình nhân lực (nếu có)..."
-              value={metadata.manpowerSummary || ''}
-              onChange={(e) => onMetadataChange('manpowerSummary', e.target.value)}
+      {hasSection(doc, 'manpower') && (
+        <div id="report-sec-manpower" className="section-card">
+          <div className="section-card__banner">
+            <span className="section-card__title">
+              {num.roman('manpower')}. NHÂN LỰC <span className="section-card__title-sub">| MANPOWER</span>
+            </span>
+            <button
+              type="button"
+              className="btn btn--light btn--sm"
+              onClick={addManpowerRow}
               disabled={disabled}
-            />
+            >
+              + Thêm nhân lực
+            </button>
+          </div>
+
+          <div className="table-responsive">
+            <table className="portal-table report-grid-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '16%' }}>Đơn vị | Org.</th>
+                  <th style={{ width: '32%' }}>Loại | Category</th>
+                  <th style={{ width: '16%', textAlign: 'right' }}>Số người | Nos.</th>
+                  <th style={{ width: '16%', textAlign: 'right' }}>Giờ/người | Hrs</th>
+                  <th style={{ width: '14%', textAlign: 'right' }}>Giờ công | Man-hrs</th>
+                  <th style={{ width: '6%', textAlign: 'center' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {manpower.map((row, idx) => (
+                  <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
+                    <td>
+                      <input
+                        type="text"
+                        className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
+                        value={row.org}
+                        onChange={(e) => updateManpowerRow(idx, { org: e.target.value })}
+                        disabled={disabled}
+                        readOnly={Boolean(row.isLocked)}
+                        placeholder="Đơn vị..."
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
+                        value={row.category}
+                        onChange={(e) => updateManpowerRow(idx, { category: e.target.value })}
+                        disabled={disabled}
+                        readOnly={Boolean(row.isLocked)}
+                        placeholder="Loại nhân lực..."
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        className="input input--cell text-right"
+                        value={row.nos !== undefined ? row.nos : ''}
+                        onChange={(e) => updateManpowerRow(idx, { nos: parseInputNum(e.target.value) })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        className="input input--cell text-right"
+                        value={row.hrs !== undefined ? row.hrs : ''}
+                        onChange={(e) => updateManpowerRow(idx, { hrs: parseInputNum(e.target.value) })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td className="text-right font-semibold">{(row.manHrs || 0).toLocaleString('vi-VN')}</td>
+                    <td className="text-center">
+                      {row.isLocked ? (
+                        <span
+                          className="report-row-lock-badge"
+                          title="Mục cố định theo template (không được xoá)"
+                        >
+                          <Icon name="lock" size={16} />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn--ghost-danger btn--icon btn--sm"
+                          onClick={() => removeManpowerRow(idx)}
+                          disabled={disabled}
+                          title="Xoá dòng"
+                        >
+                          <Icon name="dismiss" size={16} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="report-table-total-row">
+                  <td colSpan={2}>
+                    <strong>Tổng | Total</strong>
+                  </td>
+                  <td className="text-right">
+                    <strong>{totalNos.toLocaleString('vi-VN')}</strong>
+                  </td>
+                  <td />
+                  <td className="text-right">
+                    <strong>{totalManHrs.toLocaleString('vi-VN')}</strong>
+                  </td>
+                  <td />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div className="field">
+              <label className="field__label">Tóm tắt | Summary</label>
+              <textarea
+                className="textarea"
+                rows={2}
+                placeholder="Nhập tóm tắt tình hình nhân lực (nếu có)..."
+                value={metadata.manpowerSummary || ''}
+                onChange={(e) => onMetadataChange('manpowerSummary', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* III. THIẾT BỊ | EQUIPMENT */}
-      <div id="report-sec-3" className="section-card">
-        <div className="section-card__banner">
-          <span className="section-card__title">
-            III. THIẾT BỊ <span className="section-card__title-sub">| EQUIPMENT</span>
-          </span>
-          <button
-            type="button"
-            className="btn btn--light btn--sm"
-            onClick={addEquipmentRow}
-            disabled={disabled}
-          >
-            + Thêm thiết bị
-          </button>
-        </div>
-
-        <div className="table-responsive">
-          <table className="portal-table report-grid-table">
-            <thead>
-              <tr>
-                <th style={{ width: '32%' }}>Thiết bị | Equipment</th>
-                <th style={{ width: '11%', textAlign: 'right' }}>SL | Qty</th>
-                <th style={{ width: '13%', textAlign: 'right' }}>Giờ HĐ | Hrs</th>
-                <th style={{ width: '18%', textAlign: 'center' }}>Tình trạng | Status</th>
-                <th style={{ width: '20%' }}>Ghi chú | Remark</th>
-                <th style={{ width: '6%', textAlign: 'center' }} />
-              </tr>
-            </thead>
-            <tbody>
-              {equipment.map((row, idx) => (
-                <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
-                  <td>
-                    <input
-                      type="text"
-                      className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
-                      value={row.equipment}
-                      onChange={(e) => updateEquipmentRow(idx, { equipment: e.target.value })}
-                      disabled={disabled}
-                      readOnly={Boolean(row.isLocked)}
-                      placeholder="Tên thiết bị / máy móc..."
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      className="input input--cell text-right"
-                      value={row.qty !== undefined ? row.qty : ''}
-                      onChange={(e) => updateEquipmentRow(idx, { qty: parseInputNum(e.target.value) })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      className="input input--cell text-right"
-                      value={row.hrs !== undefined ? row.hrs : ''}
-                      onChange={(e) => updateEquipmentRow(idx, { hrs: parseInputNum(e.target.value) })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      className="input input--cell text-center"
-                      value={row.status || 'Hoạt động'}
-                      onChange={(e) => updateEquipmentRow(idx, { status: e.target.value })}
-                      disabled={disabled}
-                    >
-                      <option value="Hoạt động">Hoạt động</option>
-                      <option value="Chờ việc">Chờ việc</option>
-                      <option value="Bảo dưỡng">Bảo dưỡng</option>
-                      <option value="Hỏng">Hỏng</option>
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className="input input--cell"
-                      value={row.remark}
-                      onChange={(e) => updateEquipmentRow(idx, { remark: e.target.value })}
-                      disabled={disabled}
-                      placeholder="Ghi chú..."
-                    />
-                  </td>
-                  <td className="text-center">
-                    {row.isLocked ? (
-                      <span
-                        className="report-row-lock-badge"
-                        title="Mục cố định theo template (không được xoá)"
-                      >
-                        <Icon name="lock" size={16} />
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn--ghost-danger btn--icon btn--sm"
-                        onClick={() => removeEquipmentRow(idx)}
-                        disabled={disabled}
-                        title="Xoá dòng"
-                      >
-                        <Icon name="dismiss" size={16} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <div className="field">
-            <label className="field__label">Tóm tắt | Summary</label>
-            <textarea
-              className="textarea"
-              rows={2}
-              placeholder="Nhập tóm tắt tình trạng thiết bị (nếu có)..."
-              value={metadata.equipmentSummary || ''}
-              onChange={(e) => onMetadataChange('equipmentSummary', e.target.value)}
+      {hasSection(doc, 'equipment') && (
+        <div id="report-sec-equipment" className="section-card">
+          <div className="section-card__banner">
+            <span className="section-card__title">
+              {num.roman('equipment')}. THIẾT BỊ <span className="section-card__title-sub">| EQUIPMENT</span>
+            </span>
+            <button
+              type="button"
+              className="btn btn--light btn--sm"
+              onClick={addEquipmentRow}
               disabled={disabled}
-            />
+            >
+              + Thêm thiết bị
+            </button>
+          </div>
+
+          <div className="table-responsive">
+            <table className="portal-table report-grid-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '32%' }}>Thiết bị | Equipment</th>
+                  <th style={{ width: '11%', textAlign: 'right' }}>SL | Qty</th>
+                  <th style={{ width: '13%', textAlign: 'right' }}>Giờ HĐ | Hrs</th>
+                  <th style={{ width: '18%', textAlign: 'center' }}>Tình trạng | Status</th>
+                  <th style={{ width: '20%' }}>Ghi chú | Remark</th>
+                  <th style={{ width: '6%', textAlign: 'center' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {equipment.map((row, idx) => (
+                  <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
+                    <td>
+                      <input
+                        type="text"
+                        className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
+                        value={row.equipment}
+                        onChange={(e) => updateEquipmentRow(idx, { equipment: e.target.value })}
+                        disabled={disabled}
+                        readOnly={Boolean(row.isLocked)}
+                        placeholder="Tên thiết bị / máy móc..."
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        className="input input--cell text-right"
+                        value={row.qty !== undefined ? row.qty : ''}
+                        onChange={(e) => updateEquipmentRow(idx, { qty: parseInputNum(e.target.value) })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        className="input input--cell text-right"
+                        value={row.hrs !== undefined ? row.hrs : ''}
+                        onChange={(e) => updateEquipmentRow(idx, { hrs: parseInputNum(e.target.value) })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="input input--cell text-center"
+                        value={row.status || 'Hoạt động'}
+                        onChange={(e) => updateEquipmentRow(idx, { status: e.target.value })}
+                        disabled={disabled}
+                      >
+                        <option value="Hoạt động">Hoạt động</option>
+                        <option value="Chờ việc">Chờ việc</option>
+                        <option value="Bảo dưỡng">Bảo dưỡng</option>
+                        <option value="Hỏng">Hỏng</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="input input--cell"
+                        value={row.remark}
+                        onChange={(e) => updateEquipmentRow(idx, { remark: e.target.value })}
+                        disabled={disabled}
+                        placeholder="Ghi chú..."
+                      />
+                    </td>
+                    <td className="text-center">
+                      {row.isLocked ? (
+                        <span
+                          className="report-row-lock-badge"
+                          title="Mục cố định theo template (không được xoá)"
+                        >
+                          <Icon name="lock" size={16} />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn--ghost-danger btn--icon btn--sm"
+                          onClick={() => removeEquipmentRow(idx)}
+                          disabled={disabled}
+                          title="Xoá dòng"
+                        >
+                          <Icon name="dismiss" size={16} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div className="field">
+              <label className="field__label">Tóm tắt | Summary</label>
+              <textarea
+                className="textarea"
+                rows={2}
+                placeholder="Nhập tóm tắt tình trạng thiết bị (nếu có)..."
+                value={metadata.equipmentSummary || ''}
+                onChange={(e) => onMetadataChange('equipmentSummary', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* IV. KHỐI LƯỢNG THỰC HIỆN | WORK QUANTITIES */}
-      <div id="report-sec-4" className="section-card">
-        <div className="section-card__banner">
-          <span className="section-card__title">
-            IV. KHỐI LƯỢNG THỰC HIỆN <span className="section-card__title-sub">| WORK QUANTITIES</span>
-          </span>
-          <button
-            type="button"
-            className="btn btn--light btn--sm"
-            onClick={addWorkQtyRow}
-            disabled={disabled}
-          >
-            + Thêm hạng mục
-          </button>
-        </div>
-
-        <div className="table-responsive">
-          <table className="portal-table report-grid-table">
-            <thead>
-              <tr>
-                <th style={{ width: '16%' }}>Activity ID</th>
-                <th style={{ width: '28%' }}>Hạng mục | Item</th>
-                <th style={{ width: '9%', textAlign: 'center' }}>ĐV | Unit</th>
-                <th style={{ width: '11%', textAlign: 'right' }}>KH ngày | Plan</th>
-                <th style={{ width: '11%', textAlign: 'right' }}>Thực hiện | Actual</th>
-                <th style={{ width: '8%', textAlign: 'right' }}>%</th>
-                <th style={{ width: '12%' }}>Ghi chú | Remark</th>
-                <th style={{ width: '5%', textAlign: 'center' }} />
-              </tr>
-            </thead>
-            <tbody>
-              {workItems.map((row, idx) => (
-                <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
-                  <td>
-                    <input
-                      type="text"
-                      className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
-                      value={row.activityId}
-                      onChange={(e) => updateWorkQtyRow(idx, { activityId: e.target.value })}
-                      disabled={disabled}
-                      readOnly={Boolean(row.isLocked)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
-                      value={row.item}
-                      onChange={(e) => updateWorkQtyRow(idx, { item: e.target.value })}
-                      disabled={disabled}
-                      readOnly={Boolean(row.isLocked)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className={`input input--cell text-center ${row.isLocked ? 'input--locked' : ''}`}
-                      value={row.unit}
-                      onChange={(e) => updateWorkQtyRow(idx, { unit: e.target.value })}
-                      disabled={disabled}
-                      readOnly={Boolean(row.isLocked)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      className="input input--cell text-right"
-                      value={row.plan !== undefined ? row.plan : ''}
-                      onChange={(e) => updateWorkQtyRow(idx, { plan: parseInputNum(e.target.value) })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      className="input input--cell text-right"
-                      value={row.actual !== undefined ? row.actual : ''}
-                      onChange={(e) => updateWorkQtyRow(idx, { actual: parseInputNum(e.target.value) })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td className="text-right font-semibold">
-                    {row.percent !== undefined ? `${row.percent}%` : '—'}
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className="input input--cell"
-                      value={row.remark}
-                      onChange={(e) => updateWorkQtyRow(idx, { remark: e.target.value })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td className="text-center">
-                    {row.isLocked ? (
-                      <span
-                        className="report-row-lock-badge"
-                        title="Mục cố định theo template (không được xoá)"
-                      >
-                        <Icon name="lock" size={16} />
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn--ghost-danger btn--icon btn--sm"
-                        onClick={() => removeWorkQtyRow(idx)}
-                        disabled={disabled}
-                        title="Xoá dòng"
-                      >
-                        <Icon name="dismiss" size={16} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <div className="field">
-            <label className="field__label">Tóm tắt | Summary</label>
-            <textarea
-              className="textarea"
-              rows={2}
-              placeholder="Nhập tóm tắt khối lượng thực hiện (nếu có)..."
-              value={metadata.workQtySummary || ''}
-              onChange={(e) => onMetadataChange('workQtySummary', e.target.value)}
+      {hasSection(doc, 'workqty') && (
+        <div id="report-sec-workqty" className="section-card">
+          <div className="section-card__banner">
+            <span className="section-card__title">
+              {num.roman('workqty')}. KHỐI LƯỢNG THỰC HIỆN <span className="section-card__title-sub">| WORK QUANTITIES</span>
+            </span>
+            <button
+              type="button"
+              className="btn btn--light btn--sm"
+              onClick={addWorkQtyRow}
               disabled={disabled}
-            />
+            >
+              + Thêm hạng mục
+            </button>
+          </div>
+
+          <div className="table-responsive">
+            <table className="portal-table report-grid-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '16%' }}>Activity ID</th>
+                  <th style={{ width: '28%' }}>Hạng mục | Item</th>
+                  <th style={{ width: '9%', textAlign: 'center' }}>ĐV | Unit</th>
+                  <th style={{ width: '11%', textAlign: 'right' }}>KH ngày | Plan</th>
+                  <th style={{ width: '11%', textAlign: 'right' }}>Thực hiện | Actual</th>
+                  <th style={{ width: '8%', textAlign: 'right' }}>%</th>
+                  <th style={{ width: '12%' }}>Ghi chú | Remark</th>
+                  <th style={{ width: '5%', textAlign: 'center' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {workItems.map((row, idx) => (
+                  <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
+                    <td>
+                      <input
+                        type="text"
+                        className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
+                        value={row.activityId}
+                        onChange={(e) => updateWorkQtyRow(idx, { activityId: e.target.value })}
+                        disabled={disabled}
+                        readOnly={Boolean(row.isLocked)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
+                        value={row.item}
+                        onChange={(e) => updateWorkQtyRow(idx, { item: e.target.value })}
+                        disabled={disabled}
+                        readOnly={Boolean(row.isLocked)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className={`input input--cell text-center ${row.isLocked ? 'input--locked' : ''}`}
+                        value={row.unit}
+                        onChange={(e) => updateWorkQtyRow(idx, { unit: e.target.value })}
+                        disabled={disabled}
+                        readOnly={Boolean(row.isLocked)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="input input--cell text-right"
+                        value={row.plan !== undefined ? row.plan : ''}
+                        onChange={(e) => updateWorkQtyRow(idx, { plan: parseInputNum(e.target.value) })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="input input--cell text-right"
+                        value={row.actual !== undefined ? row.actual : ''}
+                        onChange={(e) => updateWorkQtyRow(idx, { actual: parseInputNum(e.target.value) })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td className="text-right font-semibold">
+                      {row.percent !== undefined ? `${row.percent}%` : '—'}
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="input input--cell"
+                        value={row.remark}
+                        onChange={(e) => updateWorkQtyRow(idx, { remark: e.target.value })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td className="text-center">
+                      {row.isLocked ? (
+                        <span
+                          className="report-row-lock-badge"
+                          title="Mục cố định theo template (không được xoá)"
+                        >
+                          <Icon name="lock" size={16} />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn--ghost-danger btn--icon btn--sm"
+                          onClick={() => removeWorkQtyRow(idx)}
+                          disabled={disabled}
+                          title="Xoá dòng"
+                        >
+                          <Icon name="dismiss" size={16} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div className="field">
+              <label className="field__label">Tóm tắt | Summary</label>
+              <textarea
+                className="textarea"
+                rows={2}
+                placeholder="Nhập tóm tắt khối lượng thực hiện (nếu có)..."
+                value={metadata.workQtySummary || ''}
+                onChange={(e) => onMetadataChange('workQtySummary', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* V. VẬT TƯ | MATERIALS */}
-      <div id="report-sec-5" className="section-card">
-        <div className="section-card__banner">
-          <span className="section-card__title">
-            V. VẬT TƯ <span className="section-card__title-sub">| MATERIALS</span>
-          </span>
-          <button
-            type="button"
-            className="btn btn--light btn--sm"
-            onClick={addMaterialRow}
-            disabled={disabled}
-          >
-            + Thêm vật tư
-          </button>
-        </div>
-
-        <div className="table-responsive">
-          <table className="portal-table report-grid-table">
-            <thead>
-              <tr>
-                <th style={{ width: '34%' }}>Vật tư | Material</th>
-                <th style={{ width: '10%', textAlign: 'center' }}>ĐV | Unit</th>
-                <th style={{ width: '14%', textAlign: 'right' }}>Nhập về | Recv.</th>
-                <th style={{ width: '14%', textAlign: 'right' }}>Sử dụng | Used</th>
-                <th style={{ width: '22%' }}>Phiếu MIR/MAR</th>
-                <th style={{ width: '6%', textAlign: 'center' }} />
-              </tr>
-            </thead>
-            <tbody>
-              {materials.map((row, idx) => (
-                <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
-                  <td>
-                    <input
-                      type="text"
-                      className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
-                      value={row.material}
-                      onChange={(e) => updateMaterialRow(idx, { material: e.target.value })}
-                      disabled={disabled}
-                      readOnly={Boolean(row.isLocked)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className={`input input--cell text-center ${row.isLocked ? 'input--locked' : ''}`}
-                      value={row.unit}
-                      onChange={(e) => updateMaterialRow(idx, { unit: e.target.value })}
-                      disabled={disabled}
-                      readOnly={Boolean(row.isLocked)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      className="input input--cell text-right"
-                      value={row.recv !== undefined ? row.recv : ''}
-                      onChange={(e) => updateMaterialRow(idx, { recv: parseInputNum(e.target.value) })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      className="input input--cell text-right"
-                      value={row.used !== undefined ? row.used : ''}
-                      onChange={(e) => updateMaterialRow(idx, { used: parseInputNum(e.target.value) })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className="input input--cell"
-                      value={row.mirMar}
-                      onChange={(e) => updateMaterialRow(idx, { mirMar: e.target.value })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td className="text-center">
-                    {row.isLocked ? (
-                      <span
-                        className="report-row-lock-badge"
-                        title="Mục cố định theo template (không được xoá)"
-                      >
-                        <Icon name="lock" size={16} />
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn--ghost-danger btn--icon btn--sm"
-                        onClick={() => removeMaterialRow(idx)}
-                        disabled={disabled}
-                        title="Xoá dòng"
-                      >
-                        <Icon name="dismiss" size={16} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <div className="field">
-            <label className="field__label">Tóm tắt | Summary</label>
-            <textarea
-              className="textarea"
-              rows={2}
-              placeholder="Nhập tóm tắt tình hình vật tư (nếu có)..."
-              value={metadata.materialsSummary || ''}
-              onChange={(e) => onMetadataChange('materialsSummary', e.target.value)}
+      {hasSection(doc, 'materials') && (
+        <div id="report-sec-materials" className="section-card">
+          <div className="section-card__banner">
+            <span className="section-card__title">
+              {num.roman('materials')}. VẬT TƯ <span className="section-card__title-sub">| MATERIALS</span>
+            </span>
+            <button
+              type="button"
+              className="btn btn--light btn--sm"
+              onClick={addMaterialRow}
               disabled={disabled}
-            />
+            >
+              + Thêm vật tư
+            </button>
+          </div>
+
+          <div className="table-responsive">
+            <table className="portal-table report-grid-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '34%' }}>Vật tư | Material</th>
+                  <th style={{ width: '10%', textAlign: 'center' }}>ĐV | Unit</th>
+                  <th style={{ width: '14%', textAlign: 'right' }}>Nhập về | Recv.</th>
+                  <th style={{ width: '14%', textAlign: 'right' }}>Sử dụng | Used</th>
+                  <th style={{ width: '22%' }}>Phiếu MIR/MAR</th>
+                  <th style={{ width: '6%', textAlign: 'center' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {materials.map((row, idx) => (
+                  <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
+                    <td>
+                      <input
+                        type="text"
+                        className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
+                        value={row.material}
+                        onChange={(e) => updateMaterialRow(idx, { material: e.target.value })}
+                        disabled={disabled}
+                        readOnly={Boolean(row.isLocked)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className={`input input--cell text-center ${row.isLocked ? 'input--locked' : ''}`}
+                        value={row.unit}
+                        onChange={(e) => updateMaterialRow(idx, { unit: e.target.value })}
+                        disabled={disabled}
+                        readOnly={Boolean(row.isLocked)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="input input--cell text-right"
+                        value={row.recv !== undefined ? row.recv : ''}
+                        onChange={(e) => updateMaterialRow(idx, { recv: parseInputNum(e.target.value) })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="input input--cell text-right"
+                        value={row.used !== undefined ? row.used : ''}
+                        onChange={(e) => updateMaterialRow(idx, { used: parseInputNum(e.target.value) })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="input input--cell"
+                        value={row.mirMar}
+                        onChange={(e) => updateMaterialRow(idx, { mirMar: e.target.value })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td className="text-center">
+                      {row.isLocked ? (
+                        <span
+                          className="report-row-lock-badge"
+                          title="Mục cố định theo template (không được xoá)"
+                        >
+                          <Icon name="lock" size={16} />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn--ghost-danger btn--icon btn--sm"
+                          onClick={() => removeMaterialRow(idx)}
+                          disabled={disabled}
+                          title="Xoá dòng"
+                        >
+                          <Icon name="dismiss" size={16} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div className="field">
+              <label className="field__label">Tóm tắt | Summary</label>
+              <textarea
+                className="textarea"
+                rows={2}
+                placeholder="Nhập tóm tắt tình hình vật tư (nếu có)..."
+                value={metadata.materialsSummary || ''}
+                onChange={(e) => onMetadataChange('materialsSummary', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* VI. CÔNG VIỆC THỰC HIỆN & KẾ HOẠCH NGÀY MAI | WORKS TODAY & PLAN FOR TOMORROW */}
-      <div id="report-sec-6" className="section-card">
+      <div id="report-sec-worksplan" className="section-card">
         <div className="section-card__banner">
           <span className="section-card__title">
-            VI. CÔNG VIỆC THỰC HIỆN &amp; KẾ HOẠCH NGÀY MAI{' '}
+            {num.roman('worksplan')}. CÔNG VIỆC THỰC HIỆN &amp; KẾ HOẠCH NGÀY MAI{' '}
             <span className="section-card__title-sub">| WORKS TODAY &amp; PLAN FOR TOMORROW</span>
           </span>
         </div>
@@ -826,160 +836,162 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
       </div>
 
       {/* VII. VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ | OPEN ISSUES & CONSTRAINTS */}
-      <div id="report-sec-7" className="section-card">
-        <div className="section-card__banner">
-          <span className="section-card__title">
-            VII. VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ{' '}
-            <span className="section-card__title-sub">| OPEN ISSUES &amp; CONSTRAINTS</span>
-          </span>
-          <button
-            type="button"
-            className="btn btn--light btn--sm"
-            onClick={addIssueRow}
-            disabled={disabled}
-          >
-            + Thêm vướng mắc
-          </button>
-        </div>
-
-        <div className="table-responsive">
-          <table className="portal-table report-grid-table">
-            <thead>
-              <tr>
-                <th style={{ width: '13%' }}>Mã | ID</th>
-                <th style={{ width: '34%' }}>Nội dung | Description</th>
-                <th style={{ width: '11%', textAlign: 'center' }}>Mức | Sev.</th>
-                <th style={{ width: '8%', textAlign: 'center' }}>Găng | CP</th>
-                <th style={{ width: '15%' }}>Bên xử lý | By</th>
-                <th style={{ width: '8%', textAlign: 'center' }}>Hạn | Due</th>
-                <th style={{ width: '11%', textAlign: 'center' }}>Trạng thái</th>
-                <th style={{ width: '4%', textAlign: 'center' }} />
-              </tr>
-            </thead>
-            <tbody>
-              {issues.map((row, idx) => (
-                <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
-                  <td>
-                    <input
-                      type="text"
-                      className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
-                      value={row.issueId}
-                      onChange={(e) => updateIssueRow(idx, { issueId: e.target.value })}
-                      disabled={disabled}
-                      readOnly={Boolean(row.isLocked)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className="input input--cell"
-                      value={row.description}
-                      onChange={(e) => updateIssueRow(idx, { description: e.target.value })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      className={`input input--cell text-center ${
-                        row.severity === 'Cao' ? 'input--danger' : row.severity === 'Trung bình' ? 'input--warning' : ''
-                      }`}
-                      value={row.severity || 'Trung bình'}
-                      onChange={(e) => updateIssueRow(idx, { severity: e.target.value })}
-                      disabled={disabled}
-                    >
-                      <option value="Cao">Cao</option>
-                      <option value="Trung bình">Trung bình</option>
-                      <option value="Thấp">Thấp</option>
-                    </select>
-                  </td>
-                  <td>
-                    <select
-                      className="input input--cell text-center"
-                      value={row.criticalPath || '–'}
-                      onChange={(e) => updateIssueRow(idx, { criticalPath: e.target.value })}
-                      disabled={disabled}
-                    >
-                      <option value="Có">Có</option>
-                      <option value="–">–</option>
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className="input input--cell"
-                      value={row.owner}
-                      onChange={(e) => updateIssueRow(idx, { owner: e.target.value })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      className="input input--cell text-center"
-                      placeholder="dd/MM"
-                      value={row.dueDate}
-                      onChange={(e) => updateIssueRow(idx, { dueDate: e.target.value })}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      className="input input--cell text-center"
-                      value={row.status || 'Mở'}
-                      onChange={(e) => updateIssueRow(idx, { status: e.target.value })}
-                      disabled={disabled}
-                    >
-                      <option value="Mở">Mở</option>
-                      <option value="Đang xử lý">Đang xử lý</option>
-                      <option value="Đóng">Đóng</option>
-                    </select>
-                  </td>
-                  <td className="text-center">
-                    {row.isLocked ? (
-                      <span
-                        className="report-row-lock-badge"
-                        title="Mục cố định theo template (không được xoá)"
-                      >
-                        <Icon name="lock" size={16} />
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn--ghost-danger btn--icon btn--sm"
-                        onClick={() => removeIssueRow(idx)}
-                        disabled={disabled}
-                        title="Xoá dòng"
-                      >
-                        <Icon name="dismiss" size={16} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <div className="field">
-            <label className="field__label">Tóm tắt | Summary</label>
-            <textarea
-              className="textarea"
-              rows={2}
-              placeholder="Nhập tóm tắt vướng mắc / ràng buộc (nếu có)..."
-              value={metadata.issuesSummary || ''}
-              onChange={(e) => onMetadataChange('issuesSummary', e.target.value)}
+      {hasSection(doc, 'issues') && (
+        <div id="report-sec-issues" className="section-card">
+          <div className="section-card__banner">
+            <span className="section-card__title">
+              {num.roman('issues')}. VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ{' '}
+              <span className="section-card__title-sub">| OPEN ISSUES &amp; CONSTRAINTS</span>
+            </span>
+            <button
+              type="button"
+              className="btn btn--light btn--sm"
+              onClick={addIssueRow}
               disabled={disabled}
-            />
+            >
+              + Thêm vướng mắc
+            </button>
+          </div>
+
+          <div className="table-responsive">
+            <table className="portal-table report-grid-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '13%' }}>Mã | ID</th>
+                  <th style={{ width: '34%' }}>Nội dung | Description</th>
+                  <th style={{ width: '11%', textAlign: 'center' }}>Mức | Sev.</th>
+                  <th style={{ width: '8%', textAlign: 'center' }}>Găng | CP</th>
+                  <th style={{ width: '15%' }}>Bên xử lý | By</th>
+                  <th style={{ width: '8%', textAlign: 'center' }}>Hạn | Due</th>
+                  <th style={{ width: '11%', textAlign: 'center' }}>Trạng thái</th>
+                  <th style={{ width: '4%', textAlign: 'center' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {issues.map((row, idx) => (
+                  <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
+                    <td>
+                      <input
+                        type="text"
+                        className={`input input--cell ${row.isLocked ? 'input--locked' : ''}`}
+                        value={row.issueId}
+                        onChange={(e) => updateIssueRow(idx, { issueId: e.target.value })}
+                        disabled={disabled}
+                        readOnly={Boolean(row.isLocked)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="input input--cell"
+                        value={row.description}
+                        onChange={(e) => updateIssueRow(idx, { description: e.target.value })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className={`input input--cell text-center ${
+                          row.severity === 'Cao' ? 'input--danger' : row.severity === 'Trung bình' ? 'input--warning' : ''
+                        }`}
+                        value={row.severity || 'Trung bình'}
+                        onChange={(e) => updateIssueRow(idx, { severity: e.target.value })}
+                        disabled={disabled}
+                      >
+                        <option value="Cao">Cao</option>
+                        <option value="Trung bình">Trung bình</option>
+                        <option value="Thấp">Thấp</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        className="input input--cell text-center"
+                        value={row.criticalPath || '–'}
+                        onChange={(e) => updateIssueRow(idx, { criticalPath: e.target.value })}
+                        disabled={disabled}
+                      >
+                        <option value="Có">Có</option>
+                        <option value="–">–</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="input input--cell"
+                        value={row.owner}
+                        onChange={(e) => updateIssueRow(idx, { owner: e.target.value })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="input input--cell text-center"
+                        placeholder="dd/MM"
+                        value={row.dueDate}
+                        onChange={(e) => updateIssueRow(idx, { dueDate: e.target.value })}
+                        disabled={disabled}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="input input--cell text-center"
+                        value={row.status || 'Mở'}
+                        onChange={(e) => updateIssueRow(idx, { status: e.target.value })}
+                        disabled={disabled}
+                      >
+                        <option value="Mở">Mở</option>
+                        <option value="Đang xử lý">Đang xử lý</option>
+                        <option value="Đóng">Đóng</option>
+                      </select>
+                    </td>
+                    <td className="text-center">
+                      {row.isLocked ? (
+                        <span
+                          className="report-row-lock-badge"
+                          title="Mục cố định theo template (không được xoá)"
+                        >
+                          <Icon name="lock" size={16} />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn--ghost-danger btn--icon btn--sm"
+                          onClick={() => removeIssueRow(idx)}
+                          disabled={disabled}
+                          title="Xoá dòng"
+                        >
+                          <Icon name="dismiss" size={16} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <div className="field">
+              <label className="field__label">Tóm tắt | Summary</label>
+              <textarea
+                className="textarea"
+                rows={2}
+                placeholder="Nhập tóm tắt vướng mắc / ràng buộc (nếu có)..."
+                value={metadata.issuesSummary || ''}
+                onChange={(e) => onMetadataChange('issuesSummary', e.target.value)}
+                disabled={disabled}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* VIII. AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS | HSE – QUALITY – ENGINEER'S INSTRUCTIONS */}
-      <div id="report-sec-8" className="section-card">
+      <div id="report-sec-hse" className="section-card">
         <div className="section-card__banner">
           <span className="section-card__title">
-            VIII. AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS{' '}
+            {num.roman('hse')}. AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS{' '}
             <span className="section-card__title-sub">
               | HSE – QUALITY – ENGINEER&apos;S INSTRUCTIONS
             </span>
@@ -1157,10 +1169,10 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
       </div>
 
       {/* IX. THÔNG TIN KÝ DUYỆT */}
-      <div id="report-sec-9" className="section-card">
+      <div id="report-sec-signoff" className="section-card">
         <div className="section-card__banner">
           <span className="section-card__title">
-            IX. THÔNG TIN KÝ DUYỆT <span className="section-card__title-sub">| SIGN-OFF</span>
+            {num.roman('signoff')}. THÔNG TIN KÝ DUYỆT <span className="section-card__title-sub">| SIGN-OFF</span>
           </span>
         </div>
 
@@ -1236,6 +1248,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
           </div>
         </div>
       </div>
+
     </div>
   );
 };

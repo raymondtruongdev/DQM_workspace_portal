@@ -144,7 +144,7 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
       </div>
 
       {/* Section I: THÔNG TIN CHUNG & THỜI TIẾT | GENERAL & WEATHER */}
-      <div id="report-sec-1" className="section-card">
+      <div id="report-sec-general" className="section-card">
         <div className="section-card__banner">
           <span className="section-card__title">
             I. THÔNG TIN CHUNG &amp; THỜI TIẾT <span className="section-card__title-sub">| GENERAL &amp; WEATHER</span>

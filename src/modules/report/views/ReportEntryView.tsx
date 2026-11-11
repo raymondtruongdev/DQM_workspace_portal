@@ -13,6 +13,7 @@ import {
 } from '../types/report.types';
 import { ReportDataService } from '../services/ReportDataService';
 import { formatTemplateVersionDisplay } from '../utils/reportFileNaming';
+import { buildSectionNumbering, ReportSectionId } from '../utils/reportSections';
 import { recalculateAllRates } from '../utils/reportTaskTree';
 import { getMissingRequiredFields, getFieldLabel } from '../utils/reportValidation';
 import { ReportMetaForm } from '../components/ReportMetaForm';
@@ -28,17 +29,17 @@ export interface IReportEntryViewProps {
   onBack: () => void;
 }
 
-const SECTION_NAV_ITEMS = [
-  { id: 'report-sec-1', label: 'I. Thời tiết' },
-  { id: 'report-sec-2', label: 'II. Nhân lực' },
-  { id: 'report-sec-3', label: 'III. Thiết bị' },
-  { id: 'report-sec-4', label: 'IV. Khối lượng' },
-  { id: 'report-sec-5', label: 'V. Vật tư' },
-  { id: 'report-sec-6', label: 'VI. Công việc' },
-  { id: 'report-sec-7', label: 'VII. Vướng mắc' },
-  { id: 'report-sec-8', label: 'VIII. HSE & Ảnh' },
-  { id: 'report-sec-9', label: 'IX. Ký duyệt' }
-];
+const SECTION_NAV_LABELS: Record<ReportSectionId, string> = {
+  general: 'Thời tiết',
+  manpower: 'Nhân lực',
+  equipment: 'Thiết bị',
+  workqty: 'Khối lượng',
+  materials: 'Vật tư',
+  worksplan: 'Công việc',
+  issues: 'Vướng mắc',
+  hse: 'HSE & Ảnh',
+  signoff: 'Ký duyệt'
+};
 
 export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   role,
@@ -461,14 +462,14 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       {/* 2. Quick Section Navigation Pills */}
       {!isLoading && doc && !doc.templateUpdateRequired && (
         <div className="chips card report-sec-jump-bar" role="navigation" aria-label="Mục báo cáo">
-          {SECTION_NAV_ITEMS.map((item) => (
+          {buildSectionNumbering(doc).visible.map((item) => (
             <button
               key={item.id}
               type="button"
               className="chip"
-              onClick={() => scrollToSection(item.id)}
+              onClick={() => scrollToSection(item.anchor)}
             >
-              {item.label}
+              {item.roman}. {SECTION_NAV_LABELS[item.id]}
             </button>
           ))}
         </div>

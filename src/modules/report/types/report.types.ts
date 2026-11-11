@@ -136,7 +136,12 @@ export interface ReportTaskNode extends ReportTaskRow {
   children: ReportTaskNode[];
 }
 
+/** Bảng dữ liệu mà template có thể có hoặc không (mỗi bảng = một sheet). */
+export type ReportSectionKey = 'manpower' | 'equipment' | 'workqty' | 'materials' | 'issues';
+
 export interface ReportDoc {
+  /** Các bảng có trong template/báo cáo này. Không khai báo = đủ mọi bảng. */
+  sections?: ReportSectionKey[];
   docId: string;          // "DailyReport" | "WeeklyReport"
   unit: string;           // e.g. "ST01", "ST06"
   dateStr: string;        // "YYYY-MM-DD"

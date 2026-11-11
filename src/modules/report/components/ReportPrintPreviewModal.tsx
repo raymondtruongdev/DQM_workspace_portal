@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ReportDoc } from '../types/report.types';
+import { buildSectionNumbering, hasSection } from '../utils/reportSections';
 import { formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 
 export interface IReportPrintPreviewModalProps {
@@ -21,6 +22,7 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
 }) => {
   const printAreaRef = React.useRef<HTMLDivElement | null>(null);
   const m = doc.metadata;
+  const num = buildSectionNumbering(doc);
 
   const totalNos = doc.manpower.reduce((acc, r) => acc + (r.nos || 0), 0);
   const totalManHrs = doc.manpower.reduce((acc, r) => acc + (r.manHrs || 0), 0);
@@ -450,200 +452,216 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
               </table>
 
               {/* II. NHÂN LỰC | MANPOWER */}
-              <div className="bcn-sec-title">
-                II. NHÂN LỰC <span>| MANPOWER</span>
-              </div>
-              <table className="bcn-table">
-                <thead>
-                  <tr className="bcn-th-row">
-                    <th style={{ width: '20%' }}>
-                      Đơn vị <span>| Org.</span>
-                    </th>
-                    <th style={{ width: '38%' }}>
-                      Loại <span>| Category</span>
-                    </th>
-                    <th style={{ width: '14%' }}>
-                      Số người <span>| Nos.</span>
-                    </th>
-                    <th style={{ width: '14%' }}>
-                      Giờ/người <span>| Hrs</span>
-                    </th>
-                    <th style={{ width: '14%' }}>
-                      Giờ công <span>| Man-hrs</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {doc.manpower.map((r, i) => (
-                    <tr key={r.id || i}>
-                      <td>{r.org}</td>
-                      <td>{r.category}</td>
-                      <td className="text-right">{r.nos ?? 0}</td>
-                      <td className="text-right">{r.hrs ?? 0}</td>
-                      <td className="text-right">{(r.manHrs || 0).toLocaleString('vi-VN')}</td>
-                    </tr>
-                  ))}
-                  <tr className="bcn-total-row">
-                    <td colSpan={2}>
-                      Tổng <span style={{ fontWeight: 400, color: '#4b5563' }}>| Total</span>
-                    </td>
-                    <td className="text-right">{totalNos.toLocaleString('vi-VN')}</td>
-                    <td />
-                    <td className="text-right">{totalManHrs.toLocaleString('vi-VN')}</td>
-                  </tr>
-                  {m.manpowerSummary && (
-                    <tr>
-                      <td colSpan={5}>
-                        <strong>Tóm tắt | Summary:</strong> {m.manpowerSummary}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+              {hasSection(doc, 'manpower') && (
+                <>
+                  <div className="bcn-sec-title">
+                    {num.roman('manpower')}. NHÂN LỰC <span>| MANPOWER</span>
+                  </div>
+                  <table className="bcn-table">
+                    <thead>
+                      <tr className="bcn-th-row">
+                        <th style={{ width: '20%' }}>
+                          Đơn vị <span>| Org.</span>
+                        </th>
+                        <th style={{ width: '38%' }}>
+                          Loại <span>| Category</span>
+                        </th>
+                        <th style={{ width: '14%' }}>
+                          Số người <span>| Nos.</span>
+                        </th>
+                        <th style={{ width: '14%' }}>
+                          Giờ/người <span>| Hrs</span>
+                        </th>
+                        <th style={{ width: '14%' }}>
+                          Giờ công <span>| Man-hrs</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {doc.manpower.map((r, i) => (
+                        <tr key={r.id || i}>
+                          <td>{r.org}</td>
+                          <td>{r.category}</td>
+                          <td className="text-right">{r.nos ?? 0}</td>
+                          <td className="text-right">{r.hrs ?? 0}</td>
+                          <td className="text-right">{(r.manHrs || 0).toLocaleString('vi-VN')}</td>
+                        </tr>
+                      ))}
+                      <tr className="bcn-total-row">
+                        <td colSpan={2}>
+                          Tổng <span style={{ fontWeight: 400, color: '#4b5563' }}>| Total</span>
+                        </td>
+                        <td className="text-right">{totalNos.toLocaleString('vi-VN')}</td>
+                        <td />
+                        <td className="text-right">{totalManHrs.toLocaleString('vi-VN')}</td>
+                      </tr>
+                      {m.manpowerSummary && (
+                        <tr>
+                          <td colSpan={5}>
+                            <strong>Tóm tắt | Summary:</strong> {m.manpowerSummary}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              )}
 
               {/* III. THIẾT BỊ | EQUIPMENT */}
-              <div className="bcn-sec-title">
-                III. THIẾT BỊ <span>| EQUIPMENT</span>
-              </div>
-              <table className="bcn-table">
-                <thead>
-                  <tr className="bcn-th-row">
-                    <th style={{ width: '36%' }}>
-                      Thiết bị <span>| Equipment</span>
-                    </th>
-                    <th style={{ width: '10%' }}>
-                      SL <span>| Qty</span>
-                    </th>
-                    <th style={{ width: '12%' }}>
-                      Giờ HĐ <span>| Hrs</span>
-                    </th>
-                    <th style={{ width: '16%' }}>
-                      Tình trạng <span>| Status</span>
-                    </th>
-                    <th style={{ width: '26%' }}>
-                      Ghi chú <span>| Remark</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {doc.equipment.map((r, i) => (
-                    <tr key={r.id || i}>
-                      <td>{r.equipment}</td>
-                      <td className="text-right">{r.qty ?? 0}</td>
-                      <td className="text-right">
-                        {r.hrs !== undefined ? String(r.hrs).replace('.', ',') : '0'}
-                      </td>
-                      <td className="text-center">{r.status}</td>
-                      <td>{r.remark}</td>
-                    </tr>
-                  ))}
-                  {m.equipmentSummary && (
-                    <tr>
-                      <td colSpan={5}>
-                        <strong>Tóm tắt | Summary:</strong> {m.equipmentSummary}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+              {hasSection(doc, 'equipment') && (
+                <>
+                  <div className="bcn-sec-title">
+                    {num.roman('equipment')}. THIẾT BỊ <span>| EQUIPMENT</span>
+                  </div>
+                  <table className="bcn-table">
+                    <thead>
+                      <tr className="bcn-th-row">
+                        <th style={{ width: '36%' }}>
+                          Thiết bị <span>| Equipment</span>
+                        </th>
+                        <th style={{ width: '10%' }}>
+                          SL <span>| Qty</span>
+                        </th>
+                        <th style={{ width: '12%' }}>
+                          Giờ HĐ <span>| Hrs</span>
+                        </th>
+                        <th style={{ width: '16%' }}>
+                          Tình trạng <span>| Status</span>
+                        </th>
+                        <th style={{ width: '26%' }}>
+                          Ghi chú <span>| Remark</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {doc.equipment.map((r, i) => (
+                        <tr key={r.id || i}>
+                          <td>{r.equipment}</td>
+                          <td className="text-right">{r.qty ?? 0}</td>
+                          <td className="text-right">
+                            {r.hrs !== undefined ? String(r.hrs).replace('.', ',') : '0'}
+                          </td>
+                          <td className="text-center">{r.status}</td>
+                          <td>{r.remark}</td>
+                        </tr>
+                      ))}
+                      {m.equipmentSummary && (
+                        <tr>
+                          <td colSpan={5}>
+                            <strong>Tóm tắt | Summary:</strong> {m.equipmentSummary}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              )}
 
               {/* IV. KHỐI LƯỢNG THỰC HIỆN | WORK QUANTITIES */}
-              <div className="bcn-sec-title">
-                IV. KHỐI LƯỢNG THỰC HIỆN <span>| WORK QUANTITIES</span>
-              </div>
-              <table className="bcn-table">
-                <thead>
-                  <tr className="bcn-th-row">
-                    <th style={{ width: '16%' }}>Activity ID</th>
-                    <th style={{ width: '30%' }}>
-                      Hạng mục <span>| Item</span>
-                    </th>
-                    <th style={{ width: '8%' }}>
-                      ĐV <span>| Unit</span>
-                    </th>
-                    <th style={{ width: '10%' }}>
-                      KH ngày <span>| Plan</span>
-                    </th>
-                    <th style={{ width: '10%' }}>
-                      Thực hiện <span>| Actual</span>
-                    </th>
-                    <th style={{ width: '8%' }}>%</th>
-                    <th style={{ width: '18%' }}>
-                      Ghi chú <span>| Remark</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {doc.workItems.map((r, i) => (
-                    <tr key={r.id || i}>
-                      <td>{r.activityId}</td>
-                      <td>{r.item}</td>
-                      <td className="text-center">{r.unit}</td>
-                      <td className="text-right">{r.plan ?? 0}</td>
-                      <td className="text-right">{r.actual ?? 0}</td>
-                      <td className="text-right">{r.percent !== undefined ? `${r.percent}%` : ''}</td>
-                      <td>{r.remark}</td>
-                    </tr>
-                  ))}
-                  {m.workQtySummary && (
-                    <tr>
-                      <td colSpan={7}>
-                        <strong>Tóm tắt | Summary:</strong> {m.workQtySummary}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+              {hasSection(doc, 'workqty') && (
+                <>
+                  <div className="bcn-sec-title">
+                    {num.roman('workqty')}. KHỐI LƯỢNG THỰC HIỆN <span>| WORK QUANTITIES</span>
+                  </div>
+                  <table className="bcn-table">
+                    <thead>
+                      <tr className="bcn-th-row">
+                        <th style={{ width: '16%' }}>Activity ID</th>
+                        <th style={{ width: '30%' }}>
+                          Hạng mục <span>| Item</span>
+                        </th>
+                        <th style={{ width: '8%' }}>
+                          ĐV <span>| Unit</span>
+                        </th>
+                        <th style={{ width: '10%' }}>
+                          KH ngày <span>| Plan</span>
+                        </th>
+                        <th style={{ width: '10%' }}>
+                          Thực hiện <span>| Actual</span>
+                        </th>
+                        <th style={{ width: '8%' }}>%</th>
+                        <th style={{ width: '18%' }}>
+                          Ghi chú <span>| Remark</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {doc.workItems.map((r, i) => (
+                        <tr key={r.id || i}>
+                          <td>{r.activityId}</td>
+                          <td>{r.item}</td>
+                          <td className="text-center">{r.unit}</td>
+                          <td className="text-right">{r.plan ?? 0}</td>
+                          <td className="text-right">{r.actual ?? 0}</td>
+                          <td className="text-right">{r.percent !== undefined ? `${r.percent}%` : ''}</td>
+                          <td>{r.remark}</td>
+                        </tr>
+                      ))}
+                      {m.workQtySummary && (
+                        <tr>
+                          <td colSpan={7}>
+                            <strong>Tóm tắt | Summary:</strong> {m.workQtySummary}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              )}
 
               {/* V. VẬT TƯ | MATERIALS */}
-              <div className="bcn-sec-title">
-                V. VẬT TƯ <span>| MATERIALS</span>
-              </div>
-              <table className="bcn-table">
-                <thead>
-                  <tr className="bcn-th-row">
-                    <th style={{ width: '38%' }}>
-                      Vật tư <span>| Material</span>
-                    </th>
-                    <th style={{ width: '10%' }}>
-                      ĐV <span>| Unit</span>
-                    </th>
-                    <th style={{ width: '13%' }}>
-                      Nhập về <span>| Recv.</span>
-                    </th>
-                    <th style={{ width: '13%' }}>
-                      Sử dụng <span>| Used</span>
-                    </th>
-                    <th style={{ width: '26%' }}>Phiếu MIR/MAR</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {doc.materials.map((r, i) => (
-                    <tr key={r.id || i}>
-                      <td>{r.material}</td>
-                      <td className="text-center">{r.unit}</td>
-                      <td className="text-right">
-                        {r.recv !== undefined ? String(r.recv).replace('.', ',') : '0'}
-                      </td>
-                      <td className="text-right">
-                        {r.used !== undefined ? String(r.used).replace('.', ',') : '0'}
-                      </td>
-                      <td>{r.mirMar}</td>
-                    </tr>
-                  ))}
-                  {m.materialsSummary && (
-                    <tr>
-                      <td colSpan={5}>
-                        <strong>Tóm tắt | Summary:</strong> {m.materialsSummary}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+              {hasSection(doc, 'materials') && (
+                <>
+                  <div className="bcn-sec-title">
+                    {num.roman('materials')}. VẬT TƯ <span>| MATERIALS</span>
+                  </div>
+                  <table className="bcn-table">
+                    <thead>
+                      <tr className="bcn-th-row">
+                        <th style={{ width: '38%' }}>
+                          Vật tư <span>| Material</span>
+                        </th>
+                        <th style={{ width: '10%' }}>
+                          ĐV <span>| Unit</span>
+                        </th>
+                        <th style={{ width: '13%' }}>
+                          Nhập về <span>| Recv.</span>
+                        </th>
+                        <th style={{ width: '13%' }}>
+                          Sử dụng <span>| Used</span>
+                        </th>
+                        <th style={{ width: '26%' }}>Phiếu MIR/MAR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {doc.materials.map((r, i) => (
+                        <tr key={r.id || i}>
+                          <td>{r.material}</td>
+                          <td className="text-center">{r.unit}</td>
+                          <td className="text-right">
+                            {r.recv !== undefined ? String(r.recv).replace('.', ',') : '0'}
+                          </td>
+                          <td className="text-right">
+                            {r.used !== undefined ? String(r.used).replace('.', ',') : '0'}
+                          </td>
+                          <td>{r.mirMar}</td>
+                        </tr>
+                      ))}
+                      {m.materialsSummary && (
+                        <tr>
+                          <td colSpan={5}>
+                            <strong>Tóm tắt | Summary:</strong> {m.materialsSummary}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              )}
 
               {/* VI. CÔNG VIỆC THỰC HIỆN & KẾ HOẠCH NGÀY MAI */}
               <div className="bcn-sec-title">
-                VI. CÔNG VIỆC THỰC HIỆN &amp; KẾ HOẠCH NGÀY MAI{' '}
+                {num.roman('worksplan')}. CÔNG VIỆC THỰC HIỆN &amp; KẾ HOẠCH NGÀY MAI{' '}
                 <span>| WORKS TODAY &amp; PLAN FOR TOMORROW</span>
               </div>
               <table className="bcn-table">
@@ -677,64 +695,68 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
               </table>
 
               {/* VII. VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ */}
-              <div className="bcn-sec-title">
-                VII. VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ <span>| OPEN ISSUES &amp; CONSTRAINTS</span>
-              </div>
-              <table className="bcn-table">
-                <thead>
-                  <tr className="bcn-th-row">
-                    <th style={{ width: '13%' }}>
-                      Mã <span>| ID</span>
-                    </th>
-                    <th style={{ width: '38%' }}>
-                      Nội dung <span>| Description</span>
-                    </th>
-                    <th style={{ width: '10%' }}>
-                      Mức <span>| Sev.</span>
-                    </th>
-                    <th style={{ width: '8%' }}>
-                      Găng <span>| CP</span>
-                    </th>
-                    <th style={{ width: '15%' }}>
-                      Bên xử lý <span>| By</span>
-                    </th>
-                    <th style={{ width: '8%' }}>
-                      Hạn <span>| Due</span>
-                    </th>
-                    <th style={{ width: '8%' }}>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {doc.issues.map((r, i) => (
-                    <tr key={r.id || i}>
-                      <td>{r.issueId}</td>
-                      <td>{r.description}</td>
-                      <td
-                        className={`text-center ${
-                          r.severity === 'Cao' ? 'sev-cao' : r.severity === 'Trung bình' ? 'sev-tb' : ''
-                        }`}
-                      >
-                        {r.severity}
-                      </td>
-                      <td className="text-center font-bold">{r.criticalPath}</td>
-                      <td>{r.owner}</td>
-                      <td className="text-center">{r.dueDate}</td>
-                      <td className="text-center">{r.status}</td>
-                    </tr>
-                  ))}
-                  {m.issuesSummary && (
-                    <tr>
-                      <td colSpan={7}>
-                        <strong>Tóm tắt | Summary:</strong> {m.issuesSummary}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+              {hasSection(doc, 'issues') && (
+                <>
+                  <div className="bcn-sec-title">
+                    {num.roman('issues')}. VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ <span>| OPEN ISSUES &amp; CONSTRAINTS</span>
+                  </div>
+                  <table className="bcn-table">
+                    <thead>
+                      <tr className="bcn-th-row">
+                        <th style={{ width: '13%' }}>
+                          Mã <span>| ID</span>
+                        </th>
+                        <th style={{ width: '38%' }}>
+                          Nội dung <span>| Description</span>
+                        </th>
+                        <th style={{ width: '10%' }}>
+                          Mức <span>| Sev.</span>
+                        </th>
+                        <th style={{ width: '8%' }}>
+                          Găng <span>| CP</span>
+                        </th>
+                        <th style={{ width: '15%' }}>
+                          Bên xử lý <span>| By</span>
+                        </th>
+                        <th style={{ width: '8%' }}>
+                          Hạn <span>| Due</span>
+                        </th>
+                        <th style={{ width: '8%' }}>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {doc.issues.map((r, i) => (
+                        <tr key={r.id || i}>
+                          <td>{r.issueId}</td>
+                          <td>{r.description}</td>
+                          <td
+                            className={`text-center ${
+                              r.severity === 'Cao' ? 'sev-cao' : r.severity === 'Trung bình' ? 'sev-tb' : ''
+                            }`}
+                          >
+                            {r.severity}
+                          </td>
+                          <td className="text-center font-bold">{r.criticalPath}</td>
+                          <td>{r.owner}</td>
+                          <td className="text-center">{r.dueDate}</td>
+                          <td className="text-center">{r.status}</td>
+                        </tr>
+                      ))}
+                      {m.issuesSummary && (
+                        <tr>
+                          <td colSpan={7}>
+                            <strong>Tóm tắt | Summary:</strong> {m.issuesSummary}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              )}
 
               {/* VIII. AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS */}
               <div className="bcn-sec-title">
-                VIII. AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS{' '}
+                {num.roman('hse')}. AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS{' '}
                 <span>| HSE – QUALITY – ENGINEER&apos;S INSTRUCTIONS</span>
               </div>
               <table className="bcn-table">
