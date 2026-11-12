@@ -3,3 +3,4 @@ export * from './ReportRoleService';
 export * from './ReportTemplateService';
 export * from './ReportDataService';
 
+export * from './ReportRegistryService';

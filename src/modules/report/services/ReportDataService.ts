@@ -1,4 +1,4 @@
-import { ReportDayInfo, ReportDoc, SignedDocInfo, TemplateVersionInfo } from '../types/report.types';
+import { ReportDayInfo, ReportDoc, ReportMetadata, SignedDocInfo, TemplateVersionInfo } from '../types/report.types';
 import { parseReportDocFromBuffer, encodeReportDocToBuffer } from '../utils/reportCodec';
 import { applyFormDefaults } from '../utils/reportForm';
 import { nextReportNo, syncMetadata } from '../utils/reportMeta';
@@ -6,6 +6,7 @@ import { carryForwardTable } from '../utils/reportTable';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
 import { ReportFileService } from './ReportFileService';
 import { ReportTemplateService } from './ReportTemplateService';
+import { ReportRegistryService } from './ReportRegistryService';
 
 export interface LoadedReportResult {
   doc: ReportDoc;
@@ -13,13 +14,46 @@ export interface LoadedReportResult {
   isExisting: boolean;
 }
 
+/** Chi tiết lỗi SharePoint (rút gọn) để người dùng/admin biết cột nào sai hoặc thiếu quyền. */
+function errorDetail(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const msg = /"message"\s*:\s*\{[^}]*"value"\s*:\s*"([^"]+)"/.exec(raw);
+  return `Chi tiết: ${(msg ? msg[1] : raw).slice(0, 220)}`;
+}
+
 export class ReportDataService {
   private _fileService: ReportFileService;
   private _templateService: ReportTemplateService;
+  private _registry: ReportRegistryService;
 
-  constructor(fileService: ReportFileService, templateService: ReportTemplateService) {
+  constructor(
+    fileService: ReportFileService,
+    templateService: ReportTemplateService,
+    registry: ReportRegistryService
+  ) {
     this._fileService = fileService;
     this._templateService = templateService;
+    this._registry = registry;
+  }
+
+  /** Báo cáo ngày mới có số báo cáo theo sổ ReportRegistry (báo cáo tuần là placeholder nên bỏ qua). */
+  private isDaily(docId: string): boolean {
+    return !docId.toLowerCase().includes('week');
+  }
+
+  /**
+   * Gán số báo cáo từ sổ ReportRegistry (số lớn nhất của đơn vị + 1, hoặc số đã có của ngày này).
+   * Không đọc được sổ (chưa tạo list, không có quyền…) thì giữ số suy ra từ báo cáo ngày trước.
+   */
+  private async applyRegistryNo(doc: ReportDoc): Promise<ReportDoc> {
+    if (!this.isDaily(doc.docId)) return doc;
+    try {
+      const no = await this._registry.getReportNoFor(doc.unit, doc.docId, doc.dateStr);
+      return { ...doc, metadata: syncMetadata({ ...doc.metadata, reportNo: no }, doc.unit) };
+    } catch (err: unknown) {
+      console.warn('[ReportRegistry] Could not read next report no., using previous report:', err);
+      return doc;
+    }
   }
 
   /**
@@ -93,6 +127,7 @@ export class ReportDataService {
       doc.metadata.email = currentUserEmail;
       doc = applyFormDefaults(doc, { unit, email: currentUserEmail, siteManager });
       doc.metadata.updateTime = new Date().toISOString();
+      doc = await this.applyRegistryNo(doc);
 
       const isOutdated = isTemplateVersionOutdated(doc.metadata.templateVersion, latestTemplateInfo);
       if (isOutdated) {
@@ -124,7 +159,7 @@ export class ReportDataService {
 
 
     return {
-      doc: templateResult.doc,
+      doc: await this.applyRegistryNo(templateResult.doc),
       templateBuffer: templateResult.templateBuffer,
       isExisting: false
     };
@@ -166,29 +201,43 @@ export class ReportDataService {
     newDoc.copiedFromDate = undefined;
 
     return {
-      doc: newDoc,
+      doc: currentDoc && currentDoc.isExisting ? newDoc : await this.applyRegistryNo(newDoc),
       templateBuffer: templateResult.templateBuffer,
       isExisting: Boolean(currentDoc?.isExisting)
     };
   }
 
   /**
-   * Save report: encodes 6-sheet buffer and uploads to SharePoint library
+   * Save report: encodes the workbook, uploads it, then records it in the ReportRegistry list.
+   * New reports re-read the registry first so the report no. is the latest one at the moment of saving.
+   * `registryWarning` is set when the file was saved but the registry could not be updated.
    */
   public async saveReport(
     doc: ReportDoc,
     templateBuffer?: ArrayBuffer
-  ): Promise<{ serverRelativeUrl: string; eTag?: string }> {
-    doc.metadata.updateTime = new Date().toISOString();
+  ): Promise<{ serverRelativeUrl: string; eTag?: string; metadata: ReportMetadata; registryWarning?: string }> {
+    const base = doc.isExisting ? doc : await this.applyRegistryNo(doc);
+    const toSave: ReportDoc = { ...base, metadata: { ...base.metadata, updateTime: new Date().toISOString() } };
 
-    const buffer = await encodeReportDocToBuffer(doc, templateBuffer);
-    return await this._fileService.saveReportFile(
+    const buffer = await encodeReportDocToBuffer(toSave, templateBuffer);
+    const res = await this._fileService.saveReportFile(
       doc.unit,
       doc.docId,
       doc.dateStr,
       buffer,
       doc.eTag
     );
+
+    let registryWarning: string | undefined;
+    if (this.isDaily(doc.docId)) {
+      try {
+        await this._registry.recordSave(doc.unit, doc.docId, doc.dateStr, toSave.metadata.reportNo, toSave.metadata.email);
+      } catch (err: unknown) {
+        console.warn('[ReportRegistry] Could not record save:', err);
+        registryWarning = `Đã lưu báo cáo nhưng chưa ghi được vào sổ ReportRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}`;
+      }
+    }
+    return { ...res, metadata: toSave.metadata, registryWarning };
   }
 
   /**
@@ -227,7 +276,9 @@ export class ReportDataService {
   }
 
   /**
-   * Trạng thái các ngày (YYYY-MM-DD) của một đơn vị: chưa nhập / chưa upload bản ký / hoàn tất
+   * Trạng thái các ngày (YYYY-MM-DD) của một đơn vị: chưa nhập / chưa upload bản ký / hoàn tất.
+   * Đọc từ sổ ReportRegistry (cùng nguồn với tab Tổng quan nên hai màn hình luôn khớp nhau);
+   * chưa tạo được/không đọc được sổ thì tạm quét thư mục data/ (có thể lệch với Tổng quan).
    */
   public async getDayInfos(
     unit: string,
@@ -235,6 +286,16 @@ export class ReportDataService {
     dateStrs: string[],
     concurrency?: number
   ): Promise<ReportDayInfo[]> {
+    if (this.isDaily(docId) && dateStrs.length > 0) {
+      try {
+        const from = dateStrs.slice().sort()[0];
+        const byKey = await this._registry.getDayInfosSince(docId, from, unit);
+        const days = byKey[`${unit}|${docId}`.toLowerCase()] || {};
+        return dateStrs.map((d): ReportDayInfo => days[d] || { dateStr: d, status: 'missing' });
+      } catch (err: unknown) {
+        console.warn('[ReportRegistry] Could not read day infos, scanning folders instead:', err);
+      }
+    }
     return await this._fileService.getReportDayInfos(unit, docId, dateStrs, concurrency);
   }
 
@@ -252,8 +313,30 @@ export class ReportDataService {
     unit: string,
     docId: string,
     dateStr: string,
-    buffer: ArrayBuffer
-  ): Promise<SignedDocInfo> {
-    return await this._fileService.uploadSignedPdf(unit, docId, dateStr, buffer);
+    buffer: ArrayBuffer,
+    reportNo = '',
+    reporter = ''
+  ): Promise<{ info: SignedDocInfo; registryWarning?: string }> {
+    const info = await this._fileService.uploadSignedPdf(unit, docId, dateStr, buffer);
+    let registryWarning: string | undefined;
+    if (this.isDaily(docId)) {
+      try {
+        await this._registry.recordSigned(unit, docId, dateStr, reportNo, reporter);
+      } catch (err: unknown) {
+        console.warn('[ReportRegistry] Could not record signed:', err);
+        registryWarning = `Đã upload bản ký nhưng chưa cập nhật được sổ ReportRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}`;
+      }
+    }
+    return { info, registryWarning };
+  }
+
+  /**
+   * Trạng thái báo cáo ngày của mọi đơn vị từ ngày `fromDate` (YYYY-MM-DD), đọc một lần từ sổ ReportRegistry
+   */
+  public async getRegistryDayInfos(
+    docId: string,
+    fromDate: string
+  ): Promise<Record<string, Record<string, ReportDayInfo>>> {
+    return await this._registry.getDayInfosSince(docId, fromDate);
   }
 }

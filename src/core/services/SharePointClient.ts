@@ -48,6 +48,69 @@ export class SharePointClient {
   }
 
   /**
+   * Query items with OData options, e.g. "$filter=Unit eq 'A'&$orderby=Id desc&$top=1".
+   */
+  public async queryItems<T>(siteUrl: string, listTitle: string, query: string): Promise<T[]> {
+    const response: SPHttpClientResponse = await this._spHttpClient.get(
+      `${this._itemsUrl(siteUrl, listTitle)}?${query}`,
+      SPHttpClient.configurations.v1,
+      { headers: { 'Accept': 'application/json;odata=nometadata' } }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`SharePoint API Error (${response.status}): ${errText}`);
+    }
+
+    const json = await response.json();
+    return (json.value || []) as T[];
+  }
+
+  /**
+   * Visible columns of a list as { displayTitle: internalName } (internal names can differ from titles, e.g. "Unit0").
+   */
+  public async getListFieldMap(siteUrl: string, listTitle: string): Promise<Record<string, string>> {
+    const response: SPHttpClientResponse = await this._spHttpClient.get(
+      `${siteUrl}/_api/web/lists/getbytitle('${listTitle}')/fields?$filter=Hidden eq false&$select=Title,InternalName`,
+      SPHttpClient.configurations.v1,
+      { headers: { 'Accept': 'application/json;odata=nometadata' } }
+    );
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`SharePoint API Error (${response.status}): ${errText}`);
+    }
+    const json = await response.json();
+    const map: Record<string, string> = {};
+    ((json.value || []) as { Title: string; InternalName: string }[]).forEach((f) => {
+      if (/^LinkTitle/i.test(f.InternalName)) return; // cột hiển thị (có menu) của Title, không ghi được
+      map[f.Title.toLowerCase()] = f.InternalName;
+    });
+    return map;
+  }
+
+  /**
+   * Create an item in a list
+   */
+  public async createItem<T>(siteUrl: string, listTitle: string, data: Partial<T>): Promise<void> {
+    const response: SPHttpClientResponse = await this._spHttpClient.post(
+      this._itemsUrl(siteUrl, listTitle),
+      SPHttpClient.configurations.v1,
+      {
+        headers: {
+          'Accept': 'application/json;odata=nometadata',
+          'Content-Type': 'application/json;odata=nometadata'
+        },
+        body: JSON.stringify(data)
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to create item (${response.status}): ${errText}`);
+    }
+  }
+
+  /**
    * Update (MERGE) an item in a list
    */
   public async updateItem<T>(siteUrl: string, listTitle: string, id: number, data: Partial<T>): Promise<void> {

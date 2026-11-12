@@ -5,6 +5,7 @@ import { REPORT_STORAGE_KEYS } from './constants/reportStorageKeys';
 import {
   ReportDataService,
   ReportFileService,
+  ReportRegistryService,
   ReportRoleService,
   ReportTemplateService
 } from './services';
@@ -33,7 +34,14 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
   const fileService = React.useMemo(() => new ReportFileService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
   const roleService = React.useMemo(() => new ReportRoleService(fileService), [fileService]);
   const templateService = React.useMemo(() => new ReportTemplateService(fileService), [fileService]);
-  const dataService = React.useMemo(() => new ReportDataService(fileService, templateService), [fileService, templateService]);
+  const registryService = React.useMemo(
+    () => new ReportRegistryService(sharePointClient, siteUrl, () => fileService.getLibraryPath()),
+    [sharePointClient, siteUrl, fileService]
+  );
+  const dataService = React.useMemo(
+    () => new ReportDataService(fileService, templateService, registryService),
+    [fileService, templateService, registryService]
+  );
 
   // View state
   const [currentView, setCurrentView] = React.useState<'landing' | 'calendar' | 'entry'>('landing');

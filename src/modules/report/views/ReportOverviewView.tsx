@@ -25,15 +25,11 @@ import {
   matchesSearch,
   ownerDisplay,
   OverviewRow,
-  runWithConcurrency,
   StatusFilter,
   statusOfDay
 } from '../utils/reportOverview';
 
 const WINDOW_DAYS = 14;
-/** Số đơn vị đọc song song và số ngày đọc song song trong mỗi đơn vị (giữ số yêu cầu đồng thời ở mức vừa phải). */
-const UNIT_CONCURRENCY = 3;
-const DAY_CONCURRENCY = 5;
 const CACHE_TTL_MS = 3 * 60 * 1000;
 const PAGE_SIZE = 30;
 
@@ -83,6 +79,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
   const [search, setSearch] = React.useState<string>('');
   const [shown, setShown] = React.useState<number>(PAGE_SIZE);
   const [toast, setToast] = React.useState<ToastState | null>(null);
+  const [loadError, setLoadError] = React.useState<string | undefined>(undefined);
   const [listStatus, setListStatus] = React.useState<StatusFilter>('ALL');
   const [listDate, setListDate] = React.useState<ListDateMode>('ALL');
   // Ô chọn ngày luôn có giá trị, mặc định là hôm nay
@@ -102,32 +99,31 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
       }
       runId.current += 1;
       const myRun = runId.current;
-      const initial: OverviewRow[] = targets.map((t) => ({ target: t, state: 'pending', infos: {} }));
-      setRows(initial);
+      setRows(targets.map((t) => ({ target: t, state: 'pending', infos: {} })));
       setIsLoading(true);
-      const current = initial.slice();
-      await runWithConcurrency(targets, UNIT_CONCURRENCY, async (t) => {
-        let next: OverviewRow;
-        try {
-          const list = await dataService.getDayInfos(t.unit, t.docId, dates, DAY_CONCURRENCY);
-          const infos: Record<string, ReportDayInfo> = {};
-          list.forEach((i) => {
-            infos[i.dateStr] = i;
-          });
-          next = { target: t, state: 'ready', infos };
-        } catch (err: unknown) {
-          console.warn(`[ReportOverview] Could not read ${t.unit}:`, err);
-          next = { target: t, state: 'error', infos: {} };
+      setLoadError(undefined);
+      try {
+        // Một lần đọc sổ ReportRegistry cho mọi đơn vị (thay vì quét thư mục từng đơn vị)
+        const docIds = targets.map((t) => t.docId).filter((d, i, arr) => arr.indexOf(d) === i);
+        const merged: Record<string, Record<string, ReportDayInfo>> = {};
+        for (const docId of docIds) {
+          Object.assign(merged, await dataService.getRegistryDayInfos(docId, dates[0]));
         }
         if (runId.current !== myRun) return;
-        const idx = targets.indexOf(t);
-        current[idx] = next;
-        setRows(current.slice());
-      });
-      if (runId.current !== myRun) return;
-      setIsLoading(false);
-      if (current.every((r) => r.state === 'ready')) {
-        saveOverviewCache({ key: cacheKey, at: Date.now(), rows: current.slice() });
+        const next: OverviewRow[] = targets.map((t) => ({
+          target: t,
+          state: 'ready',
+          infos: merged[`${t.unit}|${t.docId}`.toLowerCase()] || {}
+        }));
+        setRows(next);
+        saveOverviewCache({ key: cacheKey, at: Date.now(), rows: next });
+      } catch (err: unknown) {
+        console.warn('[ReportOverview] Could not read ReportRegistry:', err);
+        if (runId.current !== myRun) return;
+        setRows(targets.map((t) => ({ target: t, state: 'error', infos: {} })));
+        setLoadError('Không đọc được sổ ReportRegistry. Kiểm tra list đã được tạo và bạn có quyền đọc.');
+      } finally {
+        if (runId.current === myRun) setIsLoading(false);
       }
     },
     [cacheKey, dataService, dates, targets]
@@ -229,7 +225,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
           <h3>Hôm nay · {weekdayLong(todayStr)}, {formatDMY(todayStr)}</h3>
           <span>
             {targets.length} đơn vị
-            {isLoading && ` · đang đọc ${readyCount}/${targets.length}`}
+            {isLoading && ' · đang đọc sổ báo cáo…'}
           </span>
         </div>
         <div className="report-ov-kpis">
@@ -262,7 +258,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
 
       {errorCount > 0 && (
         <div className="report-ov-warn" role="alert">
-          Không đọc được dữ liệu của {errorCount} đơn vị (có thể do quyền hoặc mạng). Bấm Làm mới để thử lại.
+          {loadError || `Không đọc được dữ liệu của ${errorCount} đơn vị.`} Bấm Làm mới để thử lại.
         </div>
       )}
 

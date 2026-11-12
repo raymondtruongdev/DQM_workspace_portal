@@ -177,4 +177,6 @@ export interface ReportDayInfo {
   status: ReportDayStatus;
   savedAt?: string;           // thời điểm lưu file báo cáo (.xlsx)
   signed?: SignedDocInfo;     // file PDF đã ký (nếu có)
+  reporter?: string;          // người lập (email) – từ sổ ReportRegistry
+  reportNo?: string;          // số báo cáo – từ sổ ReportRegistry
 }

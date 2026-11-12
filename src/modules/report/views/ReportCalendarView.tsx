@@ -389,7 +389,8 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                     <dd>
                       {selInfo && selInfo.signed ? (
                         <>
-                          {selInfo.signed.name} · {formatFileSize(selInfo.signed.length)}
+                          {selInfo.signed.name}
+                          {selInfo.signed.length > 0 && ` · ${formatFileSize(selInfo.signed.length)}`}
                         </>
                       ) : (
                         'Chưa có'

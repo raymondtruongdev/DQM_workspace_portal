@@ -128,22 +128,3 @@ export function ownerDisplay(o: ReportOwner): { initials: string; label: string;
     title: [o.name, o.email].filter(Boolean).join('\n')
   };
 }
-
-/** Chạy `worker` cho từng phần tử, tối đa `limit` việc cùng lúc. */
-export async function runWithConcurrency<T>(items: T[], limit: number, worker: (item: T) => Promise<void>): Promise<void> {
-  let next = 0;
-  const runners: Promise<void>[] = [];
-  const size = Math.max(1, Math.min(limit, items.length));
-  for (let i = 0; i < size; i++) {
-    runners.push(
-      (async (): Promise<void> => {
-        while (next < items.length) {
-          const idx = next;
-          next += 1;
-          await worker(items[idx]);
-        }
-      })()
-    );
-  }
-  await Promise.all(runners);
-}

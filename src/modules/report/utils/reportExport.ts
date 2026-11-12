@@ -10,6 +10,8 @@ const HEADER: ExportCell[] = [
   'Đơn vị',
   'Loại báo cáo',
   'Trạng thái',
+  'Số báo cáo',
+  'Người lập',
   'Lưu lúc',
   'File đã ký',
   'Upload bản ký lúc',
@@ -38,6 +40,8 @@ export function buildExportRows(items: ReportListItem[]): ExportCell[][] {
       i.target.unit,
       i.target.docId,
       DAY_STATUS_LABEL[i.status],
+      i.info && i.info.reportNo ? i.info.reportNo : '',
+      i.info && i.info.reporter ? i.info.reporter : '',
       formatDateTime(i.info ? i.info.savedAt : undefined),
       i.info && i.info.signed ? i.info.signed.name : '',
       i.info && i.info.signed ? formatDateTime(i.info.signed.timeLastModified) : '',
@@ -63,7 +67,7 @@ function downloadBlob(blob: Blob, fileName: string): void {
 export async function exportXlsx(rows: ExportCell[][], fileName: string): Promise<void> {
   const XLSX: typeof XLSXTypes = await import(/* webpackChunkName: 'xlsx' */ 'xlsx');
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 34 }, { wch: 18 }, { wch: 40 }, { wch: 44 }];
+  ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 20 }, { wch: 12 }, { wch: 30 }, { wch: 18 }, { wch: 34 }, { wch: 18 }, { wch: 40 }, { wch: 44 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Bao cao');
   const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;

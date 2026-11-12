@@ -181,9 +181,20 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     setIsUploadingSigned(true);
     try {
       const buf = await file.arrayBuffer();
-      const info = await dataService.uploadSignedDocument(role.unit, role.docId, dateStr, buf);
-      setSignedDoc(info);
-      setToast({ type: 'success', text: 'Đã upload bản đã ký. Báo cáo ngày này đã hoàn tất.' });
+      const res = await dataService.uploadSignedDocument(
+        role.unit,
+        role.docId,
+        dateStr,
+        buf,
+        doc.metadata.reportNo,
+        doc.metadata.email
+      );
+      setSignedDoc(res.info);
+      setToast(
+        res.registryWarning
+          ? { type: 'error', text: res.registryWarning }
+          : { type: 'success', text: 'Đã upload bản đã ký. Báo cáo ngày này đã hoàn tất.' }
+      );
     } catch (err: unknown) {
       console.error('Error uploading signed document:', err);
       const msg = err instanceof Error ? err.message : 'Lỗi khi upload file đã ký lên SharePoint';
@@ -366,12 +377,17 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     setIsSaving(true);
     try {
       const res = await dataService.saveReport(doc, templateBuffer);
-      setDoc((prev) => (prev ? { ...prev, isExisting: true, eTag: res.eTag } : null));
+      // Số báo cáo/mã tài liệu có thể đã được cấp lại theo sổ ReportRegistry lúc lưu
+      setDoc((prev) => (prev ? { ...prev, isExisting: true, eTag: res.eTag, metadata: res.metadata } : null));
       setHasUnsavedChanges(false);
-      setToast({
-        type: 'success',
-        text: `Đã lưu báo cáo 6 sheets thành công vào thư viện SharePoint (${role.unit} - ${dateStr})!`
-      });
+      setToast(
+        res.registryWarning
+          ? { type: 'error', text: res.registryWarning }
+          : {
+              type: 'success',
+              text: `Đã lưu báo cáo số ${res.metadata.reportNo} vào thư viện SharePoint (${role.unit} - ${dateStr})!`
+            }
+      );
     } catch (err: unknown) {
       console.error('Error saving report:', err);
       const msg = err instanceof Error ? err.message : 'Lỗi khi lưu báo cáo lên SharePoint';
