@@ -55,16 +55,14 @@ export const ReportPrintPhoto: React.FC<IReportPrintPhotoProps> = ({ section, ro
                   ))}
                 </tr>
               ))}
-              {g.summary && (
-                <tr>
-                  <td colSpan={cols}>
-                    <strong>Tóm tắt | Summary:</strong> <span style={{ whiteSpace: 'pre-line' }}>{g.summary}</span>
-                  </td>
-                </tr>
-              )}
+              <tr>
+                <td colSpan={cols}>
+                  <strong>Tóm tắt | Summary:</strong> <span style={{ whiteSpace: 'pre-line' }}>{g.summary}</span>
+                </td>
+              </tr>
             </React.Fragment>
           ))}
-          {section.showSummary && section.summary && (
+          {section.showSummary && (
             <tr>
               <td colSpan={cols}>
                 <strong>Tóm tắt | Summary:</strong>{' '}

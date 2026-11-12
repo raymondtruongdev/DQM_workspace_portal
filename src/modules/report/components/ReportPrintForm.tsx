@@ -78,7 +78,7 @@ export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman, 
               </React.Fragment>
             )
           )}
-          {form.showSummary && form.summary && (
+          {form.showSummary && (
             <tr>
               <td colSpan={cols}>
                 <strong>Tóm tắt | Summary:</strong> <span style={{ whiteSpace: 'pre-line' }}>{form.summary}</span>

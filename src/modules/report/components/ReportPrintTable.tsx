@@ -73,10 +73,10 @@ export const ReportPrintTable: React.FC<IReportPrintTableProps> = ({ table, roma
               ))}
             </tr>
           )}
-          {table.summary && (
+          {table.showSummary && (
             <tr>
               <td colSpan={columns.length}>
-                <strong>Tóm tắt | Summary:</strong> {table.summary}
+                <strong>Tóm tắt | Summary:</strong> <span style={{ whiteSpace: 'pre-line' }}>{table.summary}</span>
               </td>
             </tr>
           )}
