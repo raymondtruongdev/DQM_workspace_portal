@@ -276,3 +276,28 @@ export const TasksModule: React.FC<ModuleProps> = ({ onGoHome }) => (
 
 ### 8.6 Nợ kỹ thuật đã biết (đừng nhân rộng)
 * `report.css` còn một số class chưa có tiền tố thuộc phần Weekly placeholder (`kpi-box`, `id-tag`, `rate-input`… – danh sách trong `scripts/check-styles.js` → `LEGACY_CLASSES`). Dọn (đổi sang `report-…`) khi làm báo cáo tuần; KHÔNG thêm class mới không tiền tố.
+
+---
+
+## 9. Việc có thể làm tiếp (backlog, CHƯA làm)
+
+Các ý định đã bàn nhưng chưa triển khai; chỉ làm khi chủ dự án yêu cầu. Ghi ở đây để phiên làm việc sau nắm được bối cảnh. (Upload bản ký trong danh sách Tổng quan: đã chốt giữ như hiện tại, nút "Upload bản ký" chỉ mở báo cáo của ngày, không làm upload thẳng.)
+
+**Báo cáo ngày (lịch 14 ngày và tab Tổng quan)**
+* **Ngày nghỉ / lễ:** hiện mọi ngày (kể cả Chủ nhật) đều tính, nên ngày nghỉ hiện "Chưa nhập". Cách làm gọn: một danh sách ngày nghỉ (chung hoặc theo đơn vị) lưu trong thư viện; ô ngày nghỉ hiện xám "Nghỉ" và không tính thiếu.
+* **Nộp trễ:** đánh dấu ngày "Hoàn tất · nộp trễ" / "quá hạn ký" và đếm số ngày trễ, cần chốt hạn nộp báo cáo và hạn upload bản ký (chung hay theo đơn vị; nếu theo đơn vị thì thêm cột vào `Report_Role.xlsx`). Cần đọc thêm thời điểm **tạo** file (`TimeCreated`) vì thời điểm hiện dùng (`TimeLastModified`) đổi mỗi lần lưu lại / thay file.
+* **Người lưu / người upload:** lịch và Tổng quan chưa hiển thị vì danh sách file không trả về người sửa; cần đọc thêm thuộc tính người sửa (chưa thử trên SharePoint thật).
+* **Chú thích nhanh cho ô ma trận Tổng quan:** hiện dùng `title` của trình duyệt (hiện chậm ~1 giây); ô nằm trong khung cuộn ngang nên chú thích CSS bị cắt, cần vẽ chú thích nổi ngoài khung.
+* **Người phụ trách chính:** hiện hiển thị mọi người trong `Report_Role.xlsx` của đơn vị; nếu chỉ cần một người chính, thêm cột đánh dấu trong file đó.
+* **Hiệu năng nhiều đơn vị:** hiện đọc theo thư mục (~15 yêu cầu/đơn vị, tối đa 3 đơn vị × 5 ngày song song, nhớ 3 phút); khi số đơn vị tăng nhiều, thay bằng một truy vấn duy nhất lên thư viện để lấy file của mọi đơn vị trong khoảng ngày (cần thử và chỉnh trên SharePoint thật).
+* **Nhắc nhở tự động:** web part không tự gửi email; dùng luồng Power Automate chạy theo lịch (đọc cùng thư viện) để nhắc các đơn vị còn thiếu. Hiện chỉ có xuất danh sách ra Excel.
+* **Hành động admin chưa có:** upload hộ / thay file ký cho đơn vị khác, xoá file ký để buộc ký lại (cần xác nhận và phân quyền SharePoint tương ứng).
+* **Chú thích sửa báo cáo sau khi ký:** hiện sửa sau khi ký không đổi trạng thái (vẫn Hoàn tất); có thể cân nhắc quay về "Chưa upload bản ký" để ký lại.
+
+**Bảo mật / triển khai (kiểm tra trên SharePoint, code không thay thế được)**
+* `UserProfiles`: người thường chỉ đọc, chỉ admin được sửa; `SiteAssets/portal_config.json`: chỉ admin được ghi; thư viện `CapNhatCongViec`: phân quyền theo thư mục đơn vị `data/<Unit>`, chỉ admin được xoá file ký.
+* Tuỳ chọn mạnh hơn: xác định admin theo nhóm SharePoint (ví dụ Site Owners) thay vì cột `Role` trong `UserProfiles`.
+* Cột `Id` và `departmentCode` của `UserProfiles` được đọc nhưng không dùng (có thể bỏ khỏi code).
+
+**Kiểm thử còn thiếu (chưa xác nhận trên SharePoint thật)**
+* Tải tab Tổng quan với ~20 đơn vị, upload bản ký (đổi tên + xoá file tên cũ), xuất Excel, chế độ bảo trì với hai tài khoản, `npm run build`, xem giao diện ở 1440 / 1024 / 768 / 390px.
