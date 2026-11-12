@@ -37,8 +37,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const activeDisplayName = currentUser?.displayName || userDisplayName;
   const userInitials = activeDisplayName.slice(0, 2).toUpperCase();
 
-  // Load UserProfiles list to provide role switching / diagnostics
+  // Chỉ admin thật (PortalShell truyền onSelectProfile) mới tải danh sách hồ sơ để chuyển vai trò
+  const canSwitchRole = Boolean(onSelectProfile);
   useEffect(() => {
+    if (!canSwitchRole) return;
     let isMounted = true;
     const loadProfiles = async (): Promise<void> => {
       try {
@@ -53,7 +55,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [profileService, siteUrl]);
+  }, [canSwitchRole, profileService, siteUrl]);
 
   const handleSwitch = (p: UserProfileRecord): void => {
     if (!onSelectProfile) return;
@@ -160,7 +162,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </section>
 
         {/* Developer & QA Role Switcher */}
-        {profiles.length > 0 && (
+        {canSwitchRole && profiles.length > 0 && (
           <div className="landing-switcher">
             <button
               type="button"

@@ -7,7 +7,6 @@ import type { PortalConfig } from '../core/types';
 import { DEFAULT_PORTAL_CONFIG } from '../core/types';
 import { UserProfileService, extractCleanEmail, checkIsAdmin } from '../core/auth';
 import { PortalConfigService, SharePointClient } from '../core/services';
-import { SESSION_STORAGE_KEY } from '../core/constants';
 import { HomeView } from '../modules/home';
 import { PORTAL_MODULES } from './moduleRegistry';
 import { EmptyState, Icon } from '../core/components';
@@ -28,27 +27,15 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
   // Active module: null = Home (module launcher)
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
 
-  // Session state
-  const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
-    try {
-      const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // Ignore
-    }
-    return null;
-  });
+  // Danh tính THẬT của người đang mở web part: luôn đọc lại từ list UserProfiles mỗi lần mở (không lưu/không tin sessionStorage)
+  const [realUser, setRealUser] = useState<UserSession | null>(null);
+  // Chỉ admin thật mới được "xem với vai trò khác" (Developer / QA); chỉ giữ trong bộ nhớ, tải lại trang là mất
+  const [viewAsUser, setViewAsUser] = useState<UserSession | null>(null);
+  const currentUser = viewAsUser ?? realUser;
+  const isRealAdmin = Boolean(realUser?.isAdmin);
 
-  // State to track auto-SSO resolution on startup
-  const [isResolvingAuth, setIsResolvingAuth] = useState<boolean>(() => {
-    try {
-      const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (saved) return false;
-    } catch {
-      // Ignore
-    }
-    return true;
-  });
+  // State to track SSO resolution on startup
+  const [isResolvingAuth, setIsResolvingAuth] = useState<boolean>(true);
 
   useEffect(() => {
     let alive = true;
@@ -69,8 +56,8 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
   const checkMaintenance = useCallback(async (): Promise<boolean> => {
     const c = await configService.getConfig();
     setPortalConfig(c);
-    return c.maintenance && !currentUser?.isAdmin;
-  }, [configService, currentUser]);
+    return c.maintenance && !isRealAdmin;
+  }, [configService, isRealAdmin]);
 
   // Người dùng đang ở trong module khi admin bật bảo trì: kiểm tra định kỳ và khi quay lại tab
   useEffect(() => {
@@ -97,13 +84,8 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
     };
   }, [configService]);
 
-  // Attempt automatic SSO resolution on component mount
+  // Xác định danh tính từ list UserProfiles khi mở web part
   useEffect(() => {
-    if (currentUser) {
-      setIsResolvingAuth(false);
-      return;
-    }
-
     let isMounted = true;
     const autoResolveSSO = async (): Promise<void> => {
       const cleanEmail = extractCleanEmail(userEmail || userLoginName);
@@ -134,12 +116,7 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
             isAdmin: checkIsAdmin(match.role),
           };
           console.log('[PortalShell] Auto-SSO success:', session);
-          setCurrentUser(session);
-          try {
-            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-          } catch {
-            // Ignore
-          }
+          setRealUser(session);
         }
       } catch (err: unknown) {
         console.warn('[PortalShell] Auto-SSO resolution check:', err);
@@ -158,16 +135,12 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
     return () => {
       isMounted = false;
     };
-  }, [userEmail, userLoginName, userDisplayName, siteUrl, profileService, currentUser]);
+  }, [userEmail, userLoginName, userDisplayName, siteUrl, profileService]);
 
-  // Profile selection (SSO dev/qa switcher)
+  // Xem với vai trò khác (Developer / QA): chỉ admin thật được gọi, kiểm tra lại ở đây
   const handleSelectProfile = (user: UserSession): void => {
-    setCurrentUser(user);
-    try {
-      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(user));
-    } catch {
-      // Ignore
-    }
+    if (!isRealAdmin) return;
+    setViewAsUser(user);
   };
 
   // Loading state while checking M365 SSO
@@ -185,7 +158,7 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
   }
 
   // Chế độ bảo trì: chỉ admin còn truy cập được
-  const isBlocked = portalConfig.maintenance && !currentUser?.isAdmin;
+  const isBlocked = portalConfig.maintenance && !isRealAdmin;
   const maintenanceScreen = (
     <main className="main-content landing-wrapper">
       <EmptyState
@@ -230,7 +203,7 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
         modules={PORTAL_MODULES}
         maintenance={portalConfig.maintenance}
         onOpenModule={setActiveModuleId}
-        onSelectProfile={handleSelectProfile}
+        onSelectProfile={isRealAdmin ? handleSelectProfile : undefined}
         profileService={profileService}
         siteUrl={siteUrl}
         userDisplayName={userDisplayName}

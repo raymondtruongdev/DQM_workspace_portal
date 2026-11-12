@@ -81,7 +81,8 @@ DQM_Check_In_App/
 * **Return Home Navigation:** Inside a module, users can click the **"Trang Chủ"** button to return to the Landing page at any time.
 * **Zero-Click SSO & Profile Resolution:** Identity is resolved via Microsoft Entra ID (`pageContext.user.email` / `loginName`) against the `UserProfiles` list.
   - If a matching email is found, role and department are seamlessly assigned.
-  - In development or QA, the Landing Page includes a testing Profile Switcher to easily toggle between Admin and User (DIRC) accounts without re-authenticating with Microsoft 365.
+  - Danh tính luôn được đọc lại từ list `UserProfiles` mỗi lần mở web part; KHÔNG lưu/tin `sessionStorage` (người dùng có thể sửa).
+  - Bộ chuyển vai trò Developer / QA ("xem với vai trò khác") trên trang chủ CHỈ hiện cho admin thật (quyền lấy từ `UserProfiles` theo tài khoản M365 đăng nhập, không phải hồ sơ đang xem). Vai trò đang xem chỉ giữ trong bộ nhớ (tải lại trang là về tài khoản thật). Quyền bỏ qua chế độ bảo trì dựa trên admin thật. Lưu ý: kiểm tra quyền này chỉ ở phía giao diện, bảo mật thật phải dựa vào phân quyền SharePoint (list `UserProfiles` chỉ đọc cho người thường, `SiteAssets/portal_config.json` chỉ admin được ghi).
 
 ### 2. Data Service (`SharePointClient.ts`)
 
@@ -187,6 +188,14 @@ npm run build
    - Storage keys use the prefix `portal_<module>_...`. Style: xem mục 8 (CSS riêng của module chỉ ở `modules/<name>/<name>.css`, class có tiền tố `<name>-`).
 
 7. **Nơi lưu quy tắc dự án:** mọi quy tắc, quy ước, quyết định kiến trúc và lưu ý lâu dài của dự án CHỈ được ghi vào file `AGENTS.md` này (nằm trong repo để dùng được trên mọi máy). Không lưu vào bộ nhớ/cấu hình cục bộ của công cụ AI (ví dụ thư mục `~/.claude`).
+
+8. **Bảo mật khi thiết kế module mới (BẮT BUỘC):**
+   - **Kiểm tra quyền ở giao diện chỉ là tiện ích, KHÔNG phải bảo mật.** Web part chạy hoàn toàn trên trình duyệt; mọi thứ như `isAdmin`, vai trò, ẩn/hiện nút đều có thể bị người dùng biết kỹ thuật thay đổi. Bảo mật thật phải dựa vào **phân quyền SharePoint** (list, thư viện, thư mục): mỗi module phải ghi rõ trong AGENTS.md những list/thư viện/thư mục nó đọc-ghi và quyền SharePoint cần cấu hình (ai chỉ đọc, ai được ghi). Thiết kế sao cho dù giao diện bị vượt qua, người dùng vẫn chỉ làm được những gì quyền SharePoint của họ cho phép.
+   - **Danh tính và vai trò luôn đọc lại từ nguồn thật** (list `UserProfiles` theo tài khoản M365 đăng nhập) mỗi lần mở web part. KHÔNG lưu quyền/vai trò vào `sessionStorage`/`localStorage` rồi tin lại; không tin dữ liệu do trình duyệt cung cấp.
+   - **Chức năng chỉ dành cho admin** (đặt `adminOnly` cho module hoặc kiểm tra trong view) phải dựa trên **admin thật** của `PortalShell` (tài khoản đăng nhập), không dựa trên hồ sơ đang "xem với vai trò khác". Không thêm cơ chế chuyển vai trò/đóng vai nào cho người không phải admin thật.
+   - **Dữ liệu nhạy cảm không đưa vào nơi mọi người đọc được** (list `UserProfiles` đang lộ email và vai trò cho ai có quyền đọc list). Cấu hình ghi bằng quyền cao (vd `SiteAssets/portal_config.json`) phải giới hạn quyền ghi cho admin trên SharePoint.
+   - Mọi thao tác ghi tuân thủ điều 5 (chế độ bảo trì: `checkMaintenance()` trước khi ghi).
+   - Không ghi vào log/console thông tin cá nhân hay token; không gửi dữ liệu người dùng ra dịch vụ bên ngoài SharePoint/M365.
 
 ---
 
