@@ -1,6 +1,5 @@
 import { RoleEntry } from '../../../core/types';
 import { ReportDayInfo, ReportDayStatus } from '../types/report.types';
-import { DAY_STATUS_LABEL, formatDM, weekdayLong } from './reportCalendar';
 
 /** Người phụ trách một báo cáo (lấy từ Report_Role.xlsx). */
 export interface ReportOwner {
@@ -112,19 +111,22 @@ export function buildReportList(rows: OverviewRow[], dates: string[], filter: St
   );
 }
 
-export function ownersText(owners: ReportOwner[]): string {
-  if (owners.length === 0) return 'Chưa có người phụ trách';
-  return owners.map((o) => (o.name && o.email ? `${o.name} (${o.email})` : o.name || o.email)).join('; ');
-}
-
-/** Văn bản dán vào email / Teams từ danh sách đang hiển thị. */
-export function reportListToText(items: ReportListItem[]): string {
-  return items
-    .map(
-      (i) =>
-        `${i.target.unit} · ${weekdayLong(i.dateStr)} ${formatDM(i.dateStr)} · ${DAY_STATUS_LABEL[i.status]} · ${ownersText(i.target.owners)}`
-    )
-    .join('\n');
+/** Cách hiển thị một người phụ trách dạng thẻ nhỏ: chữ cái đầu, nhãn ngắn (phần sau " - " nếu có), chú giải đầy đủ. */
+export function ownerDisplay(o: ReportOwner): { initials: string; label: string; title: string } {
+  const sep = ' - ';
+  const cut = o.name.indexOf(sep);
+  const person = (cut === -1 ? o.name : o.name.slice(0, cut)).trim();
+  const org = cut === -1 ? '' : o.name.slice(cut + sep.length).trim();
+  const words = person.split(/\s+/).filter(Boolean);
+  let initials = '';
+  if (words.length >= 2) initials = words[0].charAt(0) + words[words.length - 1].charAt(0);
+  else if (words.length === 1) initials = words[0].slice(0, 2);
+  else initials = (o.email.split('@')[0] || '?').slice(0, 2);
+  return {
+    initials: initials.toUpperCase(),
+    label: org || person || o.email,
+    title: [o.name, o.email].filter(Boolean).join('\n')
+  };
 }
 
 /** Chạy `worker` cho từng phần tử, tối đa `limit` việc cùng lúc. */

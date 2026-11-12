@@ -1836,69 +1836,73 @@
   min-width: 160px;
 }
 
-/* Danh sách tất cả report: lưới 5 cột trên màn rộng, xếp thành thẻ nhỏ trên màn hẹp */
+/* Danh sách tất cả report: mỗi dòng = khối ngày · (đơn vị + trạng thái / người phụ trách + giờ) · nút theo trạng thái */
 .report-ov-list {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
-.report-ov-list__head,
-.report-ov-list__row {
+.report-ov-row {
   display: grid;
-  grid-template-columns: 128px 72px 190px minmax(200px, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3) var(--space-4);
   padding: var(--space-3) var(--space-4);
-}
-
-.report-ov-list__head {
-  background: var(--color-surface-subtle);
-  border-bottom: 2px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.report-ov-list__row {
   border-bottom: 1px solid var(--color-border);
 }
 
-.report-ov-list__row:last-child { border-bottom: 0; }
-.report-ov-list__row:hover { background: var(--color-surface-subtle); }
-.report-ov-list__row--missing { box-shadow: inset 3px 0 0 var(--color-danger); }
-.report-ov-list__row--unsigned { box-shadow: inset 3px 0 0 var(--color-warning); }
-.report-ov-list__row--done { box-shadow: inset 3px 0 0 var(--color-success); }
+.report-ov-row:last-child { border-bottom: 0; }
+.report-ov-row:hover { background: var(--color-surface-subtle); }
+.report-ov-row.is-today { background: linear-gradient(90deg, var(--color-accent-subtle), transparent 60%); }
 
-.report-ov-list__sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-}
-
-.report-ov-date {
+.report-ov-daybox {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-1) var(--space-2);
-  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+  line-height: 1.15;
 }
 
-.report-ov-date b {
-  font-size: var(--text-md);
+.report-ov-daybox b {
+  font-size: var(--text-lg);
   font-variant-numeric: tabular-nums;
 }
 
-.report-ov-date small,
-.report-ov-status small {
+.report-ov-daybox small {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
+}
+
+.report-ov-row.is-today .report-ov-daybox {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+}
+
+.report-ov-row.is-today .report-ov-daybox small {
+  color: var(--color-text-inverse);
+  opacity: 0.9;
+}
+
+.report-ov-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.report-ov-main__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
 }
 
 .report-ov-unit {
@@ -1906,57 +1910,123 @@
   font-weight: 700;
 }
 
-.report-ov-status {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-1);
+/* Nhãn trạng thái có chấm màu phía trước */
+.report-ov-dotted::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
-.report-ov-owners {
-  min-width: 0;
-}
-
-.report-ov-owner {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.3;
-}
-
-.report-ov-owner + .report-ov-owner {
-  margin-top: var(--space-1-5);
-}
-
-.report-ov-owner__name {
+.report-ov-person {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  max-width: 100%;
+  padding: 2px var(--space-2-5) 2px 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
   font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.report-ov-owner__mail {
-  color: var(--color-accent);
-  font-size: var(--text-xs);
-  overflow-wrap: anywhere;
   text-decoration: none;
 }
 
-.report-ov-owner__mail:hover { text-decoration: underline; }
+.report-ov-person:hover { border-color: var(--color-accent); }
+
+.report-ov-person__avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.report-ov-person__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-ov-tip {
+  position: relative;
+}
+
+/* Chú thích hiện ngay khi rê chuột / focus (thay cho title của trình duyệt, vốn hiện chậm ~1 giây) */
+.report-ov-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  width: max-content;
+  max-width: 280px;
+  padding: var(--space-1-5) var(--space-2-5);
+  border-radius: var(--radius-sm);
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 60ms linear, transform 60ms linear;
+}
+
+.report-ov-tip--end::after {
+  left: auto;
+  right: 0;
+}
+
+.report-ov-tip:hover::after,
+.report-ov-tip:focus-visible::after {
+  opacity: 1;
+  transform: none;
+}
 
 .report-ov-owner-more {
-  margin-top: var(--space-1-5);
-  padding: 0;
-  border: 0;
-  background: none;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
   color: var(--color-accent);
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.report-ov-owner-more:hover { text-decoration: underline; }
+.report-ov-owner-more:hover { border-color: var(--color-accent); }
+
+.report-ov-times {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.report-ov-times span + span {
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+}
 
 .report-ov-action {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--space-2);
 }
@@ -1967,25 +2037,17 @@
   margin-top: var(--space-4);
 }
 
-/* Thẻ nhỏ (khung danh sách hẹp, class do ReportOverviewView đặt theo bề rộng thật):
-   hàng 1 = ngày · đơn vị · trạng thái, hàng 2 = người phụ trách, hàng 3 = nút */
-.report-ov-list.is-compact .report-ov-list__head { display: none; }
-
-.report-ov-list.is-compact .report-ov-list__row {
-  grid-template-columns: auto auto minmax(0, 1fr);
-  grid-template-areas:
-    "date unit status"
-    "owners owners owners"
-    "action action action";
-  align-items: start;
+/* Khung danh sách hẹp (class do ReportOverviewView đặt theo bề rộng thật): nút xuống hàng dưới */
+.report-ov-list.is-compact .report-ov-row {
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
-.report-ov-list.is-compact .report-ov-date { grid-area: date; }
-.report-ov-list.is-compact .report-ov-unit { grid-area: unit; }
-.report-ov-list.is-compact .report-ov-status { grid-area: status; align-items: flex-end; text-align: right; }
-.report-ov-list.is-compact .report-ov-owners { grid-area: owners; padding-top: var(--space-2); border-top: 1px dashed var(--color-border); }
-.report-ov-list.is-compact .report-ov-action { grid-area: action; justify-content: flex-start; }
-.report-ov-list.is-compact .report-ov-action .btn { flex: 1 1 auto; }
+.report-ov-list.is-compact .report-ov-action {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+}
+
+.report-ov-list.is-compact .report-ov-daybox { width: 64px; }
 
 @media (max-width: 1024px) {
   .report-ov-kpis { flex: 1 1 100%; }

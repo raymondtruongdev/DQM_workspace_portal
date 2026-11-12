@@ -381,6 +381,10 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                     <dd>{selInfo ? formatSavedAt(selInfo.savedAt) : 'Chưa có'}</dd>
                   </div>
                   <div>
+                    <dt>Upload bản ký lúc</dt>
+                    <dd>{selInfo && selInfo.signed ? formatSavedAt(selInfo.signed.timeLastModified) : 'Chưa có'}</dd>
+                  </div>
+                  <div>
                     <dt>File PDF đã ký</dt>
                     <dd>
                       {selInfo && selInfo.signed ? (

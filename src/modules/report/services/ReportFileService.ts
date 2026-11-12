@@ -11,6 +11,7 @@ import {
   getUnitFolderRelativePath,
   matchUnitTemplateFileName,
   getReportFolderName,
+  getLegacySignedPdfFileName,
   getSignedPdfFileName
 } from '../utils/reportFileNaming';
 
@@ -316,11 +317,11 @@ export class ReportFileService {
     return safeName;
   }
 
-  /** File PDF trong thư mục báo cáo (ưu tiên <DocID>_<yyyyMMdd>_signed.pdf, nếu không thì PDF mới nhất). */
-  private pickSignedPdf(files: ISharePointFileInfo[], docId: string, dateStr: string): SignedDocInfo | undefined {
+  /** File PDF trong thư mục báo cáo (ưu tiên <DRP|WRP>_<yyyyMMdd>_<Unit>_signed.pdf, nếu không thì PDF mới nhất). */
+  private pickSignedPdf(files: ISharePointFileInfo[], docId: string, unit: string, dateStr: string): SignedDocInfo | undefined {
     const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
     if (pdfs.length === 0) return undefined;
-    const preferred = getSignedPdfFileName(docId, dateStr).toLowerCase();
+    const preferred = getSignedPdfFileName(docId, unit, dateStr).toLowerCase();
     const best =
       pdfs.filter((f) => f.name.toLowerCase() === preferred)[0] ||
       pdfs.sort((a, b) => (b.timeLastModified || '').localeCompare(a.timeLastModified || ''))[0];
@@ -366,7 +367,7 @@ export class ReportFileService {
       const reportName = getReportFileName(docId, dateStr).toLowerCase();
       const report = files.filter((f) => f.name.toLowerCase() === reportName)[0];
       if (!report) return { dateStr, status: 'missing' };
-      const signed = this.pickSignedPdf(files, docId, dateStr);
+      const signed = this.pickSignedPdf(files, docId, unit, dateStr);
       return {
         dateStr,
         status: signed ? 'done' : 'unsigned',
@@ -387,16 +388,30 @@ export class ReportFileService {
   public async getSignedPdf(unit: string, docId: string, dateStr: string): Promise<SignedDocInfo | undefined> {
     const folder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
     const files = await this._client.getFolderFiles(this._siteUrl, folder);
-    return this.pickSignedPdf(files, docId, dateStr);
+    return this.pickSignedPdf(files, docId, unit, dateStr);
   }
 
-  /** Upload file PDF đã ký vào thư mục báo cáo (ghi đè nếu đã có): <DocID>_<yyyyMMdd>_signed.pdf */
+  /**
+   * Upload file PDF đã ký vào thư mục báo cáo, luôn đổi tên theo quy ước <DRP|WRP>_<yyyyMMdd>_<Unit>_signed.pdf
+   * (ghi đè nếu đã có). File đã ký đặt theo tên cũ của hệ thống (<DocID>_<yyyyMMdd>_signed.pdf) được xoá
+   * để không còn hai bản.
+   */
   public async uploadSignedPdf(unit: string, docId: string, dateStr: string, buffer: ArrayBuffer): Promise<SignedDocInfo> {
     await this.ensureUnitFolder(unit);
     const folder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
     await this._client.ensureFolder(this._siteUrl, folder);
-    const name = getSignedPdfFileName(docId, dateStr);
+    const name = getSignedPdfFileName(docId, unit, dateStr);
     const res = await this._client.uploadFile(this._siteUrl, folder, name, buffer, true);
+
+    try {
+      const legacy = getLegacySignedPdfFileName(docId, dateStr).toLowerCase();
+      const files = await this._client.getFolderFiles(this._siteUrl, folder);
+      const old = files.filter((f) => f.name.toLowerCase() === legacy && f.name.toLowerCase() !== name.toLowerCase())[0];
+      if (old) await this._client.deleteFile(this._siteUrl, old.serverRelativeUrl);
+    } catch (err: unknown) {
+      console.warn('Could not remove legacy signed file:', err);
+    }
+
     return {
       name,
       serverRelativeUrl: res.serverRelativeUrl,

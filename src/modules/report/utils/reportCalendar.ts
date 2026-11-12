@@ -81,6 +81,16 @@ export function formatSavedAt(iso?: string): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())} · ${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 }
 
+/** HH:mm nếu cùng ngày với `refDateStr` (YYYY-MM-DD), ngược lại "HH:mm · dd/MM". */
+export function formatTimeRelative(iso: string | undefined, refDateStr: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const sameDay = toDateStr(d) === refDateStr;
+  return sameDay ? time : `${time} · ${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+}
+
 export function formatFileSize(bytes: number): string {
   if (!bytes || bytes < 0) return '—';
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;

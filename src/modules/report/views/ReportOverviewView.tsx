@@ -2,6 +2,7 @@ import * as React from 'react';
 import { RoleEntry, ToastState } from '../../../core/types';
 import { FilterChips, Icon, SearchInput } from '../../../core/components';
 import { ToastAlert } from '../../../core/components/layout/ToastAlert';
+import { buildExportRows, exportFileName, exportXlsx } from '../utils/reportExport';
 import { ReportDataService } from '../services/ReportDataService';
 import { ReportDayInfo, ReportDayStatus } from '../types/report.types';
 import {
@@ -10,7 +11,7 @@ import {
   DAY_STATUS_LABEL,
   formatDM,
   formatDMY,
-  formatSavedAt,
+  formatTimeRelative,
   monthShort,
   parseDateStr,
   weekdayLong
@@ -22,12 +23,11 @@ import {
   countWindow,
   doneCount,
   matchesSearch,
+  ownerDisplay,
   OverviewRow,
-  ownersText,
   runWithConcurrency,
   StatusFilter,
-  statusOfDay,
-  reportListToText
+  statusOfDay
 } from '../utils/reportOverview';
 
 const WINDOW_DAYS = 14;
@@ -41,7 +41,7 @@ type ListDateMode = 'ALL' | 'day';
 /** Số người phụ trách hiện sẵn trong mỗi dòng; phần còn lại thu gọn thành "+N người khác". */
 const OWNERS_COLLAPSED = 1;
 /** Dưới bề rộng này (px, của chính khung danh sách) danh sách chuyển từ bảng 5 cột sang thẻ nhỏ. */
-const COMPACT_WIDTH = 900;
+const COMPACT_WIDTH = 640;
 
 interface IOverviewCache {
   key: string;
@@ -175,13 +175,14 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
     return () => ro.disconnect();
   }, [hasList]);
 
-  const copyList = async (): Promise<void> => {
-    const text = reportListToText(listItems);
+  const doExport = async (): Promise<void> => {
+    const name = exportFileName('xlsx', activeListUnit);
     try {
-      await navigator.clipboard.writeText(text);
-      setToast({ type: 'success', text: `Đã sao chép ${listItems.length} dòng.` });
-    } catch {
-      setToast({ type: 'error', text: 'Trình duyệt không cho sao chép tự động. Hãy chọn và sao chép thủ công.' });
+      await exportXlsx(buildExportRows(listItems), name);
+      setToast({ type: 'success', text: `Đã xuất ${listItems.length} dòng ra file ${name}.` });
+    } catch (err: unknown) {
+      console.error('Error exporting report list:', err);
+      setToast({ type: 'error', text: 'Không xuất được file. Vui lòng thử lại.' });
     }
   };
 
@@ -359,8 +360,9 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
           <span className="section-card__title">
             TẤT CẢ REPORT ({listItems.length}) <span className="section-card__title-sub">| ALL REPORT</span>
           </span>
-          <button type="button" className="btn btn--light btn--sm" onClick={copyList} disabled={listItems.length === 0}>
-            <span>Sao chép danh sách</span>
+          <button type="button" className="btn btn--light btn--sm" onClick={doExport} disabled={listItems.length === 0}>
+            <Icon name="download" size={16} />
+            <span>Xuất Excel</span>
           </button>
         </div>
         <div className="section-card__body">
@@ -434,85 +436,114 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
               {isLoading ? 'Đang đọc dữ liệu...' : 'Không có báo cáo nào theo bộ lọc hiện tại.'}
             </p>
           ) : (
-            <div ref={listRef} className={`report-ov-list${compact ? ' is-compact' : ''}`} role="table" aria-label="Danh sách báo cáo">
-              <div className="report-ov-list__head" role="row">
-                <span role="columnheader">Ngày</span>
-                <span role="columnheader">Đơn vị</span>
-                <span role="columnheader">Trạng thái</span>
-                <span role="columnheader">Người phụ trách</span>
-                <span role="columnheader" className="report-ov-list__sr">
-                  Thao tác
-                </span>
-              </div>
+            <div ref={listRef} className={`report-ov-list${compact ? ' is-compact' : ''}`} role="list" aria-label="Danh sách báo cáo">
               {listItems.slice(0, shown).map((i) => {
                 const open = Boolean(expanded[i.target.key]);
                 const owners = open ? i.target.owners : i.target.owners.slice(0, OWNERS_COLLAPSED);
                 const hidden = i.target.owners.length - OWNERS_COLLAPSED;
-                const savedAt = i.info ? i.info.savedAt : undefined;
+                const isToday = i.dateStr === todayStr;
+                const savedText = i.info && i.info.savedAt ? formatTimeRelative(i.info.savedAt, i.dateStr) : '';
+                const signedText = i.info && i.info.signed ? formatTimeRelative(i.info.signed.timeLastModified, i.dateStr) : '';
+                const openReport = (): void => onOpenDate(i.target.role, i.dateStr);
                 return (
                   <div
                     key={`${i.target.key}|${i.dateStr}`}
-                    className={`report-ov-list__row report-ov-list__row--${i.status}`}
-                    role="row"
+                    className={`report-ov-row report-ov-row--${i.status}${isToday ? ' is-today' : ''}`}
+                    role="listitem"
                   >
-                    <div className="report-ov-date" role="cell">
+                    <div className="report-ov-daybox">
                       <b>{formatDM(i.dateStr)}</b>
-                      <small>{weekdayLong(i.dateStr)}</small>
-                      {i.dateStr === todayStr && <span className="badge badge--info">Hôm nay</span>}
+                      <small>{isToday ? 'Hôm nay' : weekdayLong(i.dateStr)}</small>
                     </div>
-                    <div className="report-ov-unit" role="cell">
-                      {i.target.unit}
-                    </div>
-                    <div className="report-ov-status" role="cell">
-                      <span className={`badge ${DAY_STATUS_BADGE[i.status]}`}>{DAY_STATUS_LABEL[i.status]}</span>
-                      {savedAt && <small>Lưu {formatSavedAt(savedAt)}</small>}
-                    </div>
-                    <div className="report-ov-owners" role="cell">
-                      {i.target.owners.length === 0 ? (
-                        <span className="report-ov-note">{ownersText(i.target.owners)}</span>
-                      ) : (
-                        <>
-                          {owners.map((o, k) => (
-                            <div key={`${o.email}-${k}`} className="report-ov-owner">
-                              <span className="report-ov-owner__name">{o.name || o.email}</span>
-                              {o.name && o.email && (
-                                <a className="report-ov-owner__mail" href={`mailto:${o.email}`}>
-                                  {o.email}
-                                </a>
-                              )}
-                            </div>
-                          ))}
-                          {hidden > 0 && (
-                            <button
-                              type="button"
-                              className="report-ov-owner-more"
-                              onClick={() => setExpanded({ ...expanded, [i.target.key]: !open })}
+
+                    <div className="report-ov-main">
+                      <div className="report-ov-main__line">
+                        <span className="report-ov-unit">{i.target.unit}</span>
+                        <span className={`badge ${DAY_STATUS_BADGE[i.status]} report-ov-dotted`}>{DAY_STATUS_LABEL[i.status]}</span>
+                      </div>
+                      <div className="report-ov-main__line">
+                        {owners.map((o, k) => {
+                          const od = ownerDisplay(o);
+                          return (
+                            <a
+                              key={`${o.email}-${k}`}
+                              className="report-ov-person report-ov-tip"
+                              href={o.email ? `mailto:${o.email}` : undefined}
+                              data-tip={od.title}
+                              aria-label={od.title.replace('\n', ', ')}
                             >
-                              {open ? 'Thu gọn' : `+${hidden} người khác`}
-                            </button>
+                              <span className="report-ov-person__avatar" aria-hidden="true">
+                                {od.initials}
+                              </span>
+                              <span className="report-ov-person__name">{od.label}</span>
+                            </a>
+                          );
+                        })}
+                        {i.target.owners.length === 0 && <span className="report-ov-times">Chưa có người phụ trách</span>}
+                        {hidden > 0 && (
+                          <button
+                            type="button"
+                            className="report-ov-owner-more"
+                            onClick={() => setExpanded({ ...expanded, [i.target.key]: !open })}
+                          >
+                            {open ? 'Thu gọn' : `+${hidden}`}
+                          </button>
+                        )}
+                        <span className="report-ov-times">
+                          {i.status === 'missing' ? (
+                            <span>Chưa lưu</span>
+                          ) : (
+                            <>
+                              {savedText && <span>Lưu {savedText}</span>}
+                              {signedText && <span>Ký {signedText}</span>}
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="report-ov-action">
+                      {i.status === 'missing' && (
+                        <button type="button" className="btn btn--primary" onClick={openReport}>
+                          Nhập báo cáo
+                        </button>
+                      )}
+                      {i.status === 'unsigned' && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn--secondary btn--icon report-ov-tip report-ov-tip--end"
+                            onClick={openReport}
+                            data-tip="Xem báo cáo"
+                            aria-label="Xem báo cáo"
+                          >
+                            <Icon name="eye" size={20} />
+                          </button>
+                          <button type="button" className="btn btn--primary" onClick={openReport}>
+                            <Icon name="upload" size={16} />
+                            <span>Upload bản ký</span>
+                          </button>
+                        </>
+                      )}
+                      {i.status === 'done' && (
+                        <>
+                          <button type="button" className="btn btn--secondary" onClick={openReport}>
+                            Xem báo cáo
+                          </button>
+                          {i.info && i.info.signed && (
+                            <a
+                              className="btn btn--secondary btn--icon report-ov-tip report-ov-tip--end"
+                              href={i.info.signed.serverRelativeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              data-tip="Tải bản ký"
+                              aria-label="Tải bản ký"
+                            >
+                              <Icon name="download" size={20} />
+                            </a>
                           )}
                         </>
                       )}
-                    </div>
-                    <div className="report-ov-action" role="cell">
-                      {i.status === 'done' && i.info && i.info.signed && (
-                        <a
-                          className="btn btn--secondary btn--sm"
-                          href={i.info.signed.serverRelativeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Icon name="download" size={16} />
-                          <span>Bản ký</span>
-                        </a>
-                      )}
-                      <button
-                        type="button"
-                        className={`btn btn--sm ${i.status === 'missing' ? 'btn--primary' : 'btn--secondary'}`}
-                        onClick={() => onOpenDate(i.target.role, i.dateStr)}
-                      >
-                        {i.status === 'missing' ? 'Mở để nhập' : 'Mở báo cáo'}
-                      </button>
                     </div>
                   </div>
                 );
