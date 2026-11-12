@@ -1,12 +1,14 @@
 import * as React from 'react';
 import type { ToastState } from '../../../core/types';
 import {
+  CreatableSelect,
   EmptyState,
   FilterChips,
   ICON_NAMES,
   Icon,
   LoadingState,
   PageHeader,
+  PromptDialog,
   SearchInput,
   TileGrid,
   ToastAlert
@@ -39,6 +41,9 @@ export interface StyleGuideViewProps {
 export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
   const [chip, setChip] = React.useState<string>('ALL');
   const [query, setQuery] = React.useState<string>('');
+  const [kind, setKind] = React.useState<string>('NGHIEM_THU');
+  const [kinds, setKinds] = React.useState<string[]>(['KIEM_TRA_ATLD', 'NGHIEM_THU', 'CHI_THI_TVGS']);
+  const [promptOpen, setPromptOpen] = React.useState<boolean>(false);
   const [toast, setToast] = React.useState<ToastState | undefined>({ type: 'success', text: 'Đã lưu thành công' });
 
   return (
@@ -156,6 +161,34 @@ export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
           />
           <SearchInput value={query} onChange={setQuery} placeholder="Tìm kiếm…" />
         </div>
+      </SectionBlock>
+
+      <SectionBlock
+        title="CreatableSelect · PromptDialog"
+        hint={<>Dropdown có mục cuối “Khác…” mở hộp thoại nhập giá trị mới; nơi gọi lưu giá trị mới vào danh sách (<code>onChange(value, isNew)</code>)</>}
+      >
+        <div className="admin-guide-row">
+          <CreatableSelect
+            value={kind}
+            options={kinds}
+            onChange={(v, isNew) => {
+              if (isNew) setKinds(kinds.concat(v));
+              setKind(v);
+            }}
+            dialogTitle="Thêm loại sự kiện mới"
+          />
+          <button type="button" className="btn btn--secondary" onClick={() => setPromptOpen(true)}>
+            Mở PromptDialog
+          </button>
+        </div>
+        {promptOpen && (
+          <PromptDialog
+            title="Nhập tên mới"
+            label="Tên"
+            onSubmit={() => setPromptOpen(false)}
+            onCancel={() => setPromptOpen(false)}
+          />
+        )}
       </SectionBlock>
 
       <SectionBlock title="Trạng thái & thông báo" hint={<><code>LoadingState</code>, <code>EmptyState</code>, <code>ToastAlert</code></>}>

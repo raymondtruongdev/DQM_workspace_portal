@@ -1,10 +1,12 @@
 import * as React from 'react';
 import { FormField, ReportForm } from '../types/report.types';
-import { effectiveColumns } from '../utils/reportForm';
-import { splitLabel } from '../utils/reportTable';
+import { CreatableSelect } from '../../../core/components/CreatableSelect';
+import { effectiveColumns, fieldWithOption } from '../utils/reportForm';
+import { resolveTitle, sanitizeOption, splitLabel } from '../utils/reportTable';
 
 export interface IReportDynamicFormProps {
   form: ReportForm;
+  dateStr: string;
   roman: string;
   anchor: string;
   disabled?: boolean;
@@ -22,6 +24,7 @@ function parseInputNum(val: string): number | undefined {
 /** Mục dạng form sinh từ sheet của template: lưới trường nhập theo số cột khai báo. */
 export const ReportDynamicForm: React.FC<IReportDynamicFormProps> = ({
   form,
+  dateStr,
   roman,
   anchor,
   disabled = false,
@@ -62,22 +65,30 @@ export const ReportDynamicForm: React.FC<IReportDynamicFormProps> = ({
       );
     }
     if (f.type === 'select') {
-      const current = typeof f.value === 'string' ? f.value : '';
       const options = f.options || [];
-      const list = current && options.indexOf(current) === -1 ? [current].concat(options) : options;
+      const current = typeof f.value === 'string' && f.value ? f.value : options[0] || '';
       return (
-        <select
-          {...common}
+        <CreatableSelect
+          id={id}
           className={`input${bad ? ' input--danger' : ''}`}
-          value={current || (list.length ? list[0] : '')}
-          onChange={(e) => setValue(f.key, e.target.value)}
-        >
-          {list.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
+          value={current}
+          options={options}
+          disabled={disabled}
+          ariaInvalid={bad}
+          dialogTitle={`Thêm giá trị mới – ${splitLabel(f.label).vi}`}
+          onChange={(v, isNew) => {
+            if (!isNew) {
+              setValue(f.key, v);
+              return;
+            }
+            const clean = sanitizeOption(v);
+            if (!clean) return;
+            onChange({
+              ...form,
+              fields: form.fields.map((x) => (x.key === f.key ? { ...fieldWithOption(x, clean), value: clean } : x))
+            });
+          }}
+        />
       );
     }
     return (
@@ -96,7 +107,7 @@ export const ReportDynamicForm: React.FC<IReportDynamicFormProps> = ({
     <div id={anchor} className="section-card">
       <div className="section-card__banner">
         <span className="section-card__title">
-          {roman}. {form.title}{' '}
+          {roman}. {resolveTitle(form.title, dateStr)}{' '}
           {form.titleEn && <span className="section-card__title-sub">| {form.titleEn}</span>}
         </span>
       </div>

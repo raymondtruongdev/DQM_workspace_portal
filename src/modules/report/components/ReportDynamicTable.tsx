@@ -1,21 +1,29 @@
 import * as React from 'react';
 import { CellValue, ReportTable, TableColumn, TableRow } from '../types/report.types';
 import { Icon } from '../../../core/components/Icon';
+import { CreatableSelect } from '../../../core/components/CreatableSelect';
 import {
   columnAlign,
+  columnMinPx,
   columnTotal,
+  columnWithOption,
   createRow,
   firstTotalIndex,
   formatNumber,
   hasTotals,
+  isoToVN,
   recalcRow,
+  resolveTitle,
+  sanitizeOption,
   splitLabel,
-  toneOf
+  toneOf,
+  vnToIso
 } from '../utils/reportTable';
 
 export interface IReportDynamicTableProps {
   table: ReportTable;
   unit: string;
+  dateStr: string;
   roman: string;
   anchor: string;
   disabled?: boolean;
@@ -37,6 +45,7 @@ const alignClass = (col: TableColumn): string => {
 export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   table,
   unit,
+  dateStr,
   roman,
   anchor,
   disabled = false,
@@ -54,6 +63,24 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     );
   };
 
+  /** Giá trị mới của ô select: thêm vào danh sách chọn của cột (ghi vào spec) và gán cho ô đang sửa. */
+  const selectValue = (index: number, col: TableColumn, value: string, isNew: boolean): void => {
+    if (!isNew) {
+      updateCell(index, col.code, value);
+      return;
+    }
+    const clean = sanitizeOption(value);
+    if (!clean) return;
+    const nextCols = columns.map((c) => (c.code === col.code ? columnWithOption(c, clean) : c));
+    onChange({
+      ...table,
+      columns: nextCols,
+      rows: rows.map((row, idx) =>
+        idx === index ? recalcRow(nextCols, { ...row, values: { ...row.values, [col.code]: clean } }) : row
+      )
+    });
+  };
+
   const addRow = (): void => setRows([...rows, createRow(table, unit)]);
 
   const removeRow = (index: number): void => {
@@ -61,13 +88,26 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     setRows(rows.filter((_, idx) => idx !== index));
   };
 
-  const defaultWidth = 100 / Math.max(1, columns.length);
+  const tableMinWidth = columns.reduce((acc, c) => acc + columnMinPx(c), table.single ? 0 : 56);
   const renderCell = (col: TableColumn, row: TableRow, idx: number): React.ReactNode => {
     const value = row.values[col.code];
-    const locked = Boolean(row.isLocked) && Boolean(col.key);
+    // Cột dropdown khoá (key/readonly): dòng thêm tay luôn giữ giá trị mặc định (vd "---"), không chọn đổi được
+    const locked =
+      Boolean(col.readonly) || (Boolean(col.key) && (Boolean(row.isLocked) || col.type === 'select'));
     const align = alignClass(col);
     if (col.type === 'calc') {
-      return <td className={`font-semibold${align}`}>{formatNumber(value) || '0'}</td>;
+      return (
+        <td>
+          <input
+            type="text"
+            readOnly
+            tabIndex={-1}
+            className={`input input--cell input--locked${align}`}
+            value={formatNumber(value) || '0'}
+            aria-label={splitLabel(col.label).vi}
+          />
+        </td>
+      );
     }
     if (col.type === 'number') {
       return (
@@ -76,33 +116,43 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
             type="number"
             min="0"
             step="any"
-            className={`input input--cell${align}`}
+            className={`input input--cell${locked ? ' input--locked' : ''}${align}`}
             value={typeof value === 'number' ? value : ''}
             onChange={(e) => updateCell(idx, col.code, parseInputNum(e.target.value))}
             disabled={disabled}
+            readOnly={locked}
+          />
+        </td>
+      );
+    }
+    if (col.type === 'date') {
+      const text = typeof value === 'string' ? value : '';
+      return (
+        <td>
+          <input
+            type="date"
+            className={`input input--cell${locked ? ' input--locked' : ''}${align}`}
+            value={vnToIso(text)}
+            onChange={(e) => updateCell(idx, col.code, isoToVN(e.target.value))}
+            disabled={disabled || locked}
+            title={splitLabel(col.label).vi}
           />
         </td>
       );
     }
     if (col.type === 'select') {
       const current = typeof value === 'string' ? value : '';
-      const options = col.options || [];
-      const list = current && options.indexOf(current) === -1 ? [current].concat(options) : options;
       const tone = toneOf(col, current);
       return (
         <td>
-          <select
-            className={`input input--cell${align}${tone ? ` input--${tone}` : ''}`}
+          <CreatableSelect
+            className={`input input--cell${locked ? ' input--locked' : ''}${align}${tone ? ` input--${tone}` : ''}`}
             value={current}
-            onChange={(e) => updateCell(idx, col.code, e.target.value)}
-            disabled={disabled}
-          >
-            {list.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
+            options={col.options || []}
+            onChange={(v, isNew) => selectValue(idx, col, v, isNew)}
+            disabled={disabled || locked}
+            dialogTitle={`Thêm giá trị mới – ${splitLabel(col.label).vi}`}
+          />
         </td>
       );
     }
@@ -127,16 +177,18 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     <div id={anchor} className="section-card">
       <div className="section-card__banner">
         <span className="section-card__title">
-          {roman}. {table.title}{' '}
+          {roman}. {resolveTitle(table.title, dateStr)}{' '}
           {table.titleEn && <span className="section-card__title-sub">| {table.titleEn}</span>}
         </span>
-        <button type="button" className="btn btn--light btn--sm" onClick={addRow} disabled={disabled}>
-          + Thêm dòng
-        </button>
+        {!table.single && (
+          <button type="button" className="btn btn--light btn--sm" onClick={addRow} disabled={disabled}>
+            + Thêm dòng
+          </button>
+        )}
       </div>
 
       <div className="table-responsive">
-        <table className="portal-table report-grid-table">
+        <table className="portal-table report-grid-table" style={{ minWidth: tableMinWidth }}>
           <thead>
             <tr>
               {columns.map((col) => {
@@ -144,14 +196,14 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                 return (
                   <th
                     key={col.code}
-                    style={{ width: `${col.width || defaultWidth}%`, textAlign: columnAlign(col) }}
+                    style={{ minWidth: columnMinPx(col), textAlign: columnAlign(col) }}
                   >
-                    {lbl.vi}
-                    {lbl.en ? ` | ${lbl.en}` : ''}
+                    <span className="report-th-vi">{lbl.vi}</span>
+                    {lbl.en && <span className="report-th-en">{lbl.en}</span>}
                   </th>
                 );
               })}
-              <th style={{ width: '5%', textAlign: 'center' }} />
+              {!table.single && <th style={{ width: 56, minWidth: 56, textAlign: 'center' }} />}
             </tr>
           </thead>
           <tbody>
@@ -160,23 +212,25 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                 {columns.map((col) => (
                   <React.Fragment key={col.code}>{renderCell(col, row, idx)}</React.Fragment>
                 ))}
-                <td className="text-center">
-                  {row.isLocked ? (
-                    <span className="report-row-lock-badge" title="Mục cố định theo template (không được xoá)">
-                      <Icon name="lock" size={16} />
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn--ghost-danger btn--icon btn--sm"
-                      onClick={() => removeRow(idx)}
-                      disabled={disabled}
-                      title="Xoá dòng"
-                    >
-                      <Icon name="dismiss" size={16} />
-                    </button>
-                  )}
-                </td>
+                {!table.single && (
+                  <td className="text-center">
+                    {row.isLocked ? (
+                      <span className="report-row-lock-badge" title="Mục cố định theo template (không được xoá)">
+                        <Icon name="lock" size={16} />
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn--ghost-danger btn--icon btn--sm"
+                        onClick={() => removeRow(idx)}
+                        disabled={disabled}
+                        title="Xoá dòng"
+                      >
+                        <Icon name="dismiss" size={16} />
+                      </button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
             {hasTotals(table) && (
@@ -189,13 +243,14 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                     {col.total && <strong>{columnTotal(table, col).toLocaleString('vi-VN')}</strong>}
                   </td>
                 ))}
-                <td />
+                {!table.single && <td />}
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
+      {table.showSummary && (
       <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
         <div className="field">
           <label className="field__label">Tóm tắt | Summary</label>
@@ -209,6 +264,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           />
         </div>
       </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import { ReportDayInfo, ReportDoc, SignedDocInfo, TemplateVersionInfo } from '../types/report.types';
 import { parseReportDocFromBuffer, encodeReportDocToBuffer } from '../utils/reportCodec';
 import { applyFormDefaults } from '../utils/reportForm';
+import { nextReportNo, syncMetadata } from '../utils/reportMeta';
+import { carryForwardTable } from '../utils/reportTable';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
 import { ReportFileService } from './ReportFileService';
 import { ReportTemplateService } from './ReportTemplateService';
@@ -81,7 +83,12 @@ export class ReportDataService {
       doc.eTag = undefined;
       doc.copiedFromDate = prevReport.sourceDateStr;
       // Ảnh thuộc về từng ngày: không sao chép sang báo cáo mới
-      doc.sections = doc.sections.map((sec) => (sec.kind === 'photo' ? { ...sec, groups: [] } : sec));
+      // Luỹ kế: số liệu của ngày trước thành "luỹ kế hôm qua"; ô thực hiện trong ngày về 0 (cột carry/reset của template)
+      doc.sections = doc.sections.map((sec) =>
+        sec.kind === 'photo' ? { ...sec, groups: [] } : sec.kind === 'table' ? carryForwardTable(sec) : sec
+      );
+      // Số báo cáo tự nhảy theo từng đơn vị: số của báo cáo ngày trước + 1
+      doc.metadata = syncMetadata({ ...doc.metadata, reportNo: nextReportNo(doc.metadata.reportNo) }, unit);
       doc.latestTemplateInfo = latestTemplateInfo;
       doc.metadata.email = currentUserEmail;
       doc = applyFormDefaults(doc, { unit, email: currentUserEmail, siteManager });
@@ -146,6 +153,8 @@ export class ReportDataService {
     if (currentDoc) {
       newDoc.eTag = currentDoc.eTag;
       newDoc.isExisting = currentDoc.isExisting;
+      // Giữ số báo cáo của báo cáo hiện tại (không quay về 00001)
+      newDoc.metadata = syncMetadata({ ...newDoc.metadata, reportNo: currentDoc.metadata.reportNo }, currentDoc.unit);
       // Giữ lại ảnh đã tải của báo cáo hiện tại khi chuyển sang template mới
       newDoc.sections = newDoc.sections.map((sec) => {
         if (sec.kind !== 'photo') return sec;

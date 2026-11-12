@@ -16,8 +16,10 @@ import {
 } from '../types/report.types';
 import { recalculateAllRates } from './reportTaskTree';
 import { parseFieldSpec } from './reportForm';
+import { syncMetadata } from './reportMeta';
 import {
   LOCK_COLUMN_CODE,
+  excelSerialToVN,
   isEmptyRow,
   parseColumnSpec,
   recalcTable
@@ -57,6 +59,8 @@ function parseTableSheet(
   const shortTitle = String(rows[0][3] ?? '').trim();
   const summary =
     rows[1] && String(rows[1][0] ?? '').trim().toLowerCase() === 'summary' ? String(rows[1][1] ?? '').trim() : '';
+  const showSummary = !(rows[1] && String(rows[1][2] ?? '').trim().toLowerCase() === 'off');
+  const single = String(rows[0][4] ?? '').trim().toLowerCase() === 'single';
   const codes = rows[2] || [];
   const labels = rows[3] || [];
   const specs = rows[4] || [];
@@ -82,6 +86,7 @@ function parseTableSheet(
       const raw = row[colIdx[ci]];
       if (c.type === 'number') values[c.code] = parseOptionalNum(raw);
       else if (c.type === 'calc') values[c.code] = 0;
+      else if (c.type === 'date' && typeof raw === 'number') values[c.code] = excelSerialToVN(raw);
       else values[c.code] = String(raw ?? '').trim();
     });
     if (isEmptyRow(columns, values)) continue;
@@ -100,7 +105,7 @@ function parseTableSheet(
     });
   }
 
-  return recalcTable({ kind: 'table', key, sheetBase: base, title, titleEn, shortTitle, summary, columns, rows: tableRows });
+  return recalcTable({ kind: 'table', key, sheetBase: base, title, titleEn, shortTitle, summary, showSummary, single, columns, rows: tableRows });
 }
 
 /** Đọc sheet form: Title | Summary | Layout | (Key Label Spec Value Required) | các trường. */
@@ -234,12 +239,12 @@ export async function parseReportDocFromBuffer(
   const metadata: ReportMetadata = {
     docTitle: docId === 'WeeklyReport' ? 'BÁO CÁO TUẦN' : 'BÁO CÁO NGÀY',
     docTitleEn: docId === 'WeeklyReport' ? 'WEEKLY REPORT' : 'DAILY REPORT',
-    subTitle: 'Tuyến Metro số 2 – Gói thầu M2.1 Tham Lương – Bến Thành | HCMC Metro Line 2 – Package M2.1',
-    docCode: `HCM2_1-23_CS-MAUR_TCJV-CPZZ-${unit}-CWS-RP-041-S3-C01_BCN`,
+    subTitle: '',
+    docCode: '',
     templateVersion: '',
-    location: `${unit} – Ga ${unit}`,
-    reportNo: '001',
-    shift: 'Cả ngày (2 ca)',
+    location: unit,
+    reportNo: '',
+    subcontractor: '',
     email: '',
     updateTime: ''
   };
@@ -267,14 +272,20 @@ export async function parseReportDocFromBuffer(
           if (parseIsLocked(row[3], false)) requiredFields.push(reqEntry.field);
         }
 
-        if (key === 'doctile' || key === 'doctitle') metadata.docTitle = val || metadata.docTitle;
-        else if (key === 'doctileen' || key === 'doctitleen') metadata.docTitleEn = val || metadata.docTitleEn;
-        else if (key === 'subtile' || key === 'subtitle') metadata.subTitle = val || metadata.subTitle;
-        else if (key === 'doccode') metadata.docCode = val || metadata.docCode;
-        else if (key === 'templateversion' || key === 'template_version' || key === 'templatefile') metadata.templateVersion = val;
+        if (key === 'doctitle') metadata.docTitle = val || metadata.docTitle;
+        else if (key === 'doctitleen') metadata.docTitleEn = val || metadata.docTitleEn;
+        else if (key === 'subtitle') metadata.subTitle = val || metadata.subTitle;
+        else if (key === 'doccode') {
+          if (/\{(unit|reportNo)\}/i.test(val)) metadata.docCodePattern = val;
+          else metadata.docCode = val;
+        } else if (key === 'doccodepattern') metadata.docCodePattern = val || undefined;
+        else if (key === 'templateversion') metadata.templateVersion = val;
         else if (key === 'location') metadata.location = val || metadata.location;
         else if (key === 'reportno') metadata.reportNo = val;
-        else if (key === 'shift') metadata.shift = val || metadata.shift;
+        else if (key === 'subcontractor') metadata.subcontractor = val;
+        else if (key === 'subcontractoroptions') {
+          metadata.subcontractorOptions = val.split('/').map((o) => o.trim()).filter(Boolean);
+        }
         else if (key === 'email') metadata.email = val;
         else if (key === 'updatetime') metadata.updateTime = val;
             }
@@ -293,7 +304,7 @@ export async function parseReportDocFromBuffer(
       docId,
       unit,
       dateStr,
-      metadata,
+      metadata: syncMetadata(metadata, unit),
       sections,
       tasks: []
     };
@@ -339,8 +350,6 @@ export async function parseReportDocFromBuffer(
       if (col1) metadata.location = col1;
     } else if (col0Lower === 'reportno') {
       if (col1) metadata.reportNo = col1;
-    } else if (col0Lower === 'shift') {
-      if (col1) metadata.shift = col1;
     } else if (col0Lower === 'email') {
       if (col1) metadata.email = col1;
     } else if (col0Lower === 'updatetime') {
@@ -430,15 +439,17 @@ export async function encodeReportDocToBuffer(
   const withReq = (row: (string | number)[]): (string | number)[] => [...row, req(String(row[0]))];
   const generalRowsRaw: (string | number)[][] = [
     ['Key', 'Value', 'Mô tả'],
-    ['DocTile', m.docTitle || 'BÁO CÁO NGÀY', 'Tiêu đề chính (VI)'],
-    ['DocTileEn', m.docTitleEn || 'DAILY REPORT', 'Tiêu đề chính (EN)'],
-    ['SubTile', m.subTitle || '', 'Tên dự án / gói thầu'],
+    ['DocTitle', m.docTitle || 'BÁO CÁO NGÀY', 'Tiêu đề chính (VI)'],
+    ['DocTitleEn', m.docTitleEn || 'DAILY REPORT', 'Tiêu đề chính (EN)'],
+    ['SubTitle', m.subTitle || '', 'Tên dự án / gói thầu'],
     ['DocCode', m.docCode || '', 'Mã tài liệu'],
+    ['DocCodePattern', m.docCodePattern || '', 'Mẫu mã tài liệu ({unit} {reportNo})'],
     ['TemplateVersion', m.templateVersion || '', 'Phiên bản biểu mẫu (Template Version)'],
     ['Location', m.location || doc.unit, 'Vị trí / Trạm'],
-    ['ReportNo', m.reportNo || '', 'Số BCN'],
+    ['ReportNo', m.reportNo || '', 'Số báo cáo (Report no.)'],
+    ['Subcontractor', m.subcontractor || '', 'Đơn vị thi công (Subcontractor), nhiều đơn vị nối bằng dấu phẩy'],
+    ['SubcontractorOptions', (m.subcontractorOptions || []).join('/'), 'Danh sách đơn vị thi công có thể chọn, ngăn bằng /'],
     ['ReportDate', doc.dateStr || '', 'Ngày báo cáo'],
-    ['Shift', m.shift || '', 'Ca làm việc'],
     ['Email', m.email || '', 'Email người lập'],
     ['UpdateTime', m.updateTime || new Date().toISOString(), 'Thời gian nộp']
   ];
@@ -493,8 +504,8 @@ export async function encodeReportDocToBuffer(
     const t = sec;
     const codes: string[] = t.columns.map((c) => c.code).concat(LOCK_COLUMN_CODE);
     const aoa: (string | number)[][] = [
-      ['Title', t.title, t.titleEn, t.shortTitle],
-      ['Summary', t.summary || ''],
+      t.single ? ['Title', t.title, t.titleEn, t.shortTitle, 'single'] : ['Title', t.title, t.titleEn, t.shortTitle],
+      t.showSummary ? ['Summary', t.summary || ''] : ['Summary', t.summary || '', 'off'],
       codes,
       t.columns.map((c) => c.label).concat(''),
       t.columns.map((c) => c.spec).concat('')

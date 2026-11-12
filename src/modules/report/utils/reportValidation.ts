@@ -4,11 +4,11 @@ import { ReportMetadata, RequirableField } from '../types/report.types';
 export const REQUIRABLE_FIELDS: Record<string, { field: RequirableField; label: string }> = {
   location: { field: 'location', label: 'Vị trí / Trạm (Location)' },
   reportno: { field: 'reportNo', label: 'Số BCN (Report no.)' },
-  shift: { field: 'shift', label: 'Ca làm việc (Shift)' }
+  subcontractor: { field: 'subcontractor', label: 'Đơn vị thi công (Subcontractor)' }
 };
 
 /** Used when the template has no `Required` column. */
-export const DEFAULT_REQUIRED_FIELDS: RequirableField[] = ['location', 'reportNo', 'shift'];
+export const DEFAULT_REQUIRED_FIELDS: RequirableField[] = ['location', 'reportNo', 'subcontractor'];
 
 export function getRequiredFields(m: ReportMetadata): RequirableField[] {
   return m.requiredFields ?? DEFAULT_REQUIRED_FIELDS;

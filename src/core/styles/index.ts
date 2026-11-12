@@ -12,5 +12,6 @@ import './components/table.css';
 import './components/chips.css';
 import './components/page-header.css';
 import './components/feedback.css';
+import './components/dialog.css';
 import './layout/app-bar.css';
 import './layout/landing.css';

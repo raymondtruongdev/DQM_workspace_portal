@@ -7,7 +7,7 @@ export interface TemplateVersionInfo {
 }
 
 /** Metadata fields a template may flag as required (column `Required` of sheet 01_General). */
-export type RequirableField = 'location' | 'reportNo' | 'shift';
+export type RequirableField = 'location' | 'reportNo' | 'subcontractor';
 
 /** Thông tin chung của báo cáo (sheet 01_General). Nội dung báo cáo nằm trong các mục (sections). */
 export interface ReportMetadata {
@@ -16,18 +16,20 @@ export interface ReportMetadata {
   docTitle: string;             // e.g. "BÁO CÁO NGÀY" or "BÁO CÁO TUẦN"
   docTitleEn: string;           // e.g. "DAILY REPORT"
   subTitle: string;             // e.g. "Tuyến Metro số 2 – Gói thầu M2.1..."
-  docCode: string;              // e.g. "HCM2_1-23_CS-MAUR_TCJV-CPZZ-ST06-CWS-RP-041-S3-C01_BCN"
+  docCode: string;              // Mã tài liệu đã thay {unit} {reportNo}, e.g. "HCM2_1-23_CS-THAC_DCEM-CPZZ-ST01-CWS-DRP-00001"
+  docCodePattern?: string;      // Mẫu mã tài liệu có {unit} {reportNo} (từ template)
   templateVersion?: string;     // e.g. "template_ST01_20261109"
-  location: string;             // e.g. "ST06 – Ga ST06"
-  reportNo: string;             // e.g. "041"
-  shift: string;                // e.g. "Cả ngày (2 ca)"
+  location: string;             // Luôn = mã đơn vị (ST01), tự điền, không sửa được
+  reportNo: string;             // Số báo cáo 5 chữ số, tự tăng độc lập theo từng đơn vị, e.g. "00001"
+  subcontractor: string;        // Đơn vị thi công đã chọn, nối bằng ", " e.g. "THAC_CRSG, THAC_THAN"
+  subcontractorOptions?: string[]; // Danh sách đơn vị thi công có thể chọn (người dùng có thể thêm)
   email: string;                // User email
   updateTime: string;           // ISO 8601 or formatted string
 }
 
 export type CellValue = string | number | undefined;
-export type ColumnType = 'text' | 'number' | 'select' | 'calc';
-export type ColumnTone = 'danger' | 'warning';
+export type ColumnType = 'text' | 'number' | 'select' | 'calc' | 'date';
+export type ColumnTone = 'danger' | 'warning' | 'success' | 'info' | 'muted';
 
 /** Cột của bảng động, khai báo trong sheet (dòng mã cột + nhãn + spec). */
 export interface TableColumn {
@@ -38,11 +40,14 @@ export interface TableColumn {
   options?: string[];                 // select:A/B/C
   formula?: string;                   // calc:Nos*Hrs
   key?: boolean;                      // dòng IsLocked => ô này chỉ đọc
+  readonly?: boolean;                 // ô chỉ đọc ở mọi dòng
   total?: boolean;                    // có dòng Tổng
   align?: 'left' | 'center' | 'right';
   width?: number;                     // % bề rộng (tuỳ chọn)
   defaultValue?: string;              // giá trị khi thêm dòng; {unit}, {n3}
   tones?: Record<string, ColumnTone>; // tô màu theo giá trị (select)
+  carry?: string;                     // công thức tính trên dòng của báo cáo ngày trước, kết quả thành giá trị cột này (luỹ kế)
+  reset?: boolean;                    // khi tạo từ báo cáo ngày trước: đưa về giá trị mặc định
 }
 
 export interface TableRow {
@@ -60,6 +65,8 @@ export interface ReportTable {
   titleEn: string;    // "MANPOWER"
   shortTitle: string; // nhãn thanh nhảy nhanh
   summary: string;    // Tóm tắt | Summary
+  showSummary: boolean; // có hiện ô Tóm tắt không (Summary | | off)
+  single: boolean;    // bảng một dòng cố định: không thêm/xoá dòng (Title | … | single)
   columns: TableColumn[];
   rows: TableRow[];
 }

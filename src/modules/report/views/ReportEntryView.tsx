@@ -108,14 +108,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     field: K,
     value: ReportMetadata[K]
   ): void => {
-    if (!doc) return;
-    setDoc({
-      ...doc,
-      metadata: {
-        ...doc.metadata,
-        [field]: value
-      }
-    });
+    // Dạng hàm: nhiều lần đổi liên tiếp trong một sự kiện (vd thêm đơn vị mới + chọn nó) không ghi đè nhau
+    setDoc((prev) => (prev ? { ...prev, metadata: { ...prev.metadata, [field]: value } } : prev));
     setHasUnsavedChanges(true);
   };
 

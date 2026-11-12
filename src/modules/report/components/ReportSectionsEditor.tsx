@@ -44,6 +44,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
               key={sec.key}
               table={sec}
               unit={doc.unit}
+              dateStr={doc.dateStr}
               roman={roman}
               anchor={anchor}
               disabled={disabled}
@@ -72,6 +73,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
           <ReportDynamicForm
             key={sec.key}
             form={sec}
+            dateStr={doc.dateStr}
             roman={roman}
             anchor={anchor}
             disabled={disabled}

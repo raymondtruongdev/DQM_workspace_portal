@@ -1,15 +1,16 @@
 import * as React from 'react';
 import { FormField, ReportForm } from '../types/report.types';
 import { buildFormBlocks, effectiveColumns, formFieldDisplay } from '../utils/reportForm';
-import { splitLabel } from '../utils/reportTable';
+import { resolveTitle, splitLabel } from '../utils/reportTable';
 
 export interface IReportPrintFormProps {
   form: ReportForm;
   roman: string;
+  dateStr: string;
 }
 
 /** Mục dạng form trong bản in A4 (dùng class `bcn-*` do ReportPrintPreviewModal định nghĩa). */
-export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman }) => {
+export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman, dateStr }) => {
   const cols = effectiveColumns(form);
   const blocks = buildFormBlocks(form);
 
@@ -20,8 +21,7 @@ export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman }
     return (
       <th key={f.key} style={{ width: cellWidth(f) }} colSpan={Math.min(f.span || 1, cols)}>
         {lbl.vi}
-        {form.sign ? <br /> : ' '}
-        {lbl.en && <span>{form.sign ? lbl.en : `| ${lbl.en}`}</span>}
+        {lbl.en && <span>{lbl.en}</span>}
       </th>
     );
   };
@@ -54,7 +54,7 @@ export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman }
   return (
     <div className={form.sign ? 'bcn-keep-together' : undefined}>
       <div className="bcn-sec-title">
-        {roman}. {form.title} {form.titleEn && <span>| {form.titleEn}</span>}
+        {roman}. {resolveTitle(form.title, dateStr)} {form.titleEn && <span>| {form.titleEn}</span>}
       </div>
       <table className="bcn-table">
         {first && (

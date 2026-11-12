@@ -8,6 +8,21 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+/* Thanh cuộn ngang luôn hiện (macOS mặc định ẩn thanh cuộn nên người dùng không biết bảng còn nội dung bên phải).
+   Chrome/Safari chỉ giữ thanh cuộn cố định khi KHÔNG đặt scrollbar-width/scrollbar-color, nên hai thuộc tính này chỉ dành cho Firefox. */
+:where(.app-layout) .table-responsive::-webkit-scrollbar { height: 12px; }
+:where(.app-layout) .table-responsive::-webkit-scrollbar-track { background: var(--color-surface-subtle); }
+:where(.app-layout) .table-responsive::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border: 3px solid var(--color-surface-subtle);
+  border-radius: var(--radius-md);
+}
+@supports not selector(::-webkit-scrollbar) {
+  :where(.app-layout) .table-responsive {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-text-muted) var(--color-surface-subtle);
+  }
+}
 
 :where(.app-layout) .portal-table {
   width: 100%;

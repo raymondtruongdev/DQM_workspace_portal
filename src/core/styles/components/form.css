@@ -1,8 +1,9 @@
 /* ==========================================================================
    Form – ô nhập (.input / .textarea) và nhãn trường (.field)
    Dùng cho MỌI module. Không đặt height/padding/border riêng cho ô nhập.
+   Dropdown: <span class="select"><select class="input">…</select><Icon class="select__icon"/></span> (qua <CreatableSelect />)
    Biến thể ô nhập:  .input--cell (trong bảng, gọn)  .input--readonly  .input--locked
-                     .input--danger / .input--warning (trạng thái giá trị)
+                     .input--danger / .input--warning / .input--success / .input--info / .input--muted (trạng thái giá trị)
    ========================================================================== */
 :where(.app-layout) .input,
 :where(.app-layout) .textarea {
@@ -63,9 +64,27 @@
   cursor: default;
 }
 
+/* Ô không cho nhập: không hiện con trỏ nhấp nháy và không có viền focus (vẫn bôi chọn/sao chép được) */
+:where(.app-layout) .input[readonly],
+:where(.app-layout) .textarea[readonly],
+:where(.app-layout) .input--readonly,
+:where(.app-layout) .input--locked { caret-color: transparent; }
+
+:where(.app-layout) .input[readonly]:focus,
+:where(.app-layout) .input[readonly]:focus-visible,
+:where(.app-layout) .textarea[readonly]:focus,
+:where(.app-layout) .textarea[readonly]:focus-visible,
+:where(.app-layout) .input--readonly:focus,
+:where(.app-layout) .input--readonly:focus-visible,
+:where(.app-layout) .input--locked:focus-visible {
+  outline: none;
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
 /* Giá trị cố định theo mẫu (không xoá/sửa định danh) */
 :where(.app-layout) .input--locked {
-  background: var(--color-canvas);
+  background: var(--color-surface-subtle);
   border-color: var(--color-border);
   color: var(--color-text-strong);
   font-weight: 600;
@@ -88,6 +107,27 @@
   background: var(--color-warning-bg);
   border-color: var(--color-warning-border);
   color: var(--color-warning-text);
+  font-weight: 700;
+}
+
+:where(.app-layout) .input--success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success-text);
+  font-weight: 700;
+}
+
+:where(.app-layout) .input--muted {
+  background: var(--color-surface-subtle);
+  border-color: var(--color-border-hover);
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+:where(.app-layout) .input--info {
+  background: var(--color-accent-subtle);
+  border-color: var(--color-accent-border);
+  color: var(--color-accent);
   font-weight: 700;
 }
 
@@ -132,4 +172,29 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Dropdown: bỏ mũi tên gốc của trình duyệt, dùng icon chevron đồng bộ, canh sát mép phải */
+:where(.app-layout) .select {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+:where(.app-layout) .select select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding-right: var(--space-8);
+  text-overflow: ellipsis;
+  cursor: pointer;
+  background-image: none;
+}
+:where(.app-layout) .select select:disabled { cursor: not-allowed; }
+:where(.app-layout) .select__icon {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
 }

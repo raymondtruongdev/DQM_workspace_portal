@@ -1,4 +1,5 @@
 import { CellValue, FormField, ReportDoc, ReportForm } from '../types/report.types';
+import { specWithOptions } from './reportTable';
 
 /**
  * Mục dạng form: một sheet có dòng 3 bắt đầu bằng `Layout` và dòng 4 bắt đầu bằng `Key`.
@@ -9,7 +10,7 @@ import { CellValue, FormField, ReportDoc, ReportForm } from '../types/report.typ
  *   Dòng 4: Key | Label | Spec | Value | Required
  *   Dòng 5+: mỗi dòng một trường
  *
- * Spec: text · textarea · number · select:A/B/C
+ * Spec: text · textarea · number · select:A/B/C (có mục cuối "Khác…" để nhập giá trị mới, ghi lại vào spec)
  * Cờ (nối bằng `;`): full (trải hết hàng) · span=<n> · rows=<n> · ph=<gợi ý> ·
  *     default=<giá trị; {user} {siteManager} {unit} được điền tự động khi trống>
  */
@@ -142,4 +143,12 @@ export function buildFormBlocks(form: ReportForm): FormBlock[] {
   });
   flush();
   return blocks;
+}
+
+/** Thêm một giá trị mới vào danh sách chọn của trường (cập nhật cả `options` lẫn `spec`). */
+export function fieldWithOption(f: FormField, value: string): FormField {
+  const options = f.options || [];
+  if (options.some((o) => o.toLowerCase() === value.toLowerCase())) return f;
+  const next = options.concat(value);
+  return { ...f, options: next, spec: specWithOptions(f.spec, next) };
 }

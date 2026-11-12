@@ -1,6 +1,7 @@
 import { ReportDoc, TemplateVersionInfo } from '../types/report.types';
 import { parseReportDocFromBuffer } from '../utils/reportCodec';
 import { applyFormDefaults } from '../utils/reportForm';
+import { formatReportNo, syncMetadata } from '../utils/reportMeta';
 import { ReportFileService } from './ReportFileService';
 
 export class ReportTemplateService {
@@ -42,9 +43,9 @@ export class ReportTemplateService {
           subTitle: '',
           docCode: '',
           templateVersion: `default_${unit}`,
-          location: `${unit} – Ga ${unit}`,
-          reportNo: '001',
-          shift: '',
+          location: unit,
+          reportNo: '00001',
+          subcontractor: '',
           email: currentUserEmail,
           updateTime: new Date().toISOString()
         },
@@ -61,12 +62,9 @@ export class ReportTemplateService {
       doc.metadata.templateVersion = `default_${unit}`;
     }
 
-    if (!doc.metadata.location || /ST\d+/i.test(doc.metadata.location)) {
-      if (!doc.metadata.location || !doc.metadata.location.toUpperCase().includes(unit.toUpperCase())) {
-        doc.metadata.location = `${unit} – Ga ${unit}`;
-      }
-    }
-    doc.metadata.docCode = doc.metadata.docCode.replace(/ST\d+/gi, unit);
+    // Báo cáo đầu tiên của đơn vị (chưa có báo cáo trước): số báo cáo bắt đầu từ 00001
+    if (!doc.metadata.reportNo) doc.metadata.reportNo = formatReportNo(1);
+    doc.metadata = syncMetadata(doc.metadata, unit);
     doc.metadata.email = currentUserEmail;
     doc.metadata.updateTime = new Date().toISOString();
     doc.dateStr = dateStr;

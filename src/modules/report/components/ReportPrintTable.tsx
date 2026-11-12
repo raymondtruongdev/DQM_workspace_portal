@@ -6,6 +6,7 @@ import {
   firstTotalIndex,
   formatNumber,
   hasTotals,
+  resolveTitle,
   splitLabel,
   toneOf
 } from '../utils/reportTable';
@@ -13,10 +14,11 @@ import {
 export interface IReportPrintTableProps {
   table: ReportTable;
   roman: string;
+  dateStr: string;
 }
 
 /** Mục dạng bảng trong bản in A4 (dùng class `bcn-*` do ReportPrintPreviewModal định nghĩa). */
-export const ReportPrintTable: React.FC<IReportPrintTableProps> = ({ table, roman }) => {
+export const ReportPrintTable: React.FC<IReportPrintTableProps> = ({ table, roman, dateStr }) => {
   const { columns, rows } = table;
   const defaultWidth = 100 / Math.max(1, columns.length);
   const totalSpan = firstTotalIndex(table);
@@ -29,7 +31,7 @@ export const ReportPrintTable: React.FC<IReportPrintTableProps> = ({ table, roma
   return (
     <>
       <div className="bcn-sec-title">
-        {roman}. {table.title} {table.titleEn && <span>| {table.titleEn}</span>}
+        {roman}. {resolveTitle(table.title, dateStr)} {table.titleEn && <span>| {table.titleEn}</span>}
       </div>
       <table className="bcn-table">
         <thead>
@@ -38,7 +40,8 @@ export const ReportPrintTable: React.FC<IReportPrintTableProps> = ({ table, roma
               const lbl = splitLabel(col.label);
               return (
                 <th key={col.code} style={{ width: `${col.width || defaultWidth}%` }}>
-                  {lbl.vi} {lbl.en && <span>| {lbl.en}</span>}
+                  {lbl.vi}
+                  {lbl.en && <span>{lbl.en}</span>}
                 </th>
               );
             })}

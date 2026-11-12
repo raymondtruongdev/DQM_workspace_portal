@@ -9,16 +9,20 @@ import {
 /**
  * Bảng động: cấu trúc bảng nằm trong sheet của template (xem AGENTS.md mục 5.3).
  *
- *   Dòng 1: Title | <Tiêu đề VI> | <Tiêu đề EN> | <Nhãn ngắn>
- *   Dòng 2: Summary | <Tóm tắt>
+ *   Dòng 1: Title | <Tiêu đề VI> | <Tiêu đề EN> | <Nhãn ngắn> | [single]   (single = bảng một dòng cố định, không thêm/xoá dòng)
+ *   Dòng 2: Summary | <Tóm tắt> | [off]                                (off = ẩn ô Tóm tắt)
  *   Dòng 3: mã cột (Org, Nos, …, IsLocked)
  *   Dòng 4: nhãn "Tiếng Việt | English"
  *   Dòng 5: spec cột: <loại>[;cờ…]
  *   Dòng 6+: dữ liệu
  *
- * Loại: text · number · select:A/B/C · calc:<công thức, ví dụ Nos*Hrs>
- * Cờ: key (chỉ đọc khi dòng bị khoá) · total (có dòng Tổng) · left|center|right · w=<%> ·
- *     default=<giá trị, có thể dùng {unit} {n3}> · tone=<giá trị>:danger|warning,…
+ * Loại: text · number · date · select:A/B/C · calc:<công thức, ví dụ Nos*Hrs>
+ * Cờ: key (chỉ đọc khi dòng bị khoá) · readonly (chỉ đọc ở mọi dòng; không cờ = cho sửa) · total (có dòng Tổng) · left|center|right · w=<%> ·
+ *     default=<giá trị, có thể dùng {unit} {n3}> · tone=<giá trị>:danger|warning|success|info|muted,… ·
+ *     carry=<công thức> (khi tạo từ báo cáo ngày trước: giá trị = công thức tính trên dòng của ngày trước, vd Daily+PrevCum) ·
+ *     reset (khi tạo từ báo cáo ngày trước: về giá trị mặc định)
+ * Ô select luôn có mục cuối "Khác…" để nhập giá trị mới; giá trị mới được ghi lại vào spec (select:A/B/C/mới)
+ * nên các ngày sau (tạo từ báo cáo ngày trước) có sẵn trong danh sách.
  */
 
 export const LOCK_COLUMN_CODE = 'IsLocked';
@@ -38,8 +42,16 @@ export function parseColumnSpec(code: string, label: string, rawSpec: string): T
       col.formula = tok.slice(5).trim();
     } else if (i === 0 && lower === 'number') {
       col.type = 'number';
+    } else if (i === 0 && lower === 'date') {
+      col.type = 'date';
+    } else if (lower === 'reset') {
+      col.reset = true;
+    } else if (lower.startsWith('carry=')) {
+      col.carry = tok.slice(6).trim();
     } else if (lower === 'key') {
       col.key = true;
+    } else if (lower === 'readonly') {
+      col.readonly = true;
     } else if (lower === 'total') {
       col.total = true;
     } else if (lower === 'left' || lower === 'center' || lower === 'right') {
@@ -56,7 +68,7 @@ export function parseColumnSpec(code: string, label: string, rawSpec: string): T
         if (idx < 1) return;
         const val = pair.slice(0, idx).trim();
         const tone = pair.slice(idx + 1).trim().toLowerCase();
-        if (tone === 'danger' || tone === 'warning') tones[val] = tone;
+        if (tone === 'danger' || tone === 'warning' || tone === 'success' || tone === 'info' || tone === 'muted') tones[val] = tone;
       });
       col.tones = tones;
     }
@@ -74,8 +86,62 @@ export function splitLabel(label: string): { vi: string; en: string } {
 export function columnAlign(col: TableColumn): 'left' | 'center' | 'right' {
   if (col.align) return col.align;
   if (col.type === 'number' || col.type === 'calc') return 'right';
-  if (col.type === 'select') return 'center';
+  if (col.type === 'select' || col.type === 'date') return 'center';
   return 'left';
+}
+
+/* ------------------------------ Ngày ------------------------------ */
+
+/** "2026-11-12" -> "12/11/2026" (giá trị khác giữ nguyên). */
+export function isoToVN(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+
+/** "12/11/2026" (hoặc "12/11/26") -> "2026-11-12"; không đúng định dạng thì trả chuỗi rỗng (ô chọn ngày trống). */
+export function vnToIso(vn: string): string {
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(vn.trim());
+  if (!m) return '';
+  const y = m[3].length === 2 ? `20${m[3]}` : m[3];
+  return `${y}-${('0' + m[2]).slice(-2)}-${('0' + m[1]).slice(-2)}`;
+}
+
+/** Số ngày của Excel (khi ô ngày bị Excel đổi thành số) -> "dd/MM/yyyy". */
+export function excelSerialToVN(serial: number): string {
+  const d = new Date(Math.round((serial - 25569) * 86400000));
+  return `${('0' + d.getUTCDate()).slice(-2)}/${('0' + (d.getUTCMonth() + 1)).slice(-2)}/${d.getUTCFullYear()}`;
+}
+
+/** Thay {tomorrow} trong tiêu đề mục bằng ngày hôm sau của báo cáo (dd/MM/yyyy). */
+export function resolveTitle(title: string, dateStr: string): string {
+  if (!/\{tomorrow\}/i.test(title)) return title;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!m) return title.replace(/\s*[–-]?\s*\{tomorrow\}/gi, '');
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + 1));
+  const vn = `${('0' + d.getUTCDate()).slice(-2)}/${('0' + (d.getUTCMonth() + 1)).slice(-2)}/${d.getUTCFullYear()}`;
+  return title.replace(/\{tomorrow\}/gi, vn);
+}
+
+/* ------------------------ Danh sách chọn mở rộng ------------------------ */
+
+/** Giá trị mới của ô select không được chứa dấu phân tách của spec. */
+export function sanitizeOption(v: string): string {
+  return v.replace(/[/;]/g, '-').trim();
+}
+
+/** Ghi lại spec với danh sách chọn mới: "select:A/B;center" -> "select:A/B/C;center". */
+export function specWithOptions(spec: string, options: string[]): string {
+  const tokens = spec.split(';');
+  tokens[0] = `select:${options.join('/')}`;
+  return tokens.join(';');
+}
+
+/** Thêm một giá trị mới vào danh sách chọn của cột (cập nhật cả `options` lẫn `spec`). */
+export function columnWithOption(col: TableColumn, value: string): TableColumn {
+  const options = col.options || [];
+  if (options.some((o) => o.toLowerCase() === value.toLowerCase())) return col;
+  const next = options.concat(value);
+  return { ...col, options: next, spec: specWithOptions(col.spec, next) };
 }
 
 /* ---------------------------- Công thức ---------------------------- */
@@ -212,6 +278,8 @@ export function createRow(table: ReportTable, unit: string): TableRow {
     } else if (c.type === 'number') {
       const n = c.defaultValue !== undefined ? parseFloat(c.defaultValue) : 0;
       values[c.code] = isNaN(n) ? 0 : n;
+    } else if (c.type === 'date') {
+      values[c.code] = c.defaultValue !== undefined ? c.defaultValue : '';
     } else if (c.type === 'select') {
       values[c.code] =
         c.defaultValue !== undefined ? c.defaultValue : c.options && c.options.length ? c.options[0] : '';
@@ -253,6 +321,62 @@ export function formatNumber(v: CellValue): string {
   return typeof v === 'number' ? v.toLocaleString('vi-VN') : '';
 }
 
+/** Màu tự động theo ý nghĩa của giá trị trạng thái (không cần khai báo trong template). */
+const AUTO_TONES: Record<string, ColumnTone> = {
+  xong: 'success', 'hoàn thành': 'success', 'hoàn tất': 'success', 'đạt': 'success', 'vượt': 'success',
+  active: 'success', 'hoạt động': 'success', done: 'success',
+  'đóng': 'muted', closed: 'muted', 'huỷ': 'muted', 'hủy': 'muted', cancelled: 'muted',
+  'đang xử lý': 'info', 'đang thực hiện': 'info', 'in progress': 'info',
+  'mở': 'warning', open: 'warning', pending: 'warning', 'chờ': 'warning', 'chờ việc': 'warning', 'bảo trì': 'warning',
+  'hỏng': 'danger', 'chậm': 'danger', 'quá hạn': 'danger', overdue: 'danger',
+  // Mức độ
+  cao: 'danger', high: 'danger', 'trung bình': 'warning', medium: 'warning', 'thấp': 'success', low: 'success'
+};
+
+/** Màu của ô select: template khai báo (tone=…) được ưu tiên, nếu không thì theo từ khoá trạng thái chung. */
 export function toneOf(col: TableColumn, value: CellValue): ColumnTone | undefined {
-  return col.tones && typeof value === 'string' ? col.tones[value] : undefined;
+  if (typeof value !== 'string') return undefined;
+  if (col.tones && col.tones[value]) return col.tones[value];
+  if (col.type !== 'select') return undefined;
+  return AUTO_TONES[value.trim().toLowerCase()];
+}
+
+/* ------------------- Tạo báo cáo từ báo cáo ngày trước ------------------- */
+
+/**
+ * Chuyển số liệu sang ngày mới: cột `carry=<công thức>` nhận kết quả tính trên dòng của ngày trước
+ * (vd Luỹ kế hôm qua = Thực hiện hôm nay + Luỹ kế hôm qua); cột `reset` về giá trị mặc định.
+ */
+export function carryForwardTable(table: ReportTable): ReportTable {
+  const carryCols = table.columns.filter((c) => c.carry);
+  const resetCols = table.columns.filter((c) => c.reset);
+  if (carryCols.length === 0 && resetCols.length === 0) return table;
+  const byCode: Record<string, string> = {};
+  table.columns.forEach((c) => {
+    byCode[c.code.toLowerCase()] = c.code;
+  });
+  const rows = table.rows.map((row) => {
+    const prev = row.values;
+    const values = { ...prev };
+    carryCols.forEach((c) => {
+      const v = evaluateFormula(c.carry as string, (code) => numberOf(prev[byCode[code.toLowerCase()]]));
+      values[c.code] = Math.round(v * 100) / 100;
+    });
+    resetCols.forEach((c) => {
+      if (c.type === 'number') {
+        const n = c.defaultValue !== undefined ? parseFloat(c.defaultValue) : 0;
+        values[c.code] = isNaN(n) ? 0 : n;
+      } else {
+        values[c.code] = c.defaultValue !== undefined ? c.defaultValue : '';
+      }
+    });
+    return recalcRow(table.columns, { ...row, values });
+  });
+  return { ...table, rows };
+}
+
+/** Bề rộng tối thiểu (px) của cột để không bị bóp chữ; bảng rộng hơn khung thì cuộn ngang. */
+export function columnMinPx(col: TableColumn): number {
+  const floor = col.type === 'date' ? 140 : col.type === 'select' ? 140 : col.type === 'number' || col.type === 'calc' ? 110 : 100;
+  return Math.max(floor, Math.round((col.width || 14) * 9));
 }

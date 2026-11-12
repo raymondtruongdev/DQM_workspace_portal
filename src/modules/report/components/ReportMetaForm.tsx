@@ -1,5 +1,8 @@
 import * as React from 'react';
 import { ReportMetadata, RequirableField } from '../types/report.types';
+import { CreatableSelect } from '../../../core/components/CreatableSelect';
+import { Icon } from '../../../core/components/Icon';
+import { sanitizeOption } from '../utils/reportTable';
 import { getRequiredFields, getMissingRequiredFields } from '../utils/reportValidation';
 
 export interface IReportMetaFormProps {
@@ -29,6 +32,10 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
     isReq(f) ? <span className="report-required-mark" aria-hidden="true"> *</span> : null;
   const err = (f: RequirableField): React.ReactNode =>
     isBad(f) ? <span className="report-field-error" role="alert">Bắt buộc nhập, không được để trống</span> : null;
+  const subOptions = metadata.subcontractorOptions || [];
+  const selectedSubs = (metadata.subcontractor || '').split(',').map((x) => x.trim()).filter(Boolean);
+  const availableSubs = subOptions.filter((o) => selectedSubs.indexOf(o) === -1);
+  const setSubs = (next: string[]): void => onMetadataChange('subcontractor', next.join(', '));
   const cls = (f: RequirableField): string => `input${isBad(f) ? ' input--danger' : ''}`;
 
   return (
@@ -52,7 +59,7 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
             </div>
             {metadata.subTitle && (
               <div className="report-info-subtitle">
-                {metadata.subTitle}
+                {metadata.subTitle.replace(/\s*\|\s*/g, ' – ')}
               </div>
             )}
           </div>
@@ -76,58 +83,73 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
 
         {/* 2. Form Grid (2 Columns x 2 Rows) */}
         <div className="report-info-grid-2x2">
-          {/* Row 1, Col 1: Vị trí / Trạm */}
+          {/* Row 1, Col 1: Vị trí / Trạm (tự điền theo đơn vị, không sửa) */}
           <div className="field">
-            <label htmlFor="report-location-input" className="field__label">Vị trí / Trạm (Location){mark('location')}</label>
+            <label htmlFor="report-location-input" className="field__label">Vị trí / Trạm (Location)</label>
             <input
               id="report-location-input"
               type="text"
-              className={cls('location')}
-              required={isReq('location')}
-              aria-invalid={isBad('location')}
+              className="input input--readonly"
               value={metadata.location || ''}
-              onChange={(e) => onMetadataChange('location', e.target.value)}
-              disabled={disabled}
+              readOnly
+              title="Tự điền theo công trường viết báo cáo"
             />
-            {err('location')}
           </div>
 
-          {/* Row 1, Col 2: Số báo cáo (Report No) */}
+          {/* Row 1, Col 2: Số báo cáo (tự nhảy theo từng đơn vị, không sửa) */}
           <div className="field">
-            <label htmlFor="report-no-input" className="field__label">
-              Số BCN (Report no.){mark('reportNo')}
-            </label>
+            <label htmlFor="report-no-input" className="field__label">Số báo cáo (Report no.)</label>
             <input
               id="report-no-input"
               type="text"
-              className={cls('reportNo')}
-              required={isReq('reportNo')}
-              aria-invalid={isBad('reportNo')}
-              placeholder="VD: 041"
+              className="input input--readonly"
               value={metadata.reportNo || ''}
-              onChange={(e) => onMetadataChange('reportNo', e.target.value)}
-              disabled={disabled}
+              readOnly
+              title="Tự động tăng theo từng công trường"
             />
-            {err('reportNo')}
           </div>
 
-          {/* Row 2, Col 1: Ca làm việc (Shift) */}
+          {/* Row 2, Col 1: Đơn vị thi công */}
           <div className="field">
-            <label htmlFor="report-shift-input" className="field__label">
-              Ca làm việc (Shift){mark('shift')}
+            <label htmlFor="report-subcontractor-input" className="field__label">
+              Đơn vị thi công (Subcontractor){mark('subcontractor')}
             </label>
-            <input
-              id="report-shift-input"
-              type="text"
-              className={cls('shift')}
-              required={isReq('shift')}
-              aria-invalid={isBad('shift')}
-              placeholder="VD: Cả ngày (2 ca), Ca ngày..."
-              value={metadata.shift || ''}
-              onChange={(e) => onMetadataChange('shift', e.target.value)}
-              disabled={disabled}
-            />
-            {err('shift')}
+            <div className="report-subcon-list">
+              {selectedSubs.map((name) => (
+                <span key={name} className="badge badge--info report-subcon-item">
+                  {name}
+                  {!disabled && (
+                    <button
+                      type="button"
+                      className="report-subcon-remove"
+                      onClick={() => setSubs(selectedSubs.filter((x) => x !== name))}
+                      title={`Bỏ ${name}`}
+                      aria-label={`Bỏ ${name}`}
+                    >
+                      <Icon name="dismiss" size={16} />
+                    </button>
+                  )}
+                </span>
+              ))}
+              <CreatableSelect
+                id="report-subcontractor-input"
+                className={cls('subcontractor')}
+                wrapperClassName="report-subcon-select"
+                value=""
+                placeholder={selectedSubs.length ? '+ Thêm đơn vị…' : 'Chọn đơn vị thi công…'}
+                options={availableSubs}
+                disabled={disabled}
+                ariaInvalid={isBad('subcontractor')}
+                dialogTitle="Thêm đơn vị thi công mới"
+                onChange={(v, isNew) => {
+                  const clean = sanitizeOption(v);
+                  if (!clean) return;
+                  if (isNew) onMetadataChange('subcontractorOptions', subOptions.concat(clean));
+                  setSubs(selectedSubs.concat(clean));
+                }}
+              />
+            </div>
+            {err('subcontractor')}
           </div>
 
           {/* Row 2, Col 2: Người báo cáo (Email) */}

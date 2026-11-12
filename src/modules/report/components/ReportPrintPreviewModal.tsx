@@ -49,8 +49,8 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
       return;
     }
 
-    // Tên file PDF mặc định: BCN_<unit>_<yyyy-MM-dd>
-    const pdfFileName = `BCN_${doc.unit}_${doc.dateStr}`.replace(/[\\/:*?"<>|\s]+/g, '_');
+    // Tên file PDF mặc định = Mã tài liệu (vd HCM2_1-23_CS-THAC_DCEM-CPZZ-ST01-CWS-DRP-00001); thiếu thì BCN_<unit>_<yyyy-MM-dd>
+    const pdfFileName = (m.docCode || `BCN_${doc.unit}_${doc.dateStr}`).replace(/[\\/:*?"<>|\s]+/g, '_');
 
     iframeDoc.open();
     iframeDoc.write(`<!DOCTYPE html>
@@ -61,7 +61,13 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
   <style>
     @page {
       size: A4 portrait;
-      margin: 8mm 10mm;
+      margin: 8mm 10mm 14mm; /* chừa chỗ cho số trang ở lề dưới */
+      @bottom-right {
+        content: "Trang " counter(page) " / " counter(pages);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 9pt;
+        color: #4b5563;
+      }
     }
     * {
       box-sizing: border-box;
@@ -192,6 +198,8 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
       text-align: center;
     }
     .bcn-th-row th span {
+      display: block;
+      font-style: italic;
       font-weight: 400;
       color: #4b5563;
     }
@@ -208,6 +216,9 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
     .font-bold { font-weight: 700; }
     .bcn-tone-danger { color: #b91c1c; font-weight: 700; }
     .bcn-tone-warning { color: #9a3412; font-weight: 700; }
+    .bcn-tone-success { color: #15803d; font-weight: 700; }
+    .bcn-tone-info { color: #1d4ed8; font-weight: 700; }
+    .bcn-tone-muted { color: #6b7280; font-weight: 700; }
     .bcn-preline { white-space: pre-line; }
     .bcn-sign-box {
       height: 110px; /* chừa chỗ trống phía trên tên để ký */
@@ -368,7 +379,11 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
                     <td className="bcn-header-title-cell">
                       <div className="bcn-title-vi">{m.docTitle || 'BÁO CÁO NGÀY'}</div>
                       <div className="bcn-title-en">{m.docTitleEn || 'DAILY REPORT'}</div>
-                      <div className="bcn-subtitle">{m.subTitle}</div>
+                      {m.subTitle.split('|').map((line, i) => (
+                        <div key={i} className="bcn-subtitle">
+                          {line.trim()}
+                        </div>
+                      ))}
                     </td>
                     <td className="bcn-header-logo-cell">CREC</td>
                   </tr>
@@ -390,29 +405,21 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
                     <td className="bcn-meta-label">
                       Vị trí <span>| Location</span>
                     </td>
-                    <td style={{ width: '48%' }}>{m.location}</td>
-                    <td className="bcn-meta-label" style={{ width: '17%' }}>
+                    <td style={{ width: '49%' }}>{m.location}</td>
+                    <td className="bcn-meta-label" style={{ width: '20%', whiteSpace: 'nowrap' }}>
                       Số BCN <span>| Report no.</span>
                     </td>
-                    <td style={{ width: '18%' }}>{m.reportNo}</td>
+                    <td style={{ width: '14%' }}>{m.reportNo}</td>
                   </tr>
                   <tr>
                     <td className="bcn-meta-label">
+                      Đơn vị thi công <span>| Subcontractor</span>
+                    </td>
+                    <td>{m.subcontractor}</td>
+                    <td className="bcn-meta-label" style={{ whiteSpace: 'nowrap' }}>
                       Ngày <span>| Date</span>
                     </td>
-                    <td>{formatDateVN(doc.dateStr)}</td>
-                    <td className="bcn-meta-label">
-                      Ca <span>| Shift</span>
-                    </td>
-                    <td>{m.shift}</td>
-                  </tr>
-                  <tr>
-                    <td className="bcn-meta-label">
-                      Phiên bản mẫu <span>| Template</span>
-                    </td>
-                    <td colSpan={3}>
-                      {m.templateVersion || doc.latestTemplateInfo?.version || `default_${doc.unit}`}
-                    </td>
+                    <td style={{ width: '14%' }}>{formatDateVN(doc.dateStr)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -420,7 +427,7 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
               {/* Các mục của báo cáo (mỗi sheet của template = một mục, theo thứ tự sheet) */}
               {doc.sections.map((sec) =>
                 sec.kind === 'table' ? (
-                  <ReportPrintTable key={sec.key} table={sec} roman={num.roman(sec.key)} />
+                  <ReportPrintTable key={sec.key} table={sec} roman={num.roman(sec.key)} dateStr={doc.dateStr} />
                 ) : sec.kind === 'photo' ? (
                   <ReportPrintPhoto
                     key={sec.key}
@@ -429,7 +436,7 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
                     photosFolder={photosFolder}
                   />
                 ) : (
-                  <ReportPrintForm key={sec.key} form={sec} roman={num.roman(sec.key)} />
+                  <ReportPrintForm key={sec.key} form={sec} roman={num.roman(sec.key)} dateStr={doc.dateStr} />
                 )
               )}
 
