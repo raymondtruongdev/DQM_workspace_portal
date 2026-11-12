@@ -3,7 +3,7 @@ import { ReportDoc, ReportSection } from '../types/report.types';
 import { buildSectionNumbering, sectionAnchor } from '../utils/reportSections';
 import { ReportDynamicTable } from './ReportDynamicTable';
 import { ReportDynamicForm } from './ReportDynamicForm';
-import { ReportPhotoManager } from './ReportPhotoManager';
+import { ReportPhotoSectionEditor } from './ReportPhotoSectionEditor';
 
 export interface IReportSectionsEditorProps {
   doc: ReportDoc;
@@ -12,8 +12,11 @@ export interface IReportSectionsEditorProps {
   /** Tô đỏ các trường bắt buộc đang trống. */
   showErrors?: boolean;
   onSectionChange: (section: ReportSection) => void;
-  onUploadPhotos: (files: FileList) => Promise<void>;
-  onDeletePhoto: (serverRelativeUrl: string, name: string) => Promise<void>;
+  /** Thư mục ảnh của báo cáo (server-relative). */
+  photosFolder: string;
+  onUploadGroupPhotos: (sectionKey: string, groupId: string, files: FileList) => Promise<void>;
+  onDeleteGroupPhoto: (sectionKey: string, groupId: string, name: string) => Promise<void>;
+  onDeletePhotoGroup: (sectionKey: string, groupId: string) => Promise<void>;
 }
 
 /** Các mục của báo cáo: mỗi sheet của template = một mục (bảng hoặc form), theo thứ tự sheet. */
@@ -23,48 +26,60 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
   isUploadingPhoto = false,
   showErrors = false,
   onSectionChange,
-  onUploadPhotos,
-  onDeletePhoto
+  photosFolder,
+  onUploadGroupPhotos,
+  onDeleteGroupPhoto,
+  onDeletePhotoGroup
 }) => {
   const num = buildSectionNumbering(doc);
 
   return (
     <div className="report-sections-stack">
-      {doc.sections.map((sec) =>
-        sec.kind === 'table' ? (
-          <ReportDynamicTable
-            key={sec.key}
-            table={sec}
-            unit={doc.unit}
-            roman={num.roman(sec.key)}
-            anchor={sectionAnchor(sec.key)}
-            disabled={disabled}
-            onChange={onSectionChange}
-          />
-        ) : (
+      {doc.sections.map((sec) => {
+        const roman = num.roman(sec.key);
+        const anchor = sectionAnchor(sec.key);
+        if (sec.kind === 'table') {
+          return (
+            <ReportDynamicTable
+              key={sec.key}
+              table={sec}
+              unit={doc.unit}
+              roman={roman}
+              anchor={anchor}
+              disabled={disabled}
+              onChange={onSectionChange}
+            />
+          );
+        }
+        if (sec.kind === 'photo') {
+          return (
+            <ReportPhotoSectionEditor
+              key={sec.key}
+              section={sec}
+              roman={roman}
+              anchor={anchor}
+              photosFolder={photosFolder}
+              disabled={disabled}
+              isUploading={isUploadingPhoto}
+              onChange={onSectionChange}
+              onUpload={(groupId, files) => onUploadGroupPhotos(sec.key, groupId, files)}
+              onDeletePhoto={(groupId, name) => onDeleteGroupPhoto(sec.key, groupId, name)}
+              onDeleteGroup={(groupId) => onDeletePhotoGroup(sec.key, groupId)}
+            />
+          );
+        }
+        return (
           <ReportDynamicForm
             key={sec.key}
             form={sec}
-            roman={num.roman(sec.key)}
-            anchor={sectionAnchor(sec.key)}
+            roman={roman}
+            anchor={anchor}
             disabled={disabled}
             showErrors={showErrors}
-            renderPhotos={() => (
-              <ReportPhotoManager
-                unit={doc.unit}
-                docId={doc.docId}
-                dateStr={doc.dateStr}
-                photos={doc.photos || []}
-                disabled={disabled}
-                isUploading={isUploadingPhoto}
-                onUpload={onUploadPhotos}
-                onDelete={onDeletePhoto}
-              />
-            )}
             onChange={onSectionChange}
           />
-        )
-      )}
+        );
+      })}
     </div>
   );
 };

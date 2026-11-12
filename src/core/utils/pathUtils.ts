@@ -32,16 +32,6 @@ export function formatDateToYYYYMMDDWithoutDash(d: Date): string {
 }
 
 /**
- * Format a Date object to yyMMdd (e.g. 261110)
- */
-export function formatDateToYYMMDD(d: Date): string {
-  const yy = String(d.getFullYear()).slice(-2);
-  const mm = padZero(d.getMonth() + 1);
-  const dd = padZero(d.getDate());
-  return `${yy}${mm}${dd}`;
-}
-
-/**
  * Parse a YYYY-MM-DD or yyyyMMdd string into a Date object
  */
 export function parseDateString(str: string): Date {

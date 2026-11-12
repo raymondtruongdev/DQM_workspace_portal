@@ -3,10 +3,13 @@ import { ReportDoc } from '../types/report.types';
 import { buildSectionNumbering } from '../utils/reportSections';
 import { ReportPrintTable } from './ReportPrintTable';
 import { ReportPrintForm } from './ReportPrintForm';
+import { ReportPrintPhoto } from './ReportPrintPhoto';
 import { formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 
 export interface IReportPrintPreviewModalProps {
   doc: ReportDoc;
+  /** Thư mục ảnh của báo cáo (server-relative): data/<Unit>/<DocID>_<yyyyMMdd>/photos */
+  photosFolder: string;
   onClose: () => void;
 }
 
@@ -20,18 +23,12 @@ function formatDateVN(dateStr: string): string {
 
 export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = ({
   doc,
+  photosFolder,
   onClose
 }) => {
   const printAreaRef = React.useRef<HTMLDivElement | null>(null);
   const m = doc.metadata;
   const num = buildSectionNumbering(doc);
-
-  // URL tuyệt đối để iframe in tải được ảnh (cùng phiên đăng nhập SharePoint)
-  const photoItems = (doc.photos || []).map((ph) => ({
-    name: ph.name,
-    url: new URL(ph.serverRelativeUrl, window.location.href).href
-  }));
-  const photosCount = doc.photos ? doc.photos.length : 0;
 
   const handlePrint = (): void => {
     if (!printAreaRef.current) return;
@@ -218,18 +215,26 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
       text-align: center;
       padding-bottom: 8px;
     }
-    .bcn-table tr.bcn-photo-row {
-      page-break-inside: auto;
-      break-inside: auto;
+    .bcn-table-photos {
+      table-layout: fixed;
     }
-    .bcn-photo-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 5px;
+    .bcn-table tr.bcn-photo-row {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .bcn-table tr.bcn-photo-dept td {
+      background: #1e4e78;
+      color: #ffffff;
+      font-weight: 700;
+      text-align: left;
+      padding: 4px 8px;
+    }
+    .bcn-table td.bcn-photo-cell {
+      padding: 6px;
+      vertical-align: top;
     }
     .bcn-photo-item {
-      width: calc(50% - 4px);
+      width: 100%;
       margin: 0;
       border: 1px solid #9ca3af;
       page-break-inside: avoid;
@@ -238,8 +243,9 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
     .bcn-photo-item img {
       display: block;
       width: 100%;
-      height: 62mm;
-      object-fit: contain;
+      height: auto;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
       background: #f3f4f6;
     }
     .bcn-photo-cap {
@@ -415,14 +421,15 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
               {doc.sections.map((sec) =>
                 sec.kind === 'table' ? (
                   <ReportPrintTable key={sec.key} table={sec} roman={num.roman(sec.key)} />
-                ) : (
-                  <ReportPrintForm
+                ) : sec.kind === 'photo' ? (
+                  <ReportPrintPhoto
                     key={sec.key}
-                    form={sec}
+                    section={sec}
                     roman={num.roman(sec.key)}
-                    photoCount={photosCount}
-                    photoItems={photoItems}
+                    photosFolder={photosFolder}
                   />
+                ) : (
+                  <ReportPrintForm key={sec.key} form={sec} roman={num.roman(sec.key)} />
                 )
               )}
 

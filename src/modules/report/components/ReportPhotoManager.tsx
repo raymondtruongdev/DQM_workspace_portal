@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { ReportPhotoFile } from '../types/report.types';
 import { Icon } from '../../../core/components/Icon';
 
 interface IPhotoCardProps {
@@ -49,22 +48,19 @@ const PhotoCard: React.FC<IPhotoCardProps> = ({ url, name, disabled, onDelete })
 };
 
 export interface IReportPhotoManagerProps {
-  unit: string;
-  docId: string;
-  dateStr: string;
-  photos: ReportPhotoFile[];
+  /** Thư mục (server-relative) chứa ảnh của bộ phận. */
+  folder: string;
+  files: string[];
   disabled?: boolean;
   isUploading?: boolean;
   onUpload: (files: FileList) => Promise<void>;
-  onDelete: (serverRelativeUrl: string, name: string) => Promise<void>;
+  onDelete: (name: string) => Promise<void>;
 }
 
-/** Khu tải / xem / xoá ảnh hiện trường trong data/<Unit>/<DocID>_<yyyyMMdd>/photos/. */
+/** Tải / xem / xoá ảnh của một bộ phận trong photos/<groupId>/. */
 export const ReportPhotoManager: React.FC<IReportPhotoManagerProps> = ({
-  unit,
-  docId,
-  dateStr,
-  photos,
+  folder,
+  files,
   disabled = false,
   isUploading = false,
   onUpload,
@@ -73,9 +69,9 @@ export const ReportPhotoManager: React.FC<IReportPhotoManagerProps> = ({
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      await onUpload(files);
+    const picked = e.target.files;
+    if (picked && picked.length > 0) {
+      await onUpload(picked);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -83,16 +79,8 @@ export const ReportPhotoManager: React.FC<IReportPhotoManagerProps> = ({
   return (
     <div className="report-photos-upload-box">
       <div className="report-photos-header">
-        <div>
-          <div className="report-photos-title">
-            Thư mục ảnh hiện trường:{' '}
-            <code>
-              data/{unit}/{docId}_{dateStr.replace(/-/g, '')}/photos/
-            </code>
-          </div>
-          <div className="report-photos-subtitle">
-            Đã tải lên <strong>{photos.length}</strong> ảnh trên SharePoint
-          </div>
+        <div className="report-photos-subtitle">
+          Đã tải lên <strong>{files.length}</strong> ảnh
         </div>
 
         <div>
@@ -112,20 +100,20 @@ export const ReportPhotoManager: React.FC<IReportPhotoManagerProps> = ({
             disabled={disabled || isUploading}
           >
             <Icon name="upload" size={16} />
-            <span>{isUploading ? 'Đang tải ảnh...' : 'Tải ảnh hiện trường lên'}</span>
+            <span>{isUploading ? 'Đang tải ảnh...' : 'Tải ảnh lên'}</span>
           </button>
         </div>
       </div>
 
-      {photos.length > 0 && (
+      {files.length > 0 && (
         <div className="report-photos-list">
-          {photos.map((p) => (
+          {files.map((name) => (
             <PhotoCard
-              key={p.serverRelativeUrl}
-              url={p.serverRelativeUrl}
-              name={p.name}
+              key={name}
+              url={`${folder}/${name}`}
+              name={name}
               disabled={disabled || isUploading}
-              onDelete={() => onDelete(p.serverRelativeUrl, p.name)}
+              onDelete={() => onDelete(name)}
             />
           ))}
         </div>

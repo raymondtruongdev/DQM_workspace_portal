@@ -9,7 +9,7 @@ import { CellValue, FormField, ReportDoc, ReportForm } from '../types/report.typ
  *   Dòng 4: Key | Label | Spec | Value | Required
  *   Dòng 5+: mỗi dòng một trường
  *
- * Spec: text · textarea · number · select:A/B/C · photos (khu tải ảnh hiện trường)
+ * Spec: text · textarea · number · select:A/B/C
  * Cờ (nối bằng `;`): full (trải hết hàng) · span=<n> · rows=<n> · ph=<gợi ý> ·
  *     default=<giá trị; {user} {siteManager} {unit} được điền tự động khi trống>
  */
@@ -23,7 +23,7 @@ export function parseFieldSpec(key: string, label: string, rawSpec: string, valu
     if (i === 0 && lower.startsWith('select:')) {
       field.type = 'select';
       field.options = tok.slice(7).split('/').map((o) => o.trim()).filter(Boolean);
-    } else if (i === 0 && (lower === 'textarea' || lower === 'number' || lower === 'photos')) {
+    } else if (i === 0 && (lower === 'textarea' || lower === 'number')) {
       field.type = lower as FormField['type'];
     } else if (lower === 'full') {
       field.full = true;
@@ -62,7 +62,7 @@ export function applyFormDefaults(doc: ReportDoc, ctx: FormContext): ReportDoc {
     if (s.kind !== 'form') return s;
     let formChanged = false;
     const fields = s.fields.map((f) => {
-      if (f.type === 'photos' || f.defaultValue === undefined) return f;
+      if (f.defaultValue === undefined) return f;
       const empty = f.value === undefined || f.value === '';
       if (!empty) return f;
       const v = expandTokens(f.defaultValue, ctx);
@@ -93,7 +93,7 @@ export function getMissingFormFields(doc: Pick<ReportDoc, 'sections'>): MissingF
   doc.sections.forEach((s) => {
     if (s.kind !== 'form') return;
     s.fields.forEach((f) => {
-      if (f.required && f.type !== 'photos' && isFieldEmpty(f)) {
+      if (f.required && isFieldEmpty(f)) {
         out.push({ sectionKey: s.key, fieldKey: f.key, label: f.label.replace(/\s*\|\s*/, ' (') + (f.label.indexOf('|') !== -1 ? ')' : '') });
       }
     });
@@ -104,6 +104,16 @@ export function getMissingFormFields(doc: Pick<ReportDoc, 'sections'>): MissingF
 export function formFieldDisplay(f: FormField): string {
   if (f.value === undefined || f.value === '') return '';
   return typeof f.value === 'number' ? f.value.toLocaleString('vi-VN') : String(f.value);
+}
+
+/**
+ * Số cột thực tế của mục form. Mục ký duyệt (`sign`) tối đa `Layout` cột và tự co theo số người ký:
+ * 2 trường ngắn → 2 cột, 3 → 3 cột (không để cột trống).
+ */
+export function effectiveColumns(form: ReportForm): number {
+  if (!form.sign) return form.columns;
+  const shortCount = form.fields.filter((f) => !f.full).length;
+  return Math.max(1, Math.min(form.columns, shortCount));
 }
 
 /** Chia trường thành các khối: nhóm trường ngắn (lưới cột) xen kẽ trường trải hết hàng. */
@@ -124,8 +134,9 @@ export function buildFormBlocks(form: ReportForm): FormBlock[] {
       blocks.push({ kind: 'full', field: f });
       return;
     }
-    const span = Math.min(f.span || 1, form.columns);
-    if (used + span > form.columns) flush();
+    const cols = effectiveColumns(form);
+    const span = Math.min(f.span || 1, cols);
+    if (used + span > cols) flush();
     cur.push(f);
     used += span;
   });

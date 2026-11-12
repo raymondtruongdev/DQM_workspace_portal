@@ -560,6 +560,44 @@
 }
 
 /* Direct Photo Upload Box */
+/* Mục ảnh theo bộ phận */
+.report-photo-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.report-photo-group {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.report-photo-group__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-banner);
+}
+
+.report-photo-group__bar .input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.report-photo-group__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.report-photo-group__body .report-photos-upload-box {
+  margin-top: 14px;
+}
+
 .report-photos-upload-box {
   min-width: 0;
   margin-top: 14px;
@@ -580,20 +618,6 @@
   flex-wrap: wrap;
 }
 
-.report-photos-title {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-text-strong);
-}
-
-.report-photos-title code {
-  overflow-wrap: anywhere;
-  word-break: break-all;
-  background: var(--color-border);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: var(--text-xs);
-}
 
 .report-photos-subtitle {
   font-size: var(--text-xs);
@@ -839,15 +863,7 @@
   font-weight: 700;
 }
 
-.sev-cao {
-  color: #b91c1c;
-  font-weight: 700;
-}
 
-.sev-tb {
-  color: #9a3412;
-  font-weight: 700;
-}
 
 .bcn-preline {
   white-space: pre-line;
@@ -860,15 +876,25 @@
   padding-bottom: 8px;
 }
 
-.bcn-photo-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 5px;
+.bcn-table-photos {
+  table-layout: fixed;
+}
+
+.bcn-table tr.bcn-photo-dept td {
+  background: #1e4e78;
+  color: #ffffff;
+  font-weight: 700;
+  text-align: left;
+  padding: 4px 8px;
+}
+
+.bcn-table td.bcn-photo-cell {
+  padding: 6px;
+  vertical-align: top;
 }
 
 .bcn-photo-item {
-  width: calc(50% - 4px);
+  width: 100%;
   margin: 0;
   border: 1px solid #9ca3af;
 }
@@ -876,8 +902,9 @@
 .bcn-photo-item img {
   display: block;
   width: 100%;
-  height: 200px;
-  object-fit: contain;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
   background: #f3f4f6;
 }
 

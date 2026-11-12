@@ -1,18 +1,16 @@
 import * as React from 'react';
 import { FormField, ReportForm } from '../types/report.types';
-import { buildFormBlocks, formFieldDisplay } from '../utils/reportForm';
+import { buildFormBlocks, effectiveColumns, formFieldDisplay } from '../utils/reportForm';
 import { splitLabel } from '../utils/reportTable';
 
 export interface IReportPrintFormProps {
   form: ReportForm;
   roman: string;
-  photoCount: number;
-  photoItems: { url: string; name: string }[];
 }
 
 /** Mục dạng form trong bản in A4 (dùng class `bcn-*` do ReportPrintPreviewModal định nghĩa). */
-export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman, photoCount, photoItems }) => {
-  const cols = form.columns;
+export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman }) => {
+  const cols = effectiveColumns(form);
   const blocks = buildFormBlocks(form);
 
   const cellWidth = (f: FormField): string => `${(Math.min(f.span || 1, cols) / cols) * 100}%`;
@@ -30,13 +28,6 @@ export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman, 
 
   const valueCell = (f: FormField): React.ReactNode => {
     const span = Math.min(f.span || 1, cols);
-    if (f.type === 'photos') {
-      return (
-        <td key={f.key} colSpan={span} className="text-center">
-          {photoCount} ảnh
-        </td>
-      );
-    }
     if (form.sign) {
       return (
         <td key={f.key} colSpan={span} className="bcn-sign-box">
@@ -91,21 +82,6 @@ export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman, 
             <tr>
               <td colSpan={cols}>
                 <strong>Tóm tắt | Summary:</strong> <span style={{ whiteSpace: 'pre-line' }}>{form.summary}</span>
-              </td>
-            </tr>
-          )}
-          {photoItems.length > 0 && form.fields.some((f) => f.type === 'photos') && (
-            <tr className="bcn-photo-row">
-              <td colSpan={cols}>
-                <strong>Ảnh hiện trường | Site photos ({photoItems.length}):</strong>
-                <div className="bcn-photo-grid">
-                  {photoItems.map((ph) => (
-                    <figure key={ph.url} className="bcn-photo-item">
-                      <img src={ph.url} alt={ph.name} />
-                      <figcaption className="bcn-photo-cap">{ph.name}</figcaption>
-                    </figure>
-                  ))}
-                </div>
               </td>
             </tr>
           )}

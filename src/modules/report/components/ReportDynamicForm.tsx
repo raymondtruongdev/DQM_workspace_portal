@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { FormField, ReportForm } from '../types/report.types';
+import { effectiveColumns } from '../utils/reportForm';
 import { splitLabel } from '../utils/reportTable';
 
 export interface IReportDynamicFormProps {
@@ -9,8 +10,6 @@ export interface IReportDynamicFormProps {
   disabled?: boolean;
   /** Tô đỏ các trường bắt buộc đang trống. */
   showErrors?: boolean;
-  /** Nội dung cho trường loại `photos` (khu tải ảnh). */
-  renderPhotos?: () => React.ReactNode;
   onChange: (form: ReportForm) => void;
 }
 
@@ -27,9 +26,9 @@ export const ReportDynamicForm: React.FC<IReportDynamicFormProps> = ({
   anchor,
   disabled = false,
   showErrors = false,
-  renderPhotos,
   onChange
 }) => {
+  const cols = effectiveColumns(form);
   const setValue = (key: string, value: FormField['value']): void =>
     onChange({ ...form, fields: form.fields.map((f) => (f.key === key ? { ...f, value } : f)) });
 
@@ -104,21 +103,14 @@ export const ReportDynamicForm: React.FC<IReportDynamicFormProps> = ({
 
       <div className="section-card__body">
         <div
-          className={`report-form-grid${form.columns > 3 ? ' report-form-grid--wide' : ''}`}
-          style={{ ['--report-form-cols' as string]: String(form.columns) }}
+          className={`report-form-grid${cols > 3 ? ' report-form-grid--wide' : ''}`}
+          style={{ ['--report-form-cols' as string]: String(cols) }}
         >
           {form.fields.map((f) => {
-            if (f.type === 'photos') {
-              return (
-                <div key={f.key} className="report-form-cell report-form-cell--full">
-                  {renderPhotos ? renderPhotos() : null}
-                </div>
-              );
-            }
             const empty = f.value === undefined || String(f.value).trim() === '';
             const bad = showErrors && Boolean(f.required) && empty;
             const lbl = splitLabel(f.label);
-            const span = f.full ? form.columns : Math.min(f.span || 1, form.columns);
+            const span = f.full ? cols : Math.min(f.span || 1, cols);
             return (
               <div
                 key={f.key}

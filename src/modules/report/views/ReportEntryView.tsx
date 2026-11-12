@@ -2,7 +2,7 @@ import * as React from 'react';
 import { RoleEntry, ToastState } from '../../../core/types';
 import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { formatDateToYYYYMMDD } from '../../../core/utils';
-import { ReportDoc, ReportMetadata, ReportSection } from '../types/report.types';
+import { PhotoGroup, ReportDoc, ReportMetadata, ReportPhotoSection, ReportSection } from '../types/report.types';
 import { ReportDataService } from '../services/ReportDataService';
 import { formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 import { buildSectionNumbering } from '../utils/reportSections';
@@ -141,45 +141,49 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     setHasUnsavedChanges(true);
   };
 
-  // Upload photos directly to data/<Unit>/<DocID>_<yyyyMMdd>/photos/
-  const handleUploadPhotos = async (files: FileList): Promise<void> => {
+  // Thư mục ảnh của báo cáo: data/<Unit>/<DocID>_<yyyyMMdd>/photos (mỗi bộ phận một thư mục con)
+  const photosFolder = dataService.getPhotosFolderPath(role.unit, role.docId, dateStr);
+
+  const updatePhotoSection = (
+    sectionKey: string,
+    update: (s: ReportPhotoSection) => ReportPhotoSection
+  ): void => {
+    setDoc((prev) =>
+      prev
+        ? {
+            ...prev,
+            sections: prev.sections.map((x) => (x.kind === 'photo' && x.key === sectionKey ? update(x) : x))
+          }
+        : null
+    );
+    setHasUnsavedChanges(true);
+  };
+
+  const findPhotoGroup = (sectionKey: string, groupId: string): PhotoGroup | undefined => {
+    const sec = doc?.sections.filter((x) => x.kind === 'photo' && x.key === sectionKey)[0];
+    return sec && sec.kind === 'photo' ? sec.groups.filter((g) => g.id === groupId)[0] : undefined;
+  };
+
+  // Tải ảnh của một bộ phận lên data/<Unit>/<DocID>_<yyyyMMdd>/photos/<groupId>/
+  const handleUploadGroupPhotos = async (sectionKey: string, groupId: string, files: FileList): Promise<void> => {
     if (!doc || files.length === 0) return;
     setIsUploadingPhoto(true);
     try {
-      const uploadedList = [...(doc.photos || [])];
+      const names: string[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const buf = await file.arrayBuffer();
-        const uploaded = await dataService.uploadPhoto(
-          role.unit,
-          role.docId,
-          dateStr,
-          file.name,
-          buf
-        );
-        const existingIdx = uploadedList.findIndex(
-          (p) => p.name.toLowerCase() === uploaded.name.toLowerCase()
-        );
-        if (existingIdx >= 0) {
-          uploadedList[existingIdx] = uploaded;
-        } else {
-          uploadedList.push(uploaded);
-        }
+        names.push(await dataService.uploadPhoto(role.unit, role.docId, dateStr, groupId, file.name, buf));
       }
-
-      setDoc((prev) =>
-        prev
-          ? {
-              ...prev,
-              photos: uploadedList
-            }
-          : null
-      );
-      setHasUnsavedChanges(true);
-      setToast({
-        type: 'success',
-        text: `Đã tải lên ${files.length} ảnh vào thư mục data/${role.unit}/${role.docId}_${dateStr.replace(/-/g, '')}/photos/!`
-      });
+      updatePhotoSection(sectionKey, (s) => ({
+        ...s,
+        groups: s.groups.map((g) => {
+          if (g.id !== groupId) return g;
+          const lower = g.files.map((f) => f.toLowerCase());
+          return { ...g, files: g.files.concat(names.filter((n) => lower.indexOf(n.toLowerCase()) === -1)) };
+        })
+      }));
+      setToast({ type: 'success', text: `Đã tải lên ${files.length} ảnh.` });
     } catch (err: unknown) {
       console.error('Error uploading photo:', err);
       const msg = err instanceof Error ? err.message : 'Lỗi khi tải ảnh lên SharePoint';
@@ -189,31 +193,47 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     }
   };
 
-  // Delete an uploaded photo
-  const handleDeletePhoto = async (serverRelativeUrl: string, name: string): Promise<void> => {
+  // Xoá một ảnh của bộ phận (xoá cả file trên SharePoint)
+  const handleDeleteGroupPhoto = async (sectionKey: string, groupId: string, name: string): Promise<void> => {
     if (!doc) return;
     if (!window.confirm(`Bạn có chắc chắn muốn xoá ảnh "${name}" khỏi SharePoint?`)) return;
     setIsUploadingPhoto(true);
     try {
-      await dataService.deletePhoto(serverRelativeUrl);
-      const remaining = (doc.photos || []).filter((p) => p.serverRelativeUrl !== serverRelativeUrl);
-      setDoc((prev) =>
-        prev
-          ? {
-              ...prev,
-              photos: remaining
-            }
-          : null
-      );
-      setHasUnsavedChanges(true);
-      setToast({
-        type: 'success',
-        text: `Đã xoá ảnh "${name}" khỏi thư mục photos.`
-      });
+      await dataService.deletePhoto(`${photosFolder}/${groupId}/${name}`);
+      updatePhotoSection(sectionKey, (s) => ({
+        ...s,
+        groups: s.groups.map((g) => (g.id === groupId ? { ...g, files: g.files.filter((f) => f !== name) } : g))
+      }));
+      setToast({ type: 'success', text: `Đã xoá ảnh "${name}".` });
     } catch (err: unknown) {
       console.error('Error deleting photo:', err);
       const msg = err instanceof Error ? err.message : 'Lỗi khi xoá ảnh trên SharePoint';
       setToast({ type: 'error', text: msg });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  // Xoá cả bộ phận: xoá các ảnh của bộ phận trên SharePoint rồi bỏ nhóm khỏi báo cáo
+  const handleDeletePhotoGroup = async (sectionKey: string, groupId: string): Promise<void> => {
+    const group = findPhotoGroup(sectionKey, groupId);
+    if (!group) return;
+    const label = group.department || 'chưa đặt tên';
+    const msg =
+      group.files.length > 0
+        ? `Xoá bộ phận "${label}" và ${group.files.length} ảnh của bộ phận này khỏi SharePoint?`
+        : `Xoá bộ phận "${label}"?`;
+    if (!window.confirm(msg)) return;
+    setIsUploadingPhoto(true);
+    try {
+      for (let i = 0; i < group.files.length; i++) {
+        await dataService.deletePhoto(`${photosFolder}/${groupId}/${group.files[i]}`);
+      }
+      updatePhotoSection(sectionKey, (s) => ({ ...s, groups: s.groups.filter((g) => g.id !== groupId) }));
+    } catch (err: unknown) {
+      console.error('Error deleting photo group:', err);
+      const m = err instanceof Error ? err.message : 'Lỗi khi xoá ảnh trên SharePoint';
+      setToast({ type: 'error', text: m });
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -547,8 +567,10 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             isUploadingPhoto={isUploadingPhoto}
             showErrors={showRequiredErrors}
             onSectionChange={handleSectionChange}
-            onUploadPhotos={handleUploadPhotos}
-            onDeletePhoto={handleDeletePhoto}
+            photosFolder={photosFolder}
+            onUploadGroupPhotos={handleUploadGroupPhotos}
+            onDeleteGroupPhoto={handleDeleteGroupPhoto}
+            onDeletePhotoGroup={handleDeletePhotoGroup}
           />
 
           {isWeekly && doc.tasks && doc.tasks.length > 0 && (
@@ -565,7 +587,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
 
       {/* 5. Print / Export PDF A4 Preview Modal */}
       {showPrintPreview && doc && (
-        <ReportPrintPreviewModal doc={doc} onClose={() => setShowPrintPreview(false)} />
+        <ReportPrintPreviewModal doc={doc} photosFolder={photosFolder} onClose={() => setShowPrintPreview(false)} />
       )}
     </div>
   );

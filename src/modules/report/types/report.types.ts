@@ -1,7 +1,3 @@
-import { RoleEntry } from '../../../core/types';
-
-export type ReportRoleAssignment = RoleEntry;
-
 export interface TemplateVersionInfo {
   fileName: string;          // e.g. "template_ST01_20261109.xlsx"
   version: string;           // e.g. "template_ST01_20261109"
@@ -68,7 +64,7 @@ export interface ReportTable {
   rows: TableRow[];
 }
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'select' | 'photos';
+export type FieldType = 'text' | 'textarea' | 'number' | 'select';
 
 /** Trường của mục dạng form (một dòng trong sheet form). */
 export interface FormField {
@@ -101,14 +97,30 @@ export interface ReportForm {
   fields: FormField[];
 }
 
-export type ReportSection = ReportTable | ReportForm;
-
-export interface ReportPhotoFile {
-  name: string;
-  serverRelativeUrl: string;
-  timeLastModified: string;
-  length: number;
+/** Nhóm ảnh của một bộ phận: tên bộ phận, tóm tắt và các file ảnh trong photos/<groupId>/. */
+export interface PhotoGroup {
+  id: string;           // tên thư mục con chứa ảnh
+  department: string;   // "DCEM", "HSE"…
+  summary: string;
+  files: string[];      // tên file ảnh
 }
+
+/** Mục ảnh hiện trường theo bộ phận: mỗi sheet Photo = một mục. */
+export interface ReportPhotoSection {
+  kind: 'photo';
+  key: string;
+  sheetBase: string;
+  title: string;
+  titleEn: string;
+  shortTitle: string;
+  summary: string;
+  showSummary: boolean;
+  columns: number;      // số ảnh mỗi hàng
+  groups: PhotoGroup[];
+}
+
+export type ReportSection = ReportTable | ReportForm | ReportPhotoSection;
+
 
 export interface ReportTaskRow {
   id: string; // "1", "1.1", "1.2", "2", etc.
@@ -133,7 +145,6 @@ export interface ReportDoc {
   /** Các mục của báo cáo (bảng hoặc form), theo thứ tự sheet trong template. */
   sections: ReportSection[];
   tasks: ReportTaskRow[]; // Used for WeeklyReport or legacy tree-table
-  photos?: ReportPhotoFile[];
   eTag?: string;
   isExisting?: boolean;
   copiedFromDate?: string; // e.g. "2026-11-10" when pre-filled from previous day

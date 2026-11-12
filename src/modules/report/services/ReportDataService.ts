@@ -1,4 +1,4 @@
-import { ReportDoc, ReportPhotoFile, TemplateVersionInfo } from '../types/report.types';
+import { ReportDoc, TemplateVersionInfo } from '../types/report.types';
 import { parseReportDocFromBuffer, encodeReportDocToBuffer } from '../utils/reportCodec';
 import { applyFormDefaults } from '../utils/reportForm';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
@@ -36,9 +36,8 @@ export class ReportDataService {
     currentUserEmail: string,
     siteManager?: string
   ): Promise<LoadedReportResult> {
-    const [existingFile, photosList, latestTemplate] = await Promise.all([
+    const [existingFile, latestTemplate] = await Promise.all([
       this._fileService.getReportFileWithMeta(unit, docId, dateStr),
-      this._fileService.listReportPhotos(unit, docId, dateStr).catch(() => []),
       this._fileService
         .findLatestTemplateForUnit(unit, docId)
         .catch((): { info?: TemplateVersionInfo; buffer?: ArrayBuffer } => ({}))
@@ -47,18 +46,10 @@ export class ReportDataService {
     const templateBuffer = latestTemplate.buffer;
     const latestTemplateInfo = latestTemplate.info;
 
-    const photos: ReportPhotoFile[] = photosList.map((f) => ({
-      name: f.name,
-      serverRelativeUrl: f.serverRelativeUrl,
-      timeLastModified: f.timeLastModified,
-      length: f.length
-    }));
-
     if (existingFile && existingFile.buffer) {
       let doc = await parseReportDocFromBuffer(existingFile.buffer, docId, unit, dateStr);
       doc.eTag = existingFile.eTag;
       doc.isExisting = true;
-      doc.photos = photos;
       doc.latestTemplateInfo = latestTemplateInfo;
       doc = applyFormDefaults(doc, { unit, email: currentUserEmail, siteManager });
 
@@ -89,7 +80,8 @@ export class ReportDataService {
       doc.isExisting = false;
       doc.eTag = undefined;
       doc.copiedFromDate = prevReport.sourceDateStr;
-      doc.photos = photos;
+      // Ảnh thuộc về từng ngày: không sao chép sang báo cáo mới
+      doc.sections = doc.sections.map((sec) => (sec.kind === 'photo' ? { ...sec, groups: [] } : sec));
       doc.latestTemplateInfo = latestTemplateInfo;
       doc.metadata.email = currentUserEmail;
       doc = applyFormDefaults(doc, { unit, email: currentUserEmail, siteManager });
@@ -123,7 +115,6 @@ export class ReportDataService {
       latestTemplate
     );
 
-    templateResult.doc.photos = photos;
 
     return {
       doc: templateResult.doc,
@@ -155,9 +146,12 @@ export class ReportDataService {
     if (currentDoc) {
       newDoc.eTag = currentDoc.eTag;
       newDoc.isExisting = currentDoc.isExisting;
-      if (currentDoc.photos && currentDoc.photos.length > 0) {
-        newDoc.photos = currentDoc.photos;
-      }
+      // Giữ lại ảnh đã tải của báo cáo hiện tại khi chuyển sang template mới
+      newDoc.sections = newDoc.sections.map((sec) => {
+        if (sec.kind !== 'photo') return sec;
+        const old = currentDoc.sections.filter((x) => x.kind === 'photo' && x.key === sec.key)[0];
+        return old && old.kind === 'photo' ? { ...sec, groups: old.groups } : sec;
+      });
     }
     newDoc.templateUpdateRequired = false;
     newDoc.copiedFromDate = undefined;
@@ -189,26 +183,28 @@ export class ReportDataService {
   }
 
   /**
-   * Upload a photo into data/<Unit>/<DocID>_<yyyyMMdd>/photos/
+   * Server-relative folder holding the report's photos: data/<Unit>/<DocID>_<yyyyMMdd>/photos
+   */
+  public getPhotosFolderPath(unit: string, docId: string, dateStr: string): string {
+    return this._fileService.getReportPhotosFolderPath(unit, docId, dateStr);
+  }
+
+  /**
+   * Upload a photo into data/<Unit>/<DocID>_<yyyyMMdd>/photos/<groupId>/; returns the stored file name
    */
   public async uploadPhoto(
     unit: string,
     docId: string,
     dateStr: string,
+    groupId: string,
     fileName: string,
     buffer: ArrayBuffer
-  ): Promise<ReportPhotoFile> {
-    const res = await this._fileService.uploadReportPhoto(unit, docId, dateStr, fileName, buffer);
-    return {
-      name: res.name,
-      serverRelativeUrl: res.serverRelativeUrl,
-      timeLastModified: res.timeLastModified,
-      length: res.length
-    };
+  ): Promise<string> {
+    return await this._fileService.uploadReportPhoto(unit, docId, dateStr, groupId, fileName, buffer);
   }
 
   /**
-   * Delete an uploaded photo
+   * Delete an uploaded photo by its server-relative URL
    */
   public async deletePhoto(serverRelativeUrl: string): Promise<void> {
     await this._fileService.deleteReportPhoto(serverRelativeUrl);

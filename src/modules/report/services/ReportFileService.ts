@@ -283,14 +283,6 @@ export class ReportFileService {
   }
 
   /**
-   * Check if a report file already exists
-   */
-  public async reportFileExists(unit: string, docId: string, dateStr: string): Promise<boolean> {
-    const path = getReportFileRelativePath(this.getLibraryPath(), unit, docId, dateStr);
-    return await this._client.fileExists(this._siteUrl, path);
-  }
-
-  /**
    * Path to the Unit folder:
    * <libraryPath>/data/<Unit>
    */
@@ -330,13 +322,6 @@ export class ReportFileService {
   }
 
   /**
-   * List files in a folder
-   */
-  public async listFolderFiles(folderRelativePath: string): Promise<ISharePointFileInfo[]> {
-    return await this._client.getFolderFiles(this._siteUrl, folderRelativePath);
-  }
-
-  /**
    * Path to photos subfolder:
    * <libraryPath>/data/<Unit>/<DocID>_<yyyyMMdd>/photos
    */
@@ -345,42 +330,27 @@ export class ReportFileService {
   }
 
   /**
-   * List uploaded photos in data/<Unit>/<DocID>_<yyyyMMdd>/photos
-   */
-  public async listReportPhotos(unit: string, docId: string, dateStr: string): Promise<ISharePointFileInfo[]> {
-    const photosFolder = this.getReportPhotosFolderPath(unit, docId, dateStr);
-    const exists = await this._client.folderExists(this._siteUrl, photosFolder);
-    if (!exists) return [];
-    const files = await this._client.getFolderFiles(this._siteUrl, photosFolder);
-    return files.sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  /**
-   * Upload a photo file into data/<Unit>/<DocID>_<yyyyMMdd>/photos/
+   * Upload a photo into data/<Unit>/<DocID>_<yyyyMMdd>/photos/<groupId>/
+   * Returns the stored file name.
    */
   public async uploadReportPhoto(
     unit: string,
     docId: string,
     dateStr: string,
+    groupId: string,
     fileName: string,
     buffer: ArrayBuffer
-  ): Promise<ISharePointFileInfo> {
+  ): Promise<string> {
     await this.ensureUnitFolder(unit);
     const reportFolder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
     await this._client.ensureFolder(this._siteUrl, reportFolder);
 
-    const photosFolder = this.getReportPhotosFolderPath(unit, docId, dateStr);
-    await this._client.ensureFolder(this._siteUrl, photosFolder);
+    const groupFolder = `${this.getReportPhotosFolderPath(unit, docId, dateStr)}/${groupId}`;
+    await this._client.ensureFolder(this._siteUrl, groupFolder);
 
     const safeName = sanitizeSharePointPath(fileName) || `photo_${Date.now()}.jpg`;
-    const res = await this._client.uploadFile(this._siteUrl, photosFolder, safeName, buffer, true);
-    return {
-      name: safeName,
-      serverRelativeUrl: res.serverRelativeUrl,
-      timeLastModified: new Date().toISOString(),
-      length: buffer.byteLength,
-      eTag: res.eTag
-    };
+    await this._client.uploadFile(this._siteUrl, groupFolder, safeName, buffer, true);
+    return safeName;
   }
 
   /**

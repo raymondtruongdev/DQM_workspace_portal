@@ -3,7 +3,9 @@ import {
   ReportDoc,
   ReportMetadata,
   FormField,
+  PhotoGroup,
   ReportForm,
+  ReportPhotoSection,
   ReportSection,
   ReportTable,
   TableColumn,
@@ -123,7 +125,6 @@ function parseFormSheet(
     const raw = row[3];
     let value: CellValue;
     if (probe.type === 'number') value = parseOptionalNum(raw);
-    else if (probe.type === 'photos') value = undefined;
     else value = String(raw ?? '').trim();
     const required = row[4] !== undefined && String(row[4]).trim() !== '' && parseIsLocked(row[4], false);
     fields.push({ ...probe, value, required });
@@ -143,12 +144,54 @@ function parseFormSheet(
   };
 }
 
+/** Đọc sheet ảnh: Title | Summary | Layout | (GroupID Department Summary Files) | các nhóm ảnh. */
+function parsePhotoSheet(
+  XLSX: typeof XLSXTypes,
+  ws: XLSXTypes.WorkSheet,
+  sheetName: string
+): ReportPhotoSection | undefined {
+  const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  const cell = (r: number, c: number): string => String((rows[r] && rows[r][c]) ?? '').trim();
+  if (rows.length < 4) return undefined;
+  if (cell(0, 0).toLowerCase() !== 'title') return undefined;
+  if (cell(2, 0).toLowerCase() !== 'layout' || cell(3, 0).toLowerCase() !== 'groupid') return undefined;
+  const base = sheetBase(sheetName);
+  const cols = parseInt(cell(2, 1), 10);
+  const groups: PhotoGroup[] = [];
+  for (let r = 4; r < rows.length; r++) {
+    const id = cell(r, 0);
+    if (!id) continue;
+    groups.push({
+      id,
+      department: cell(r, 1),
+      summary: cell(r, 2),
+      files: cell(r, 3).split('|').map((f) => f.trim()).filter(Boolean)
+    });
+  }
+  return {
+    kind: 'photo',
+    key: base.toLowerCase(),
+    sheetBase: base,
+    title: cell(0, 1),
+    titleEn: cell(0, 2),
+    shortTitle: cell(0, 3),
+    summary: cell(1, 1),
+    showSummary: cell(1, 2).toLowerCase() !== 'off',
+    columns: isNaN(cols) || cols < 1 ? 2 : cols,
+    groups
+  };
+}
+
 function parseSectionSheet(
   XLSX: typeof XLSXTypes,
   ws: XLSXTypes.WorkSheet,
   sheetName: string
 ): ReportSection | undefined {
-  return parseFormSheet(XLSX, ws, sheetName) || parseTableSheet(XLSX, ws, sheetName);
+  return (
+    parseFormSheet(XLSX, ws, sheetName) ||
+    parsePhotoSheet(XLSX, ws, sheetName) ||
+    parseTableSheet(XLSX, ws, sheetName)
+  );
 }
 
 async function getXlsx(): Promise<typeof XLSXTypes> {
@@ -430,6 +473,21 @@ export async function encodeReportDocToBuffer(
       const wsForm = XLSX.utils.aoa_to_sheet(aoa);
       wsForm['!cols'] = [{ wch: 22 }, { wch: 40 }, { wch: 34 }, { wch: 50 }, { wch: 10 }];
       XLSX.utils.book_append_sheet(wb, wsForm, sheetName);
+      return;
+    }
+    if (sec.kind === 'photo') {
+      const aoa: (string | number)[][] = [
+        ['Title', sec.title, sec.titleEn, sec.shortTitle],
+        sec.showSummary ? ['Summary', sec.summary || ''] : ['Summary', sec.summary || '', 'off'],
+        ['Layout', sec.columns],
+        ['GroupID', 'Department', 'Summary', 'Files']
+      ];
+      sec.groups.forEach((g) => {
+        aoa.push([g.id, g.department, g.summary, g.files.join('|')]);
+      });
+      const wsPhoto = XLSX.utils.aoa_to_sheet(aoa);
+      wsPhoto['!cols'] = [{ wch: 22 }, { wch: 28 }, { wch: 50 }, { wch: 60 }];
+      XLSX.utils.book_append_sheet(wb, wsPhoto, sheetName);
       return;
     }
     const t = sec;

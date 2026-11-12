@@ -1,6 +1,5 @@
 import {
   sanitizeSharePointPath,
-  formatDateToYYYYMMDD,
   formatDateToYYYYMMDDWithoutDash,
   parseDateString
 } from '../../../core/utils';
@@ -18,20 +17,6 @@ export function toYYYYMMDD(date: string | Date): string {
     return formatDateToYYYYMMDDWithoutDash(parseDateString(date));
   }
   return formatDateToYYYYMMDDWithoutDash(date);
-}
-
-/**
- * Return standardized date string "YYYY-MM-DD"
- */
-export function toStandardDateStr(date: string | Date): string {
-  if (typeof date === 'string') {
-    const clean = date.trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
-      return clean;
-    }
-    return formatDateToYYYYMMDD(parseDateString(clean));
-  }
-  return formatDateToYYYYMMDD(date);
 }
 
 /**
