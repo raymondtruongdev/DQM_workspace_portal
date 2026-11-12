@@ -33,6 +33,7 @@ import {
   SaveRegular,
   SearchRegular,
   TableRegular,
+  WarningRegular,
 } from '@fluentui/react-icons';
 
 /**
@@ -74,6 +75,7 @@ const ICONS = {
   search: SearchRegular,
   table: TableRegular,
   upload: ArrowUploadRegular,
+  warning: WarningRegular,
 } as const;
 
 export type IconName = keyof typeof ICONS;

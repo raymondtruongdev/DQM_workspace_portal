@@ -141,6 +141,7 @@ DQM_Check_In_App/
   - Renders the bilingual report (mọi mục theo thứ tự sheet của template, header THACO/CREC, bảng thông tin Mã tài liệu / Vị trí / Số báo cáo / Đơn vị thi công / Ngày) in A4 portrait layout (`Mau_BCN_ST06_20261025.pdf` standard) with continuous page flow (no blank page gaps when dynamic rows are added) and full table borders.
   - Ngắt trang: tiêu đề mục + hàng tiêu đề + 2 dòng đầu luôn đi cùng nhau, 2 dòng cuối không bị bỏ lẻ (`break-after: avoid` trên `thead tr`, `tbody tr:first-child`, `tbody tr:nth-last-child(2)`); phần giữa chảy liên tục. Trên điện thoại khung xem trước giữ bề rộng A4 tối thiểu và cuộn ngang.
   - Ảnh hiện trường: nếu có ảnh trong `photos/`, bản in thêm một dòng cuối bảng mục VIII, dưới "Kế hoạch ngày mai (tóm tắt)" (2 ảnh/hàng, mỗi ảnh có tên file; ảnh không bị ngắt giữa hai trang). `handlePrint` đợi mọi ảnh tải xong (tối đa 20s) rồi mới gọi `window.print()`; URL ảnh là tuyệt đối để iframe in tải được bằng phiên SharePoint.
+* **Thông báo cập nhật template (`ReportEntryView.tsx`, class `report-tpl-notice`):** khi báo cáo (đã lưu hoặc kế thừa ngày trước) dùng template cũ hơn bản mới nhất trong `_template/`, form hiện khung vàng "Cần cập nhật template mới" với hai ô phiên bản (HIỆN TẠI gạch ngang, MỚI NHẤT xanh lá) và nút "Apply template mới để tiếp tục"; nút "Xem dữ liệu cũ (không đổi template)" chỉ có khi báo cáo đã lưu. Trong lúc này ẩn các nút Xem bản in / Làm mới / Lưu báo cáo và nhãn "Chưa lưu". Apply gọi `checkMaintenance()` trước (bảo trì thì không áp dụng).
 * **Save & Overwrite:**
   - Automatically ensures `data/<Unit>` and `data/<Unit>/<DocID>_<yyyyMMdd>/` exist before saving, with ETag concurrency protection.
 * **SheetJS Lazy-Loading:** Loaded via dynamic `import(/* webpackChunkName: 'xlsx' */ 'xlsx')` so other modules do not incur bundle overhead.
@@ -316,5 +317,6 @@ Các ý định đã bàn nhưng chưa triển khai; chỉ làm khi chủ dự �
 * Cột `Id` và `departmentCode` của `UserProfiles` được đọc nhưng không dùng (có thể bỏ khỏi code).
 
 **Kiểm thử còn thiếu (chưa xác nhận trên SharePoint thật)**
+* Chưa xem trực quan ở 1440 / 1024 / 768 / 390px: thẻ "Ngày đang chọn" của lịch (`report-day-panel`) và thông báo cập nhật template (`report-tpl-notice`). Chưa thử upload bản ký với tên mới `<DocCode>_signed.pdf` (từ form và từ lịch), tải bản ký ở lịch/Tổng quan (đọc tên thật từ thư mục), Apply template khi bảo trì.
 * Sổ `ReportRegistry`: tạo list theo mục 5.3, lưu báo cáo mới (số tăng 00001 → 00002, dòng mới), lưu lại (chỉ cập nhật dòng), upload bản ký (Status = done), xoá thư mục `data/` rồi mở báo cáo mới (số không về 00001), hai đơn vị lưu cùng lúc, tài khoản thường không xoá được dòng.
 * Tải tab Tổng quan với ~20 đơn vị, upload bản ký (đổi tên + xoá file tên cũ), xuất Excel, chế độ bảo trì với hai tài khoản, `npm run build`, xem giao diện ở 1440 / 1024 / 768 / 390px.

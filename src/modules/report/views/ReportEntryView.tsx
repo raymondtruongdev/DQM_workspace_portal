@@ -4,7 +4,7 @@ import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { formatDateToYYYYMMDD } from '../../../core/utils';
 import { PhotoGroup, ReportDoc, ReportMetadata, ReportPhotoSection, ReportSection, SignedDocInfo } from '../types/report.types';
 import { ReportDataService } from '../services/ReportDataService';
-import { formatTemplateVersionDisplay } from '../utils/reportFileNaming';
+import { extractTemplateVersionDate, formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 import { buildSectionNumbering } from '../utils/reportSections';
 import { recalculateAllRates } from '../utils/reportTaskTree';
 import { getMissingRequiredFields, getFieldLabel, getMissingFormFields } from '../utils/reportValidation';
@@ -15,6 +15,14 @@ import { ReportSignedDocument } from '../components/ReportSignedDocument';
 import { getReportFolderName } from '../utils/reportFileNaming';
 import { ReportPrintPreviewModal } from '../components/ReportPrintPreviewModal';
 import { Icon, PageHeader, LoadingState, EmptyState } from '../../../core/components';
+
+/** "YYYY-MM-DD" -> "dd/MM" */
+const tplDM = (d?: string): string => (d ? d.split('-').reverse().slice(0, 2).join('/') : '');
+/** Hậu tố " · dd/MM" từ ngày trong tên phiên bản template ('' nếu không có). */
+const tplVerDM = (v?: string): string => {
+  const d8 = extractTemplateVersionDate(v);
+  return d8.length === 8 ? ` · ${d8.slice(6, 8)}/${d8.slice(4, 6)}` : '';
+};
 
 export interface IReportEntryViewProps {
   role: RoleEntry;
@@ -309,6 +317,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   // Load new template when existing / previous-day report uses an outdated template
   const handleLoadLatestTemplate = async (): Promise<void> => {
     if (!doc) return;
+    // Chế độ bảo trì (Shutdown Server): không cho áp dụng template mới
+    if (await onCheckMaintenance()) return;
     setIsLoading(true);
     try {
       const result = await dataService.loadLatestTemplateForReport(
@@ -458,6 +468,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
           </>
         }
         actions={
+          doc && doc.templateUpdateRequired ? undefined : (
           <>
             {hasUnsavedChanges && (
               <span className="unsaved-badge" title="Có dữ liệu chưa lưu">
@@ -504,6 +515,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
               )}
             </button>
           </>
+          )
         }
       />
 
@@ -539,94 +551,58 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       {isLoading ? (
         <LoadingState message="Đang kiểm tra phiên bản biểu mẫu (template) và nạp dữ liệu..." />
       ) : doc && doc.templateUpdateRequired ? (
-        <div className="card report-template-upgrade-card">
-          <div className="report-template-upgrade-header">
-            <div className="report-template-upgrade-icon">
-              <Icon name="file-up" size={24} />
+        <div className="report-tpl-notice" role="alert">
+          <div className="report-tpl-notice__top">
+            <div className="report-tpl-notice__icon" aria-hidden="true">
+              <Icon name="warning" size={24} />
             </div>
-            <div className="report-template-upgrade-title-wrap">
-              <h3 className="report-template-upgrade-title">
-                Yêu cầu cập nhật Biểu mẫu (Template) mới cho trạm {role.unit}
-              </h3>
-              <p className="report-template-upgrade-subtitle">
+            <div className="report-tpl-notice__text">
+              <h3>Cần cập nhật template mới</h3>
+              <p>
                 {doc.outdatedSourceType === 'previous_day'
-                  ? `Báo cáo ngày liền trước (${
-                      doc.copiedFromDate ? doc.copiedFromDate.split('-').reverse().join('/') : ''
-                    }) đang sử dụng phiên bản template cũ. Vui lòng tải template mới nhất từ thư mục _template trên SharePoint để tiếp tục nhập báo cáo ngày ${dateStr
-                      .split('-')
-                      .reverse()
-                      .join('/')}.`
-                  : `File báo cáo ngày ${dateStr
-                      .split('-')
-                      .reverse()
-                      .join('/')} hiện tại đang sử dụng phiên bản template cũ. Vui lòng tải template mới nhất từ thư mục _template trên SharePoint trước khi tiếp tục cập nhật.`}
+                  ? `Báo cáo ngày ${tplDM(doc.copiedFromDate)} dùng template cũ. Áp dụng bản mới nhất từ SharePoint `
+                  : `Báo cáo ngày ${tplDM(dateStr)} dùng template cũ. Áp dụng bản mới nhất từ SharePoint `}
+                <code>_template</code>
+                {doc.outdatedSourceType === 'previous_day'
+                  ? ` để tiếp tục nhập báo cáo ngày ${dateStr.split('-').reverse().join('/')}.`
+                  : ' để tiếp tục cập nhật báo cáo.'}
+              </p>
+              <p>
+                <strong>Lưu ý:</strong> khi áp dụng template mới, bạn sẽ phải nhập lại một số thông tin của
+                {doc.outdatedSourceType === 'previous_day' ? ' ngày hôm trước.' : ' báo cáo này.'}
               </p>
             </div>
-            <div className="report-info-date-group">
-              <label htmlFor="upgrade-date-picker" className="field__label">
-                Ngày báo cáo
-              </label>
-              <div className="report-date-wrap">
-                <input
-                  id="upgrade-date-picker"
-                  type="date"
-                  className="input report-date-width"
-                  value={dateStr}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                />
-              </div>
-            </div>
           </div>
 
-          <div className="report-template-version-compare">
-            <div className="report-template-ver-box is-old">
-              <span className="report-template-ver-box-label">
-                {doc.outdatedSourceType === 'previous_day'
-                  ? 'Phiên bản của báo cáo ngày liền trước'
-                  : 'Phiên bản của file báo cáo hiện tại'}
+          <div className="report-tpl-notice__compare">
+            <div className="report-tpl-ver report-tpl-ver--old">
+              <span className="report-tpl-ver__label">
+                Hiện tại{tplVerDM(doc.outdatedTemplateVersion || doc.metadata.templateVersion)}
               </span>
-              <strong className="report-template-ver-box-value">
-                {formatTemplateVersionDisplay(doc.outdatedTemplateVersion || doc.metadata.templateVersion)}
+              <strong className="report-tpl-ver__value">
+                {(doc.outdatedTemplateVersion || doc.metadata.templateVersion || 'Chưa gắn phiên bản').replace(/\.xlsx$/i, '')}
               </strong>
             </div>
-
-            <div className="report-template-ver-arrow" aria-hidden="true">
+            <span className="report-tpl-notice__arrow" aria-hidden="true">
               <Icon name="arrow-right" size={20} />
-            </div>
-
-            <div className="report-template-ver-box is-new">
-              <span className="report-template-ver-box-label">
-                Phiên bản mới nhất trên SharePoint (_template)
+            </span>
+            <div className="report-tpl-ver report-tpl-ver--new">
+              <span className="report-tpl-ver__label">
+                Mới nhất{tplVerDM(doc.latestTemplateInfo?.version)}
               </span>
-              <strong className="report-template-ver-box-value">
-                {formatTemplateVersionDisplay(doc.latestTemplateInfo?.version)}
+              <strong className="report-tpl-ver__value">
+                {doc.latestTemplateInfo?.fileName || doc.latestTemplateInfo?.version || '—'}
               </strong>
-              {doc.latestTemplateInfo?.fileName && (
-                <span className="report-template-ver-box-file">
-                  File: _template/{doc.latestTemplateInfo.fileName}
-                </span>
-              )}
             </div>
           </div>
 
-          <div className="report-template-upgrade-actions">
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={handleLoadLatestTemplate}
-            >
-              <Icon name="download" size={20} />
-              <span>
-                Tải Template Mới ({doc.latestTemplateInfo?.fileName || doc.latestTemplateInfo?.version}) &amp; Tiếp Tục Nhập
-              </span>
+          <div className="report-tpl-notice__actions">
+            <button type="button" className="btn btn--primary" onClick={handleLoadLatestTemplate}>
+              <Icon name="check" size={20} />
+              <span>Apply template mới để tiếp tục</span>
             </button>
-
             {doc.isExisting && (
-              <button
-                type="button"
-                className="btn btn--secondary"
-                onClick={handleKeepCurrentTemplate}
-              >
+              <button type="button" className="btn btn--secondary" onClick={handleKeepCurrentTemplate}>
                 Xem dữ liệu cũ (không đổi template)
               </button>
             )}
