@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { RoleEntry } from '../../../core/types';
 import { ReportTile } from '../components/ReportTile';
+import { ReportOverviewView } from './ReportOverviewView';
+import { ReportDataService } from '../services/ReportDataService';
 import { NoAccessState } from '../components/NoAccessState';
 import { Icon, PageHeader, FilterChips, SearchInput, LoadingState, EmptyState } from '../../../core/components';
 
@@ -14,6 +16,13 @@ export interface IReportLandingViewProps {
   onRefresh: () => void;
   onGoHome: () => void;
   isLoading: boolean;
+  /** Admin thấy thêm tab "Tổng quan" (theo dõi trạng thái mọi đơn vị). */
+  isAdmin: boolean;
+  dataService: ReportDataService;
+  view: 'mine' | 'overview';
+  onChangeView: (view: 'mine' | 'overview') => void;
+  /** Mở form báo cáo của một đơn vị ở một ngày (từ tab Tổng quan). */
+  onOpenReportDate: (role: RoleEntry, dateStr: string) => void;
 }
 
 export const ReportLandingView: React.FC<IReportLandingViewProps> = ({
@@ -25,7 +34,12 @@ export const ReportLandingView: React.FC<IReportLandingViewProps> = ({
   onSelectReport,
   onRefresh,
   onGoHome,
-  isLoading
+  isLoading,
+  isAdmin,
+  dataService,
+  view,
+  onChangeView,
+  onOpenReportDate
 }) => {
   const [searchTerm, setSearchTerm] = React.useState<string>('');
 
@@ -113,9 +127,37 @@ export const ReportLandingView: React.FC<IReportLandingViewProps> = ({
   ];
   const activeUnit = units.find((u) => u.toLowerCase() === selectedUnit.toLowerCase()) || 'ALL';
 
+  const viewTabs = isAdmin ? (
+    <FilterChips
+      ariaLabel="Chế độ xem"
+      value={view}
+      onChange={(v) => onChangeView(v as 'mine' | 'overview')}
+      options={[
+        { value: 'overview', label: 'Tổng quan' },
+        { value: 'mine', label: 'Báo cáo của tôi' }
+      ]}
+    />
+  ) : null;
+
+  if (isAdmin && view === 'overview') {
+    return (
+      <div className="report-landing-container">
+        {header}
+        {viewTabs}
+        <ReportOverviewView
+          assignments={assignments}
+          dataService={dataService}
+          onOpenUnit={onSelectReport}
+          onOpenDate={onOpenReportDate}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="report-landing-container">
       {header}
+      {viewTabs}
 
       <div className="report-landing-controls">
         <FilterChips

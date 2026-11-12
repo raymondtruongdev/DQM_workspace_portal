@@ -213,8 +213,13 @@ export class ReportDataService {
   /**
    * Trạng thái các ngày (YYYY-MM-DD) của một đơn vị: chưa nhập / chưa upload bản ký / hoàn tất
    */
-  public async getDayInfos(unit: string, docId: string, dateStrs: string[]): Promise<ReportDayInfo[]> {
-    return await this._fileService.getReportDayInfos(unit, docId, dateStrs);
+  public async getDayInfos(
+    unit: string,
+    docId: string,
+    dateStrs: string[],
+    concurrency?: number
+  ): Promise<ReportDayInfo[]> {
+    return await this._fileService.getReportDayInfos(unit, docId, dateStrs, concurrency);
   }
 
   /**

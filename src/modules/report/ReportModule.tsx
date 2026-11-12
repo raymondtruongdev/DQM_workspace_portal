@@ -38,6 +38,10 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
   // View state
   const [currentView, setCurrentView] = React.useState<'landing' | 'calendar' | 'entry'>('landing');
   const [entryDate, setEntryDate] = React.useState<string | undefined>(undefined);
+  // Tab đang xem ở trang danh sách (admin: Tổng quan / Báo cáo của tôi, mặc định Tổng quan); giữ khi quay lại từ lịch/form
+  const [landingView, setLandingView] = React.useState<'mine' | 'overview'>(isAdmin ? 'overview' : 'mine');
+  // Form được mở thẳng từ tab Tổng quan: Back quay về Tổng quan chứ không qua lịch
+  const [entryFromOverview, setEntryFromOverview] = React.useState<boolean>(false);
   const [selectedRole, setSelectedRole] = React.useState<RoleEntry | null>(null);
 
   // Unit filter state
@@ -83,6 +87,7 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
   const handleSelectReport = (role: RoleEntry): void => {
     setSelectedRole(role);
     setEntryDate(undefined);
+    setEntryFromOverview(false);
     // Báo cáo ngày: xem lịch 14 ngày trước rồi mới vào form; báo cáo tuần (placeholder) vào thẳng form
     setCurrentView(isDailyReport(role) ? 'calendar' : 'entry');
     try {
@@ -99,14 +104,23 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
     setEntryDate(undefined);
   };
 
+  // Từ tab Tổng quan: mở thẳng form báo cáo của một đơn vị ở một ngày
+  const handleOpenReportDate = (role: RoleEntry, dateStr: string): void => {
+    setSelectedRole(role);
+    setEntryDate(dateStr);
+    setEntryFromOverview(true);
+    setCurrentView('entry');
+  };
+
   const handleOpenDate = (dateStr: string): void => {
     setEntryDate(dateStr);
+    setEntryFromOverview(false);
     setCurrentView('entry');
   };
 
   // Từ form nhập quay lại: báo cáo ngày về lịch (đọc lại trạng thái), báo cáo tuần về danh sách
   const handleBackFromEntry = (): void => {
-    if (selectedRole && isDailyReport(selectedRole)) {
+    if (selectedRole && isDailyReport(selectedRole) && !entryFromOverview) {
       setCurrentView('calendar');
     } else {
       handleBackToLanding();
@@ -143,6 +157,11 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
           onRefresh={loadRoles}
           onGoHome={onGoHome}
           isLoading={isLoadingRoles}
+          isAdmin={isAdmin}
+          dataService={dataService}
+          view={landingView}
+          onChangeView={setLandingView}
+          onOpenReportDate={handleOpenReportDate}
         />
       )}
     </div>

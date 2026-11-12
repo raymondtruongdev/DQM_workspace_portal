@@ -1,6 +1,7 @@
 import { ReportDayStatus } from '../types/report.types';
 
 export const WEEKDAY_LONG = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+export const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const WEEKDAY_SHORT_MON_FIRST = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
 /** Nhãn hiển thị của từng trạng thái ngày. */
@@ -54,6 +55,11 @@ export function mondayIndex(dateStr: string): number {
 
 export function weekdayLong(dateStr: string): string {
   return WEEKDAY_LONG[parseDateStr(dateStr).getDay()];
+}
+
+/** Tên tháng viết tắt (Jan … Dec) của một ngày. */
+export function monthShort(dateStr: string): string {
+  return MONTH_SHORT[parseDateStr(dateStr).getMonth()];
 }
 
 /** dd/MM */

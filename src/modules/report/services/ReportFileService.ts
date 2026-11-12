@@ -338,7 +338,12 @@ export class ReportFileService {
    * - unsigned: có file báo cáo nhưng thư mục chưa có file PDF
    * - done: có file báo cáo và có file PDF đã ký
    */
-  public async getReportDayInfos(unit: string, docId: string, dateStrs: string[]): Promise<ReportDayInfo[]> {
+  public async getReportDayInfos(
+    unit: string,
+    docId: string,
+    dateStrs: string[],
+    concurrency = 14
+  ): Promise<ReportDayInfo[]> {
     let subfolders: string[] = [];
     try {
       subfolders = await this._client.getFolderSubfolderNames(this._siteUrl, this.getUnitFolderPath(unit));
@@ -347,30 +352,35 @@ export class ReportFileService {
     }
     const existing = new Set(subfolders.map((n) => n.toLowerCase()));
 
-    return await Promise.all(
-      dateStrs.map(async (dateStr): Promise<ReportDayInfo> => {
-        if (!existing.has(getReportFolderName(docId, dateStr).toLowerCase())) {
-          return { dateStr, status: 'missing' };
-        }
-        const folder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
-        let files: ISharePointFileInfo[] = [];
-        try {
-          files = await this._client.getFolderFiles(this._siteUrl, folder);
-        } catch {
-          files = [];
-        }
-        const reportName = getReportFileName(docId, dateStr).toLowerCase();
-        const report = files.filter((f) => f.name.toLowerCase() === reportName)[0];
-        if (!report) return { dateStr, status: 'missing' };
-        const signed = this.pickSignedPdf(files, docId, dateStr);
-        return {
-          dateStr,
-          status: signed ? 'done' : 'unsigned',
-          savedAt: report.timeLastModified,
-          signed
-        };
-      })
-    );
+    const readDay = async (dateStr: string): Promise<ReportDayInfo> => {
+      if (!existing.has(getReportFolderName(docId, dateStr).toLowerCase())) {
+        return { dateStr, status: 'missing' };
+      }
+      const folder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
+      let files: ISharePointFileInfo[] = [];
+      try {
+        files = await this._client.getFolderFiles(this._siteUrl, folder);
+      } catch {
+        files = [];
+      }
+      const reportName = getReportFileName(docId, dateStr).toLowerCase();
+      const report = files.filter((f) => f.name.toLowerCase() === reportName)[0];
+      if (!report) return { dateStr, status: 'missing' };
+      const signed = this.pickSignedPdf(files, docId, dateStr);
+      return {
+        dateStr,
+        status: signed ? 'done' : 'unsigned',
+        savedAt: report.timeLastModified,
+        signed
+      };
+    };
+
+    // Đọc theo từng nhóm `concurrency` ngày để không gửi quá nhiều yêu cầu cùng lúc
+    const out: ReportDayInfo[] = [];
+    for (let i = 0; i < dateStrs.length; i += concurrency) {
+      out.push(...(await Promise.all(dateStrs.slice(i, i + concurrency).map(readDay))));
+    }
+    return out;
   }
 
   /** File PDF đã ký của một ngày (undefined nếu chưa có). */
