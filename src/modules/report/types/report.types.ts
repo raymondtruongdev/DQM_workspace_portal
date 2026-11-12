@@ -153,3 +153,21 @@ export interface ReportDoc {
   outdatedSourceType?: 'existing' | 'previous_day';
   outdatedTemplateVersion?: string;
 }
+
+/** File PDF đã ký nằm trong thư mục báo cáo của một ngày. */
+export interface SignedDocInfo {
+  name: string;
+  serverRelativeUrl: string;
+  length: number;
+  timeLastModified: string;
+}
+
+/** Trạng thái của một ngày: chưa lưu báo cáo / đã lưu nhưng thiếu PDF đã ký / hoàn tất. */
+export type ReportDayStatus = 'missing' | 'unsigned' | 'done';
+
+export interface ReportDayInfo {
+  dateStr: string;            // YYYY-MM-DD
+  status: ReportDayStatus;
+  savedAt?: string;           // thời điểm lưu file báo cáo (.xlsx)
+  signed?: SignedDocInfo;     // file PDF đã ký (nếu có)
+}

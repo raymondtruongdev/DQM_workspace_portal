@@ -1,4 +1,4 @@
-import { ReportDoc, TemplateVersionInfo } from '../types/report.types';
+import { ReportDayInfo, ReportDoc, SignedDocInfo, TemplateVersionInfo } from '../types/report.types';
 import { parseReportDocFromBuffer, encodeReportDocToBuffer } from '../utils/reportCodec';
 import { applyFormDefaults } from '../utils/reportForm';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
@@ -208,5 +208,31 @@ export class ReportDataService {
    */
   public async deletePhoto(serverRelativeUrl: string): Promise<void> {
     await this._fileService.deleteReportPhoto(serverRelativeUrl);
+  }
+
+  /**
+   * Trạng thái các ngày (YYYY-MM-DD) của một đơn vị: chưa nhập / chưa upload bản ký / hoàn tất
+   */
+  public async getDayInfos(unit: string, docId: string, dateStrs: string[]): Promise<ReportDayInfo[]> {
+    return await this._fileService.getReportDayInfos(unit, docId, dateStrs);
+  }
+
+  /**
+   * File PDF đã ký của một ngày (undefined nếu chưa có)
+   */
+  public async getSignedDocument(unit: string, docId: string, dateStr: string): Promise<SignedDocInfo | undefined> {
+    return await this._fileService.getSignedPdf(unit, docId, dateStr);
+  }
+
+  /**
+   * Upload file PDF đã ký vào thư mục báo cáo của ngày
+   */
+  public async uploadSignedDocument(
+    unit: string,
+    docId: string,
+    dateStr: string,
+    buffer: ArrayBuffer
+  ): Promise<SignedDocInfo> {
+    return await this._fileService.uploadSignedPdf(unit, docId, dateStr, buffer);
   }
 }

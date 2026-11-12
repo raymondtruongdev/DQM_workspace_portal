@@ -2,7 +2,7 @@ import * as React from 'react';
 import { RoleEntry, ToastState } from '../../../core/types';
 import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { formatDateToYYYYMMDD } from '../../../core/utils';
-import { PhotoGroup, ReportDoc, ReportMetadata, ReportPhotoSection, ReportSection } from '../types/report.types';
+import { PhotoGroup, ReportDoc, ReportMetadata, ReportPhotoSection, ReportSection, SignedDocInfo } from '../types/report.types';
 import { ReportDataService } from '../services/ReportDataService';
 import { formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 import { buildSectionNumbering } from '../utils/reportSections';
@@ -11,6 +11,8 @@ import { getMissingRequiredFields, getFieldLabel, getMissingFormFields } from '.
 import { ReportMetaForm } from '../components/ReportMetaForm';
 import { ReportTaskTable } from '../components/ReportTaskTable';
 import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
+import { ReportSignedDocument } from '../components/ReportSignedDocument';
+import { getReportFolderName } from '../utils/reportFileNaming';
 import { ReportPrintPreviewModal } from '../components/ReportPrintPreviewModal';
 import { Icon, PageHeader, LoadingState, EmptyState } from '../../../core/components';
 
@@ -20,6 +22,8 @@ export interface IReportEntryViewProps {
   dataService: ReportDataService;
   /** true = portal đang bảo trì, không được ghi lên SharePoint. */
   onCheckMaintenance: () => Promise<boolean>;
+  /** Ngày mở sẵn (YYYY-MM-DD); mặc định là hôm nay. */
+  initialDate?: string;
   onBack: () => void;
 }
 
@@ -28,9 +32,10 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   currentUserEmail,
   dataService,
   onCheckMaintenance,
+  initialDate,
   onBack
 }) => {
-  const [dateStr, setDateStr] = React.useState<string>(() => formatDateToYYYYMMDD(new Date()));
+  const [dateStr, setDateStr] = React.useState<string>(() => initialDate || formatDateToYYYYMMDD(new Date()));
   const [doc, setDoc] = React.useState<ReportDoc | null>(null);
   const [templateBuffer, setTemplateBuffer] = React.useState<ArrayBuffer | undefined>(undefined);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
@@ -40,6 +45,9 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   const [showRequiredErrors, setShowRequiredErrors] = React.useState<boolean>(false);
   const [showPrintPreview, setShowPrintPreview] = React.useState<boolean>(false);
   const [toast, setToast] = React.useState<ToastState | null>(null);
+  const [signedDoc, setSignedDoc] = React.useState<SignedDocInfo | undefined>(undefined);
+  const [isSignedLoading, setIsSignedLoading] = React.useState<boolean>(false);
+  const [isUploadingSigned, setIsUploadingSigned] = React.useState<boolean>(false);
 
   // Load report data for selected date
   const loadData = React.useCallback(
@@ -142,6 +150,53 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       tasks: recalculated
     });
     setHasUnsavedChanges(true);
+  };
+
+  const isWeekly = role.docId.toLowerCase().includes('week');
+
+  // File PDF đã ký của ngày đang mở (chỉ khi báo cáo đã lưu trên SharePoint)
+  const isReportSaved = Boolean(doc && doc.isExisting);
+  React.useEffect(() => {
+    if (isWeekly || !isReportSaved) {
+      setSignedDoc(undefined);
+      return;
+    }
+    let alive = true;
+    setIsSignedLoading(true);
+    dataService
+      .getSignedDocument(role.unit, role.docId, dateStr)
+      .then((info) => {
+        if (alive) {
+          setSignedDoc(info);
+          setIsSignedLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not read signed document:', err);
+        if (alive) setIsSignedLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [dataService, role.unit, role.docId, dateStr, isReportSaved, isWeekly]);
+
+  // Upload file PDF đã ký vào thư mục báo cáo của ngày (cùng thư mục với file .xlsx)
+  const handleUploadSigned = async (file: File): Promise<void> => {
+    if (!doc || !doc.isExisting || hasUnsavedChanges) return;
+    if (await onCheckMaintenance()) return;
+    setIsUploadingSigned(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const info = await dataService.uploadSignedDocument(role.unit, role.docId, dateStr, buf);
+      setSignedDoc(info);
+      setToast({ type: 'success', text: 'Đã upload bản đã ký. Báo cáo ngày này đã hoàn tất.' });
+    } catch (err: unknown) {
+      console.error('Error uploading signed document:', err);
+      const msg = err instanceof Error ? err.message : 'Lỗi khi upload file đã ký lên SharePoint';
+      setToast({ type: 'error', text: msg });
+    } finally {
+      setIsUploadingSigned(false);
+    }
   };
 
   // Thư mục ảnh của báo cáo: data/<Unit>/<DocID>_<yyyyMMdd>/photos (mỗi bộ phận một thư mục con)
@@ -339,7 +394,6 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     }
   };
 
-  const isWeekly = role.docId.toLowerCase().includes('week');
   const reportMainTitle = doc?.metadata.docTitle || (isWeekly ? 'Báo cáo tuần' : 'Báo cáo ngày');
 
   return (
@@ -374,6 +428,12 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
                 {doc?.copiedFromDate
                   ? `Kế thừa từ ngày ${doc.copiedFromDate.split('-').reverse().join('/')}`
                   : 'Tạo mới từ template (6 sheets)'}
+              </span>
+            )}
+            {!isWeekly && doc?.isExisting && !isSignedLoading && (
+              <span className={`badge ${signedDoc ? 'badge--success' : 'badge--warning'}`}>
+                <Icon name={signedDoc ? 'check-circle' : 'file-up'} size={16} />
+                {signedDoc ? 'Hoàn tất (đã có bản ký)' : 'Chưa upload bản ký'}
               </span>
             )}
             {doc && (
@@ -449,6 +509,11 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
               {item.roman}. {item.label}
             </button>
           ))}
+          {!isWeekly && (
+            <button type="button" className="chip" onClick={() => scrollToSection('report-sec-signed')}>
+              Bản đã ký
+            </button>
+          )}
         </div>
       )}
 
@@ -579,6 +644,23 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             onDeleteGroupPhoto={handleDeleteGroupPhoto}
             onDeletePhotoGroup={handleDeletePhotoGroup}
           />
+
+          {!isWeekly && (
+            <ReportSignedDocument
+              folderLabel={`data/${role.unit}/${getReportFolderName(role.docId, dateStr)}/`}
+              canUpload={Boolean(doc.isExisting) && !hasUnsavedChanges}
+              blockedReason={
+                doc.isExisting
+                  ? 'Có thay đổi chưa lưu. Hãy lưu báo cáo trước khi upload bản đã ký để file ký khớp với nội dung.'
+                  : 'Lưu báo cáo trước, sau đó mới upload được bản đã ký.'
+              }
+              signed={signedDoc}
+              isLoading={isSignedLoading}
+              isUploading={isUploadingSigned}
+              disabled={isSaving}
+              onUpload={handleUploadSigned}
+            />
+          )}
 
           {isWeekly && doc.tasks && doc.tasks.length > 0 && (
             <ReportTaskTable

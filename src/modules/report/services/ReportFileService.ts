@@ -1,7 +1,7 @@
 import { ISharePointFileInfo, SharePointClient } from '../../../core/services';
 import { sanitizeSharePointPath } from '../../../core/utils';
 import { REPORT_CONFIG } from '../constants/reportConfig';
-import { TemplateVersionInfo } from '../types/report.types';
+import { TemplateVersionInfo, ReportDayInfo, SignedDocInfo } from '../types/report.types';
 import {
   getReportFileName,
   getReportFolderRelativePath,
@@ -9,7 +9,9 @@ import {
   getReportPhotosFolderRelativePath,
   getTemplateFileRelativePath,
   getUnitFolderRelativePath,
-  matchUnitTemplateFileName
+  matchUnitTemplateFileName,
+  getReportFolderName,
+  getSignedPdfFileName
 } from '../utils/reportFileNaming';
 
 function getPreviousCalendarDateStr(dateStr: string): string {
@@ -312,6 +314,85 @@ export class ReportFileService {
     const safeName = sanitizeSharePointPath(fileName) || `photo_${Date.now()}.jpg`;
     await this._client.uploadFile(this._siteUrl, groupFolder, safeName, buffer, true);
     return safeName;
+  }
+
+  /** File PDF trong thư mục báo cáo (ưu tiên <DocID>_<yyyyMMdd>_signed.pdf, nếu không thì PDF mới nhất). */
+  private pickSignedPdf(files: ISharePointFileInfo[], docId: string, dateStr: string): SignedDocInfo | undefined {
+    const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
+    if (pdfs.length === 0) return undefined;
+    const preferred = getSignedPdfFileName(docId, dateStr).toLowerCase();
+    const best =
+      pdfs.filter((f) => f.name.toLowerCase() === preferred)[0] ||
+      pdfs.sort((a, b) => (b.timeLastModified || '').localeCompare(a.timeLastModified || ''))[0];
+    return {
+      name: best.name,
+      serverRelativeUrl: best.serverRelativeUrl,
+      length: best.length,
+      timeLastModified: best.timeLastModified
+    };
+  }
+
+  /**
+   * Trạng thái báo cáo của các ngày (dateStrs: YYYY-MM-DD) trong data/<Unit>:
+   * - missing: chưa có file báo cáo (.xlsx) của ngày đó
+   * - unsigned: có file báo cáo nhưng thư mục chưa có file PDF
+   * - done: có file báo cáo và có file PDF đã ký
+   */
+  public async getReportDayInfos(unit: string, docId: string, dateStrs: string[]): Promise<ReportDayInfo[]> {
+    let subfolders: string[] = [];
+    try {
+      subfolders = await this._client.getFolderSubfolderNames(this._siteUrl, this.getUnitFolderPath(unit));
+    } catch {
+      subfolders = [];
+    }
+    const existing = new Set(subfolders.map((n) => n.toLowerCase()));
+
+    return await Promise.all(
+      dateStrs.map(async (dateStr): Promise<ReportDayInfo> => {
+        if (!existing.has(getReportFolderName(docId, dateStr).toLowerCase())) {
+          return { dateStr, status: 'missing' };
+        }
+        const folder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
+        let files: ISharePointFileInfo[] = [];
+        try {
+          files = await this._client.getFolderFiles(this._siteUrl, folder);
+        } catch {
+          files = [];
+        }
+        const reportName = getReportFileName(docId, dateStr).toLowerCase();
+        const report = files.filter((f) => f.name.toLowerCase() === reportName)[0];
+        if (!report) return { dateStr, status: 'missing' };
+        const signed = this.pickSignedPdf(files, docId, dateStr);
+        return {
+          dateStr,
+          status: signed ? 'done' : 'unsigned',
+          savedAt: report.timeLastModified,
+          signed
+        };
+      })
+    );
+  }
+
+  /** File PDF đã ký của một ngày (undefined nếu chưa có). */
+  public async getSignedPdf(unit: string, docId: string, dateStr: string): Promise<SignedDocInfo | undefined> {
+    const folder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
+    const files = await this._client.getFolderFiles(this._siteUrl, folder);
+    return this.pickSignedPdf(files, docId, dateStr);
+  }
+
+  /** Upload file PDF đã ký vào thư mục báo cáo (ghi đè nếu đã có): <DocID>_<yyyyMMdd>_signed.pdf */
+  public async uploadSignedPdf(unit: string, docId: string, dateStr: string, buffer: ArrayBuffer): Promise<SignedDocInfo> {
+    await this.ensureUnitFolder(unit);
+    const folder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
+    await this._client.ensureFolder(this._siteUrl, folder);
+    const name = getSignedPdfFileName(docId, dateStr);
+    const res = await this._client.uploadFile(this._siteUrl, folder, name, buffer, true);
+    return {
+      name,
+      serverRelativeUrl: res.serverRelativeUrl,
+      length: buffer.byteLength,
+      timeLastModified: new Date().toISOString()
+    };
   }
 
   /**

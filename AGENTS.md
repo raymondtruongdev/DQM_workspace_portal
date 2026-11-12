@@ -99,6 +99,11 @@ DQM_Check_In_App/
   - Daily/Weekly Report Folders & Files: `data/<Unit>/<DocID>_<yyyyMMdd>/<DocID>_<yyyyMMdd>.xlsx` (e.g. `data/ST01/DailyReport_20261110/DailyReport_20261110.xlsx`).
   - Site Photos Subfolder: `data/<Unit>/<DocID>_<yyyyMMdd>/photos/<GroupID>/` (mỗi bộ phận một thư mục con; tải/xoá trực tiếp từ form qua `ReportFileService`).
 * **Role Authorization (`core/services/RoleResolutionService.ts`):** User email matches `Report_Role.xlsx` with `Status = TRUE` for valid DocIDs (`DailyReport`, `WeeklyReport`). Admin (`UserProfiles.Role = admin`) has access to all active assignments.
+* **Lịch 14 ngày & bản đã ký (`ReportCalendarView.tsx`, `ReportSignedDocument.tsx`, `utils/reportCalendar.ts`):**
+  - Luồng báo cáo ngày: danh sách tile → **lịch 14 ngày gần nhất** → form nhập của ngày đã chọn (Back từ form về lịch, lịch đọc lại trạng thái). WeeklyReport (placeholder) vào thẳng form.
+  - **3 trạng thái mỗi ngày** (đọc từ thư mục `data/<Unit>/<DocID>_<yyyyMMdd>/`, `ReportFileService.getReportDayInfos`): **Chưa nhập** = chưa có file báo cáo `.xlsx` (chưa bấm Lưu); **Chưa upload bản ký** = có file `.xlsx` nhưng thư mục chưa có file `.pdf`; **Hoàn tất** = có file `.xlsx` và ít nhất một file `.pdf` trong thư mục (không tính thư mục con `photos/`).
+  - **Bản đã ký:** sau khi Lưu, người dùng in PDF, ký tên rồi upload bản đã ký ở mục "BẢN ĐÃ KÝ | SIGNED DOCUMENT" cuối form (hoặc nút "Upload file đã ký" ở lịch). Chỉ nhận `.pdf`, lưu cùng thư mục với báo cáo, tên cố định `<DocID>_<yyyyMMdd>_signed.pdf` (upload lại = ghi đè). Chỉ upload được khi báo cáo đã lưu và không còn thay đổi chưa lưu. Sửa báo cáo sau khi ký không đổi trạng thái (vẫn Hoàn tất). Upload gọi `checkMaintenance()` trước khi ghi.
+  - Lịch không hiển thị người lưu (thông tin này không có trong danh sách file); chỉ hiển thị thời điểm lưu.
 * **Navigation & Tile Buttons (`ReportLandingView.tsx`):**
   - Landing page shows tile buttons based on assigned roles (e.g. `ST01 DailyReport`, `ST01 WeeklyReport`, `ST02 DailyReport`), grouped with unit tabs and search filter.
 * **Kiến trúc sheet của Daily Report (`reportCodec.ts`, `reportTable.ts`, `reportForm.ts`, `reportSections.ts`):**

@@ -36,6 +36,13 @@ export function getReportFileName(docId: string, date: string | Date): string {
 }
 
 /**
+ * Name of the signed PDF stored next to the report: <DocID>_<yyyyMMdd>_signed.pdf
+ */
+export function getSignedPdfFileName(docId: string, date: string | Date): string {
+  return `${getReportFolderName(docId, date)}_signed.pdf`;
+}
+
+/**
  * Server relative path for unit folder:
  * <libraryPath>/data/<Unit>
  */
