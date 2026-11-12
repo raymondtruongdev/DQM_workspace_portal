@@ -801,6 +801,14 @@
   color: #014a94;
 }
 
+.bcn-logo-img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  max-height: 16mm;
+  object-fit: contain;
+}
+
 .bcn-header-title-cell {
   width: 64%;
   text-align: center;

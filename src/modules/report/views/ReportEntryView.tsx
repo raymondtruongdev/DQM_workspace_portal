@@ -670,7 +670,12 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
 
       {/* 5. Print / Export PDF A4 Preview Modal */}
       {showPrintPreview && doc && (
-        <ReportPrintPreviewModal doc={doc} photosFolder={photosFolder} onClose={() => setShowPrintPreview(false)} />
+        <ReportPrintPreviewModal
+          doc={doc}
+          photosFolder={photosFolder}
+          resourceFolder={dataService.getResourceFolderPath()}
+          onClose={() => setShowPrintPreview(false)}
+        />
       )}
     </div>
   );

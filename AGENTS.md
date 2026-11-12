@@ -97,6 +97,7 @@ DQM_Check_In_App/
   - Permissions: `Report_Role.xlsx` (sheet `Role`: `ID`, `Unit`, `DocID`, `DocTitle`, `Site manager`, `Email`, `Status`).
   - Base Templates: `_template/<DocID>_template.xlsx` (`DailyReport_template.xlsx`, `WeeklyReport_template.xlsx`).
   - Daily/Weekly Report Folders & Files: `data/<Unit>/<DocID>_<yyyyMMdd>/<DocID>_<yyyyMMdd>.xlsx` (e.g. `data/ST01/DailyReport_20261110/DailyReport_20261110.xlsx`).
+  - Logo bản in: `resource/thaco_logo.jpg` (trái) và `resource/crec_logo.jpg` (phải), đặt ở thư mục `resource/` ở gốc thư viện (cùng cấp `_template`, `data`; bản mẫu: `data_test/sharepoint_sample/resource/`); không có file thì bản in hiện chữ THACO / CREC. Người dùng chỉ cần quyền đọc, chỉ admin được ghi. Khuyến nghị ảnh ngang tỉ lệ khoảng 2:1, nền trắng, khoảng 400×200 px (hiển thị tối đa cao 16mm), dưới 100KB.
   - Site Photos Subfolder: `data/<Unit>/<DocID>_<yyyyMMdd>/photos/<GroupID>/` (mỗi bộ phận một thư mục con; tải/xoá trực tiếp từ form qua `ReportFileService`).
 * **Role Authorization (`core/services/RoleResolutionService.ts`):** User email matches `Report_Role.xlsx` with `Status = TRUE` for valid DocIDs (`DailyReport`, `WeeklyReport`). Admin (`UserProfiles.Role = admin`) has access to all active assignments.
 * **Lịch 14 ngày & bản đã ký (`ReportCalendarView.tsx`, `ReportSignedDocument.tsx`, `utils/reportCalendar.ts`):**

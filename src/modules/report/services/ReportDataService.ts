@@ -192,6 +192,13 @@ export class ReportDataService {
   }
 
   /**
+   * Server-relative folder holding shared resources (logos): <library>/resource
+   */
+  public getResourceFolderPath(): string {
+    return `${this._fileService.getLibraryPath()}/resource`;
+  }
+
+  /**
    * Server-relative folder holding the report's photos: data/<Unit>/<DocID>_<yyyyMMdd>/photos
    */
   public getPhotosFolderPath(unit: string, docId: string, dateStr: string): string {

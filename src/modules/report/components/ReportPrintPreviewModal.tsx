@@ -10,8 +10,24 @@ export interface IReportPrintPreviewModalProps {
   doc: ReportDoc;
   /** Thư mục ảnh của báo cáo (server-relative): data/<Unit>/<DocID>_<yyyyMMdd>/photos */
   photosFolder: string;
+  /** Thư mục logo (server-relative): <thư viện>/resource, chứa thaco_logo.jpg và crec_logo.jpg. */
+  resourceFolder: string;
   onClose: () => void;
 }
+
+/** Logo ở đầu bản in; không tải được (chưa có file) thì hiện chữ thay thế. URL tuyệt đối để iframe in tải được bằng phiên SharePoint. */
+const HeaderLogo: React.FC<{ folder: string; file: string; fallback: string }> = ({ folder, file, fallback }) => {
+  const [failed, setFailed] = React.useState<boolean>(false);
+  if (failed) return <>{fallback}</>;
+  return (
+    <img
+      className="bcn-logo-img"
+      src={new URL(`${folder}/${file}`, window.location.href).href}
+      alt={fallback}
+      onError={() => setFailed(true)}
+    />
+  );
+};
 
 function formatDateVN(dateStr: string): string {
   const parts = dateStr.split('-');
@@ -24,6 +40,7 @@ function formatDateVN(dateStr: string): string {
 export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = ({
   doc,
   photosFolder,
+  resourceFolder,
   onClose
 }) => {
   const printAreaRef = React.useRef<HTMLDivElement | null>(null);
@@ -140,6 +157,13 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
       font-weight: 800;
       font-size: 14px;
       color: #014a94;
+    }
+    .bcn-logo-img {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+      max-height: 16mm;
+      object-fit: contain;
     }
     .bcn-header-title-cell {
       width: 64%;
@@ -375,7 +399,9 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
               <table className="bcn-table">
                 <tbody>
                   <tr>
-                    <td className="bcn-header-logo-cell">THACO</td>
+                    <td className="bcn-header-logo-cell">
+                      <HeaderLogo folder={resourceFolder} file="thaco_logo.jpg" fallback="THACO" />
+                    </td>
                     <td className="bcn-header-title-cell">
                       <div className="bcn-title-vi">{m.docTitle || 'BÁO CÁO NGÀY'}</div>
                       <div className="bcn-title-en">{m.docTitleEn || 'DAILY REPORT'}</div>
@@ -385,7 +411,9 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
                         </div>
                       ))}
                     </td>
-                    <td className="bcn-header-logo-cell">CREC</td>
+                    <td className="bcn-header-logo-cell">
+                      <HeaderLogo folder={resourceFolder} file="crec_logo.jpg" fallback="CREC" />
+                    </td>
                   </tr>
                 </tbody>
               </table>
