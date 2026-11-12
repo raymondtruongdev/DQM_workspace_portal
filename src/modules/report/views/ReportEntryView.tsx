@@ -187,7 +187,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
         dateStr,
         buf,
         doc.metadata.reportNo,
-        doc.metadata.email
+        doc.metadata.email,
+        doc.metadata.docCode
       );
       setSignedDoc(res.info);
       setToast(

@@ -103,6 +103,53 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
 
   const selInfo = byDate[selected];
   const selStatus = statusOf(selected);
+  // Sổ ReportRegistry không lưu tên file đã ký (<DocCode>_signed.pdf): đọc thư mục khi chọn ngày đã hoàn tất
+  const [resolvedName, setResolvedName] = React.useState<{ date: string; name: string } | null>(null);
+  const needName = selStatus === 'done' && !!selInfo && !!selInfo.signed && !selInfo.signed.name;
+  React.useEffect(() => {
+    if (!needName) return;
+    let alive = true;
+    dataService
+      .getSignedDocument(role.unit, role.docId, selected)
+      .then((d) => {
+        if (alive && d) setResolvedName({ date: selected, name: d.name });
+      })
+      .catch((err) => console.error(err));
+    return () => {
+      alive = false;
+    };
+  }, [needName, selected, role.unit, role.docId, dataService]);
+  const signedLabel =
+    selInfo && selInfo.signed
+      ? selInfo.signed.name || (resolvedName && resolvedName.date === selected ? resolvedName.name : 'Đang đọc tên file…')
+      : '';
+  const openSigned = (dateStr: string): void => {
+    dataService
+      .openSignedDocument(role.unit, role.docId, dateStr)
+      .then((ok) => {
+        if (!ok) setToast({ type: 'error', text: 'Không tìm thấy file PDF đã ký trong thư mục báo cáo.' });
+      })
+      .catch((err) => {
+        console.error(err);
+        setToast({ type: 'error', text: 'Không mở được file đã ký.' });
+      });
+  };
+  const daySteps = [
+    { label: 'Lưu lần cuối', value: selInfo && selInfo.savedAt ? formatSavedAt(selInfo.savedAt) : '' },
+    { label: 'Upload bản ký', value: selInfo && selInfo.signed && selInfo.signed.timeLastModified ? formatSavedAt(selInfo.signed.timeLastModified) : '' },
+    {
+      label: 'File PDF đã ký',
+      value: selInfo && selInfo.signed
+        ? `${signedLabel}${selInfo.signed.length > 0 ? ` · ${formatFileSize(selInfo.signed.length)}` : ''}`
+        : ''
+    }
+  ];
+  const copyPath = (text: string): void => {
+    const done = (): void => setToast({ type: 'success', text: 'Đã sao chép đường dẫn thư mục.' });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, () => setToast({ type: 'error', text: 'Không sao chép được.' }));
+    }
+  };
   const folderLabel = `data/${role.unit}/${getReportFolderName(role.docId, selected)}/`;
 
   const pickFile = (dateStr: string): void => {
@@ -360,65 +407,36 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
             </div>
           </div>
 
-          <div className="section-card" aria-live="polite">
-            <div className="section-card__banner">
-              <span className="section-card__title">
-                NGÀY ĐANG CHỌN <span className="section-card__title-sub">| SELECTED DAY</span>
-              </span>
-            </div>
-            <div className="section-card__body report-cal-detail">
-              <div className="report-cal-detail__main">
-                <h3>
-                  {weekdayLong(selected)}, {formatDMY(selected)}
-                </h3>
-                <span className={`badge ${DAY_STATUS_BADGE[selStatus]}`}>
-                  <StatusIcon status={selStatus} />
-                  {DAY_STATUS_LABEL[selStatus]}
-                </span>
-                <dl className="report-cal-detail__kv">
-                  <div>
-                    <dt>Lưu lần cuối</dt>
-                    <dd>{selInfo ? formatSavedAt(selInfo.savedAt) : 'Chưa có'}</dd>
-                  </div>
-                  <div>
-                    <dt>Upload bản ký lúc</dt>
-                    <dd>{selInfo && selInfo.signed ? formatSavedAt(selInfo.signed.timeLastModified) : 'Chưa có'}</dd>
-                  </div>
-                  <div>
-                    <dt>File PDF đã ký</dt>
-                    <dd>
-                      {selInfo && selInfo.signed ? (
-                        <>
-                          {selInfo.signed.name}
-                          {selInfo.signed.length > 0 && ` · ${formatFileSize(selInfo.signed.length)}`}
-                        </>
-                      ) : (
-                        'Chưa có'
-                      )}
-                    </dd>
-                  </div>
-                </dl>
-                <p className="report-cal-detail__hint">
-                  {selStatus === 'missing' && 'Khi bấm nhập, biểu mẫu được điền sẵn từ báo cáo gần nhất. Ảnh không được sao chép sang ngày mới.'}
-                  {selStatus === 'unsigned' && 'Báo cáo đã lưu. In ra PDF, ký tên, rồi upload bản đã ký vào thư mục báo cáo để hoàn tất.'}
-                  {selStatus === 'done' && 'Thư mục báo cáo đã có file PDF đã ký nên ngày này được tính là hoàn tất.'}
-                </p>
-                <p className="report-cal-detail__hint">
-                  Thư mục báo cáo: <code>{folderLabel}</code>
-                </p>
+          <div className="card report-day-panel" aria-live="polite">
+            <div className="report-day-panel__top">
+              <div className="report-day-panel__tile" aria-hidden="true">
+                <span>T{parseDateStr(selected).getMonth() + 1}</span>
+                <b>{parseDateStr(selected).getDate()}</b>
               </div>
-              <div className="report-cal-detail__actions">
+              <div className="report-day-panel__title">
+                <span className="report-day-panel__eyebrow">Ngày đang chọn</span>
+                <div className="report-day-panel__name">
+                  <h3>
+                    {weekdayLong(selected)}, {formatDMY(selected)}
+                  </h3>
+                  <span className={`badge ${DAY_STATUS_BADGE[selStatus]}`}>
+                    <StatusIcon status={selStatus} />
+                    {DAY_STATUS_LABEL[selStatus]}
+                  </span>
+                </div>
+              </div>
+              <div className="report-day-panel__actions">
                 {selStatus === 'missing' && (
                   <button type="button" className="btn btn--primary" onClick={() => onOpenDate(selected)}>
                     <Icon name="add" />
-                    <span>Nhập báo cáo ngày {formatDM(selected)}</span>
+                    <span>Nhập báo cáo</span>
                   </button>
                 )}
                 {selStatus === 'unsigned' && (
                   <>
                     <button type="button" className="btn btn--primary" onClick={() => pickFile(selected)} disabled={isUploading}>
                       <Icon name="upload" />
-                      <span>{isUploading ? 'Đang tải lên...' : 'Upload file đã ký'}</span>
+                      <span>{isUploading ? 'Đang tải lên...' : 'Upload bản ký'}</span>
                     </button>
                     <button type="button" className="btn btn--secondary" onClick={() => onOpenDate(selected)}>
                       Mở báo cáo
@@ -431,14 +449,54 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                       Mở báo cáo
                     </button>
                     {selInfo && selInfo.signed && (
-                      <a className="btn btn--secondary" href={selInfo.signed.serverRelativeUrl} target="_blank" rel="noopener noreferrer">
+                      <button
+                        type="button"
+                        className="btn btn--secondary btn--icon"
+                        onClick={() => openSigned(selected)}
+                        title="Tải file đã ký"
+                        aria-label="Tải file đã ký"
+                      >
                         <Icon name="download" />
-                        <span>Tải file đã ký</span>
-                      </a>
+                      </button>
                     )}
                   </>
                 )}
               </div>
+            </div>
+
+            <ol className="report-day-panel__steps">
+              {daySteps.map((st, i) => (
+                <li key={st.label} className={`report-day-step${st.value ? ' is-done' : ''}`}>
+                  <span className="report-day-step__mark">{st.value ? <Icon name="check" size={16} /> : i + 1}</span>
+                  <span className="report-day-step__text">
+                    <span className="report-day-step__label">{st.label}</span>
+                    <span className="report-day-step__value">{st.value || 'Chưa có'}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+
+            <div className="report-day-panel__foot">
+              <span className="report-day-panel__path">
+                <code>{folderLabel}</code>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--icon btn--sm"
+                  title="Sao chép đường dẫn"
+                  aria-label="Sao chép đường dẫn thư mục"
+                  onClick={() => copyPath(folderLabel)}
+                >
+                  <Icon name="copy" size={16} />
+                </button>
+              </span>
+              <span className="report-day-panel__hint">
+                <Icon name="info" size={16} />
+                <span>
+                  {selStatus === 'missing' && 'Chưa có báo cáo ngày này. Biểu mẫu mới sẽ điền sẵn từ báo cáo gần nhất (không sao chép ảnh).'}
+                  {selStatus === 'unsigned' && 'Báo cáo đã lưu. In PDF, ký tên rồi upload bản đã ký để hoàn tất.'}
+                  {selStatus === 'done' && 'Đã có PDF đã ký nên ngày này hoàn tất.'}
+                </span>
+              </span>
             </div>
           </div>
         </>

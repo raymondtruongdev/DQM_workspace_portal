@@ -302,6 +302,22 @@ export class ReportDataService {
   /**
    * File PDF đã ký của một ngày (undefined nếu chưa có)
    */
+  /** Doc. code ghi trong file báo cáo đã lưu ('' nếu chưa có file). */
+  public async getSavedDocCode(unit: string, docId: string, dateStr: string): Promise<string> {
+    const file = await this._fileService.getReportFileWithMeta(unit, docId, dateStr);
+    if (!file || !file.buffer) return '';
+    const parsed = await parseReportDocFromBuffer(file.buffer, docId, unit, dateStr);
+    return parsed.metadata.docCode || '';
+  }
+
+  /** Mở file PDF đã ký của một ngày trong tab mới (tên file chỉ biết khi đọc thư mục). */
+  public async openSignedDocument(unit: string, docId: string, dateStr: string): Promise<boolean> {
+    const signed = await this._fileService.getSignedPdf(unit, docId, dateStr);
+    if (!signed) return false;
+    window.open(signed.serverRelativeUrl, '_blank', 'noopener');
+    return true;
+  }
+
   public async getSignedDocument(unit: string, docId: string, dateStr: string): Promise<SignedDocInfo | undefined> {
     return await this._fileService.getSignedPdf(unit, docId, dateStr);
   }
@@ -315,9 +331,19 @@ export class ReportDataService {
     dateStr: string,
     buffer: ArrayBuffer,
     reportNo = '',
-    reporter = ''
+    reporter = '',
+    docCode = ''
   ): Promise<{ info: SignedDocInfo; registryWarning?: string }> {
-    const info = await this._fileService.uploadSignedPdf(unit, docId, dateStr, buffer);
+    // Upload từ lịch không biết Doc. code: đọc từ file báo cáo đã lưu
+    let code = docCode;
+    if (!code) {
+      try {
+        code = await this.getSavedDocCode(unit, docId, dateStr);
+      } catch (err: unknown) {
+        console.warn('Could not read doc code for signed file name:', err);
+      }
+    }
+    const info = await this._fileService.uploadSignedPdf(unit, docId, dateStr, buffer, code);
     let registryWarning: string | undefined;
     if (this.isDaily(docId)) {
       try {

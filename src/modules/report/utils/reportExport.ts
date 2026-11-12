@@ -43,7 +43,7 @@ export function buildExportRows(items: ReportListItem[]): ExportCell[][] {
       i.info && i.info.reportNo ? i.info.reportNo : '',
       i.info && i.info.reporter ? i.info.reporter : '',
       formatDateTime(i.info ? i.info.savedAt : undefined),
-      i.info && i.info.signed ? i.info.signed.name : '',
+      i.info && i.info.signed ? (i.info.signed.name || 'Có') : '',
       i.info && i.info.signed ? formatDateTime(i.info.signed.timeLastModified) : '',
       i.target.owners.map((o) => o.name || o.email).join('; '),
       i.target.owners.map((o) => o.email).filter(Boolean).join('; ')

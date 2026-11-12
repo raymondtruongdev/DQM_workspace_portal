@@ -79,6 +79,19 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
   const [search, setSearch] = React.useState<string>('');
   const [shown, setShown] = React.useState<number>(PAGE_SIZE);
   const [toast, setToast] = React.useState<ToastState | null>(null);
+
+  // Tên file ký (<DocCode>_signed.pdf) không có trong sổ: đọc thư mục báo cáo khi bấm tải
+  const openSigned = (unit: string, docId: string, dateStr: string): void => {
+    dataService
+      .openSignedDocument(unit, docId, dateStr)
+      .then((ok) => {
+        if (!ok) setToast({ type: 'error', text: 'Không tìm thấy file PDF đã ký trong thư mục báo cáo.' });
+      })
+      .catch((err) => {
+        console.error(err);
+        setToast({ type: 'error', text: 'Không mở được file đã ký.' });
+      });
+  };
   const [loadError, setLoadError] = React.useState<string | undefined>(undefined);
   const [listStatus, setListStatus] = React.useState<StatusFilter>('ALL');
   const [listDate, setListDate] = React.useState<ListDateMode>('ALL');
@@ -527,16 +540,15 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
                             Xem báo cáo
                           </button>
                           {i.info && i.info.signed && (
-                            <a
+                            <button
+                              type="button"
                               className="btn btn--secondary btn--icon report-ov-tip report-ov-tip--end"
-                              href={i.info.signed.serverRelativeUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              onClick={() => openSigned(i.target.role.unit, i.target.role.docId, i.dateStr)}
                               data-tip="Tải bản ký"
                               aria-label="Tải bản ký"
                             >
                               <Icon name="download" size={20} />
-                            </a>
+                            </button>
                           )}
                         </>
                       )}

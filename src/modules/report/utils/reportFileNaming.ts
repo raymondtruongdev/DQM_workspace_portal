@@ -36,16 +36,19 @@ export function getReportFileName(docId: string, date: string | Date): string {
 }
 
 /**
- * Name of the signed PDF stored next to the report: <DRP|WRP>_<yyyyMMdd>_<Unit>_signed.pdf,
- * e.g. DRP_20261111_ST01_signed.pdf
+ * Name of the signed PDF stored next to the report: <DocCode>_signed.pdf (cùng tên file PDF in ra + hậu tố _signed),
+ * e.g. HCM2_1-23_CS-THAC_DCEM-CPZZ-ST01-CWS-DRP-00001_signed.pdf.
+ * Không có Doc. code thì dùng tên theo mã báo cáo: <DRP|WRP>_<yyyyMMdd>_<Unit>_signed.pdf.
  */
-export function getSignedPdfFileName(docId: string, unit: string, date: string | Date): string {
+export function getSignedPdfFileName(docId: string, unit: string, date: string | Date, docCode = ''): string {
+  const code = docCode.replace(/[\\/:*?"<>|\s]+/g, '_').replace(/^_+|_+$/g, '');
+  if (code) return `${code}_signed.pdf`;
   return `${getDocShortPrefix(docId)}_${toYYYYMMDD(date)}_${sanitizeSharePointPath(unit)}_signed.pdf`;
 }
 
-/** Tên cũ của file đã ký (<DocID>_<yyyyMMdd>_signed.pdf), chỉ dùng để dọn khi upload bản mới. */
-export function getLegacySignedPdfFileName(docId: string, date: string | Date): string {
-  return `${getReportFolderName(docId, date)}_signed.pdf`;
+/** File PDF đã ký (mọi kiểu đặt tên đang/đã dùng) có hậu tố _signed.pdf. */
+export function isSignedPdfName(name: string): boolean {
+  return /_signed\.pdf$/i.test(name);
 }
 
 /**

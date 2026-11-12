@@ -1,6 +1,6 @@
 import { SharePointClient } from '../../../core/services/SharePointClient';
 import { ReportDayInfo } from '../types/report.types';
-import { getReportFolderRelativePath, getSignedPdfFileName } from '../utils/reportFileNaming';
+import { getReportFolderRelativePath } from '../utils/reportFileNaming';
 import { formatReportNo } from '../utils/reportMeta';
 
 /** Tên SharePoint List quản lý trạng thái và số báo cáo (cột cần tạo: xem AGENTS.md mục 5.3). */
@@ -198,7 +198,6 @@ export class ReportRegistryService {
     rows.forEach((it) => {
       const key = `${it.Unit}|${it.DocID}`.toLowerCase();
       const folder = getReportFolderRelativePath(this._libraryPath(), it.Unit, it.DocID, it.ReportDate);
-      const signedName = getSignedPdfFileName(it.DocID, it.Unit, it.ReportDate);
       const done = it.Status === 'done';
       const info: ReportDayInfo = {
         dateStr: it.ReportDate,
@@ -208,8 +207,9 @@ export class ReportRegistryService {
         reportNo: it.ReportNo > 0 ? formatReportNo(it.ReportNo) : undefined,
         signed: done
           ? {
-              name: signedName,
-              serverRelativeUrl: `${folder}/${signedName}`,
+              // Tên file = <DocCode>_signed.pdf: sổ không lưu Doc. code nên chỉ biết khi mở (openSignedDocument)
+              name: '',
+              serverRelativeUrl: folder,
               length: 0,
               timeLastModified: it.SignedAt || it.SavedAt
             }
