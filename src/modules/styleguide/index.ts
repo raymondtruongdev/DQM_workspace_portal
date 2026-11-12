@@ -5,7 +5,6 @@ import { StyleGuideModule } from './StyleGuideModule';
 export const styleGuideModule: PortalModule = {
   id: 'styleguide',
   title: 'UI Kit (Style Guide)',
-  status: 'active',
   adminOnly: true,
   icon: React.createElement(
     React.Fragment,

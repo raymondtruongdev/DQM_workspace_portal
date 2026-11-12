@@ -29,16 +29,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
 }) => {
   const [profiles, setProfiles] = useState<UserProfileRecord[]>([]);
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  // Auto-dismiss module notice after 4 seconds
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => {
-      setNotice(null);
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [notice]);
 
   const cleanCurrentEmail = extractCleanEmail(userEmail || userLoginName);
   const activeDisplayName = currentUser?.displayName || userDisplayName;
@@ -74,14 +64,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
       isAdmin: checkIsAdmin(p.role),
     };
     onSelectProfile(session);
-  };
-
-  const handleModuleClick = (module: PortalModule): void => {
-    if (module.status === 'active') {
-      onOpenModule(module.id);
-      return;
-    }
-    setNotice(`Chức năng "${module.title}" đang được kết nối và sẽ sớm khả dụng.`);
   };
 
   const isAuthorized = Boolean(currentUser);
@@ -142,28 +124,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
           {/* Primary Management Modules Grid (SharePoint Tile Style) */}
           {isAuthorized ? (
             <div className="landing-modules-container">
-              {notice && (
-                <div className="landing-module-notice" role="alert">
-                  <Icon name="info" size={20} />
-                  <span>{notice}</span>
-                  <button
-                    type="button"
-                    className="landing-notice-close"
-                    onClick={() => setNotice(null)}
-                    title="Đóng thông báo"
-                  >
-                    <Icon name="dismiss" size={16} />
-                  </button>
-                </div>
-              )}
-
               <div className="sp-tiles-grid">
                 {visibleModules.map((module) => (
                   <button
                     key={module.id}
                     type="button"
                     className="landing-grid-btn"
-                    onClick={() => handleModuleClick(module)}
+                    onClick={() => onOpenModule(module.id)}
                     title={`Nhấn để truy cập ${module.title}`}
                   >
                     <div className="landing-grid-btn-icon">

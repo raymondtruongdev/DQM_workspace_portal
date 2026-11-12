@@ -72,42 +72,6 @@ export class SharePointClient {
   }
 
   /**
-   * Delete an item from a list
-   */
-  public async deleteItem(siteUrl: string, listTitle: string, id: number): Promise<void> {
-    const response: SPHttpClientResponse = await this._spHttpClient.post(
-      this._itemsUrl(siteUrl, listTitle, id),
-      SPHttpClient.configurations.v1,
-      {
-        headers: {
-          'Accept': 'application/json;odata=nometadata',
-          'X-HTTP-Method': 'DELETE',
-          'If-Match': '*'
-        }
-      }
-    );
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to delete item: ${errText}`);
-    }
-  }
-
-  /**
-   * Check if a file exists at the given server-relative URL.
-   */
-  public async fileExists(siteUrl: string, serverRelativeUrl: string): Promise<boolean> {
-    const safeUrl = this._escapeUrl(serverRelativeUrl);
-    const endpoint = `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${safeUrl}')?$select=Exists,Length`;
-    const response: SPHttpClientResponse = await this._spHttpClient.get(
-      endpoint,
-      SPHttpClient.configurations.v1,
-      { headers: { 'Accept': 'application/json;odata=nometadata' } }
-    );
-    return response.ok;
-  }
-
-  /**
    * Fetch binary contents and ETag of a file. Returns undefined if not found (404).
    */
   public async getFileWithMeta(

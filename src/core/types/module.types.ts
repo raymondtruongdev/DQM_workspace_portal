@@ -17,10 +17,7 @@ export interface PortalModule {
   title: string;
   /** Inner SVG markup node (rendered inside a 32x32 viewBox) */
   icon: React.ReactNode;
-  /** 'active' modules open on click; 'comingSoon' show a notice */
-  status: 'active' | 'comingSoon';
   /** Chỉ hiển thị cho admin (vd trang UI Kit dành cho dev) */
   adminOnly?: boolean;
-  /** Present only for active modules */
-  component?: React.ComponentType<ModuleProps>;
+  component: React.ComponentType<ModuleProps>;
 }

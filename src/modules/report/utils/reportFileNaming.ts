@@ -143,40 +143,14 @@ export function formatTemplateVersionDisplay(versionStr?: string): string {
  * DailyReport -> DRP
  * WeeklyReport -> WRP
  */
-export function getDocShortPrefix(docId?: string): string {
+function getDocShortPrefix(docId?: string): string {
   const lower = (docId || 'DailyReport').trim().toLowerCase();
-  if (lower.includes('week') || lower === 'wrp') {
-    return 'WRP';
-  }
-  return 'DRP';
-}
-
-function isMatchingDocPrefix(prefixCandidate: string, docId?: string): boolean {
-  if (!docId) return true;
-  const cand = prefixCandidate.trim().toLowerCase();
-  const cleanDoc = sanitizeSharePointPath(docId).toLowerCase();
-  const shortPrefix = getDocShortPrefix(docId).toLowerCase();
-
-  if (cand === shortPrefix || cand === cleanDoc) {
-    return true;
-  }
-  if (shortPrefix === 'drp' && (cand === 'daily' || cand === 'dailyreport' || cand === 'bcn')) {
-    return true;
-  }
-  if (shortPrefix === 'wrp' && (cand === 'weekly' || cand === 'weeklyreport' || cand === 'bct')) {
-    return true;
-  }
-  return false;
+  return lower.includes('week') || lower === 'wrp' ? 'WRP' : 'DRP';
 }
 
 /**
- * Match a file name inside _template/ against a target unit and optional docId.
- * Primary pattern: template_DRP_<Unit>_<yyyyMMdd>.xlsx (e.g. template_DRP_ST01_20261109.xlsx)
- * Also supports:
- * - template_<DocID>_<Unit>_<yyyyMMdd>.xlsx
- * - <DocID>_template_<Unit>_<yyyyMMdd>.xlsx
- * - template_<Unit>_<yyyyMMdd>.xlsx
- * - template_DRP_<Unit>.xlsx / template_<Unit>.xlsx
+ * Match a file name inside _template/ against a target unit and DocID.
+ * Pattern: template_<DRP|WRP>_<Unit>_<yyyyMMdd>.xlsx (e.g. template_DRP_ST01_20261109.xlsx)
  */
 export function matchUnitTemplateFileName(
   fileName: string,
@@ -187,75 +161,11 @@ export function matchUnitTemplateFileName(
   if (!/\.xlsx$/i.test(trimmed)) return undefined;
 
   const base = trimmed.replace(/\.xlsx$/i, '');
-  const cleanUnit = sanitizeSharePointPath(targetUnit).toLowerCase();
-
-  // 1. Primary pattern: template_<DRP|DocID>_<Unit>_<yyyyMMdd> (e.g. template_DRP_ST01_20261109)
-  const docRegex1 = /^template_([a-z0-9]+)_([a-z0-9-]+)_(\d{8})$/i;
-  const docMatch1 = base.match(docRegex1);
-  if (
-    docMatch1 &&
-    isMatchingDocPrefix(docMatch1[1], docId) &&
-    docMatch1[2].toLowerCase() === cleanUnit
-  ) {
-    return {
-      fileName: trimmed,
-      version: base,
-      versionDate: docMatch1[3]
-    };
-  }
-
-  // 2. Alternative with prefix first: <DRP|DocID>_template_<Unit>_<yyyyMMdd>
-  const docRegex2 = /^([a-z0-9]+)_template_([a-z0-9-]+)_(\d{8})$/i;
-  const docMatch2 = base.match(docRegex2);
-  if (
-    docMatch2 &&
-    isMatchingDocPrefix(docMatch2[1], docId) &&
-    docMatch2[2].toLowerCase() === cleanUnit
-  ) {
-    return {
-      fileName: trimmed,
-      version: base,
-      versionDate: docMatch2[3]
-    };
-  }
-
-  // 3. Fallback without doc prefix: template_<Unit>_<yyyyMMdd>
-  const stdRegex = /^template_([a-z0-9-]+)_(\d{8})$/i;
-  const stdMatch = base.match(stdRegex);
-  if (stdMatch && stdMatch[1].toLowerCase() === cleanUnit) {
-    return {
-      fileName: trimmed,
-      version: base,
-      versionDate: stdMatch[2]
-    };
-  }
-
-  // 4. Unit template without date: template_DRP_<Unit> or template_<Unit>
-  const noDateDocRegex = /^template_([a-z0-9]+)_([a-z0-9-]+)$/i;
-  const noDateDocMatch = base.match(noDateDocRegex);
-  if (
-    noDateDocMatch &&
-    isMatchingDocPrefix(noDateDocMatch[1], docId) &&
-    noDateDocMatch[2].toLowerCase() === cleanUnit
-  ) {
-    return {
-      fileName: trimmed,
-      version: base,
-      versionDate: ''
-    };
-  }
-
-  const noDateRegex = /^template_([a-z0-9-]+)$/i;
-  const noDateMatch = base.match(noDateRegex);
-  if (noDateMatch && noDateMatch[1].toLowerCase() === cleanUnit) {
-    return {
-      fileName: trimmed,
-      version: base,
-      versionDate: ''
-    };
-  }
-
-  return undefined;
+  const match = base.match(/^template_([a-z]+)_([a-z0-9-]+)_(\d{8})$/i);
+  if (!match) return undefined;
+  if (match[1].toUpperCase() !== getDocShortPrefix(docId)) return undefined;
+  if (match[2].toLowerCase() !== sanitizeSharePointPath(targetUnit).toLowerCase()) return undefined;
+  return { fileName: trimmed, version: base, versionDate: match[3] };
 }
 
 /**

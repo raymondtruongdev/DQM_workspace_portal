@@ -5,7 +5,6 @@ import { ReportModule } from './ReportModule';
 export const reportModule: PortalModule = {
   id: 'report',
   title: 'Quản lý Report',
-  status: 'active',
   icon: React.createElement(
     React.Fragment,
     null,

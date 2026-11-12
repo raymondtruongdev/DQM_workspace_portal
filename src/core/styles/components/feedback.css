@@ -58,8 +58,7 @@
   color: var(--color-text-secondary);
 }
 
-:where(.app-layout) .landing-alert-notice,
-:where(.app-layout) .landing-module-notice {
+:where(.app-layout) .landing-alert-notice {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
@@ -72,20 +71,6 @@
   animation: portal-fade-in 0.2s ease-out;
 }
 :where(.app-layout) .landing-alert-notice { background: var(--color-warning-bg); border-color: var(--color-warning-border); color: var(--color-warning-text); }
-:where(.app-layout) .landing-module-notice { background: var(--color-success-bg); border-color: var(--color-success-border); color: var(--color-success-text); margin-bottom: var(--space-3); width: 100%; }
-:where(.app-layout) .landing-notice-close {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--control-h-sm);
-  height: var(--control-h-sm);
-  margin-block: calc(var(--space-1) * -1);
-  border-radius: var(--radius-sm);
-  color: currentColor;
-  flex-shrink: 0;
-}
-:where(.app-layout) .landing-notice-close:hover { background: rgba(15, 23, 42, 0.06); }
 
 /* ==========================================================================
    State – <LoadingState /> · <EmptyState />

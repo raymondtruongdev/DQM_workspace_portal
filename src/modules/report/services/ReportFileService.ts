@@ -67,32 +67,10 @@ export class ReportFileService {
   }
 
   /**
-   * Fetch Report_Role.xlsx buffer (searches library root and _template fallback)
+   * Fetch Report_Role.xlsx buffer from the library root
    */
   public async getRoleFileBuffer(): Promise<ArrayBuffer | undefined> {
-    const path = this.getRoleFilePath();
-    try {
-      const direct = await this._client.getFileBuffer(this._siteUrl, path);
-      if (direct) return direct;
-    } catch {
-      // Fallback to folder listing below
-    }
-
-    const searchFolders = [this.getLibraryPath(), this.getTemplateFolderPath()];
-    for (let i = 0; i < searchFolders.length; i++) {
-      try {
-        const files = await this._client.getFolderFiles(this._siteUrl, searchFolders[i]);
-        const matched = files.find((f) => /^report[_-]?role.*\.xlsx$/i.test(f.name.trim()));
-        if (matched) {
-          const buf = await this._client.getFileBuffer(this._siteUrl, matched.serverRelativeUrl);
-          if (buf) return buf;
-        }
-      } catch {
-        // Ignore and continue
-      }
-    }
-
-    return undefined;
+    return await this._client.getFileBuffer(this._siteUrl, this.getRoleFilePath());
   }
 
   /**
@@ -111,29 +89,18 @@ export class ReportFileService {
 
   /**
    * Find the latest template file for a specific Unit inside _template/
-   * e.g. _template/template_ST01_20261109.xlsx
-   * Falls back to _template/<DocID>_template.xlsx if no unit-specific template is found.
+   * e.g. _template/template_DRP_ST01_20261109.xlsx
+   * Falls back to _template/<DocID>_template.xlsx (WeeklyReport placeholder) if no unit-specific template is found.
    */
   public async findLatestTemplateForUnit(
     unit: string,
     docId: string
   ): Promise<{ info?: TemplateVersionInfo; buffer?: ArrayBuffer }> {
-    const primaryFolder = this.getTemplateFolderPath();
-    const fallbackFolder = `${this.getLibraryPath()}/template`;
-
     let files: ISharePointFileInfo[] = [];
     try {
-      files = await this._client.getFolderFiles(this._siteUrl, primaryFolder);
+      files = await this._client.getFolderFiles(this._siteUrl, this.getTemplateFolderPath());
     } catch {
       files = [];
-    }
-
-    if (files.length === 0) {
-      try {
-        files = await this._client.getFolderFiles(this._siteUrl, fallbackFolder);
-      } catch {
-        files = [];
-      }
     }
 
     const matchedCandidates: TemplateVersionInfo[] = [];
@@ -197,13 +164,7 @@ export class ReportFileService {
    */
   public async getTemplateBuffer(docId: string): Promise<ArrayBuffer | undefined> {
     const path = this.getTemplateFilePath(docId);
-    let buf = await this._client.getFileBuffer(this._siteUrl, path);
-    if (!buf) {
-      // Fallback: without underscore e.g. template/DailyReport_template.xlsx
-      const fallbackPath = `${this.getLibraryPath()}/template/${sanitizeSharePointPath(docId)}_template.xlsx`;
-      buf = await this._client.getFileBuffer(this._siteUrl, fallbackPath);
-    }
-    return buf;
+    return await this._client.getFileBuffer(this._siteUrl, path);
   }
 
   /**
