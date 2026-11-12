@@ -9,6 +9,11 @@ export interface ModuleProps {
   siteUrl: string;
   /** Return to the portal Home page */
   onGoHome: () => void;
+  /**
+   * Đọc lại cấu hình bảo trì ngay lúc gọi. Trả về true nếu portal đang bảo trì và người dùng không phải admin;
+   * module phải gọi trước mỗi thao tác ghi lên SharePoint và dừng nếu true.
+   */
+  checkMaintenance: () => Promise<boolean>;
 }
 
 /** Definition a feature module registers with the portal */

@@ -18,6 +18,8 @@ export interface IReportEntryViewProps {
   role: RoleEntry;
   currentUserEmail: string;
   dataService: ReportDataService;
+  /** true = portal đang bảo trì, không được ghi lên SharePoint. */
+  onCheckMaintenance: () => Promise<boolean>;
   onBack: () => void;
 }
 
@@ -25,6 +27,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   role,
   currentUserEmail,
   dataService,
+  onCheckMaintenance,
   onBack
 }) => {
   const [dateStr, setDateStr] = React.useState<string>(() => formatDateToYYYYMMDD(new Date()));
@@ -167,6 +170,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   // Tải ảnh của một bộ phận lên data/<Unit>/<DocID>_<yyyyMMdd>/photos/<groupId>/
   const handleUploadGroupPhotos = async (sectionKey: string, groupId: string, files: FileList): Promise<void> => {
     if (!doc || files.length === 0) return;
+    if (await onCheckMaintenance()) return;
     setIsUploadingPhoto(true);
     try {
       const names: string[] = [];
@@ -197,6 +201,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   const handleDeleteGroupPhoto = async (sectionKey: string, groupId: string, name: string): Promise<void> => {
     if (!doc) return;
     if (!window.confirm(`Bạn có chắc chắn muốn xoá ảnh "${name}" khỏi SharePoint?`)) return;
+    if (await onCheckMaintenance()) return;
     setIsUploadingPhoto(true);
     try {
       await dataService.deletePhoto(`${photosFolder}/${groupId}/${name}`);
@@ -224,6 +229,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
         ? `Xoá bộ phận "${label}" và ${group.files.length} ảnh của bộ phận này khỏi SharePoint?`
         : `Xoá bộ phận "${label}"?`;
     if (!window.confirm(msg)) return;
+    if (await onCheckMaintenance()) return;
     setIsUploadingPhoto(true);
     try {
       for (let i = 0; i < group.files.length; i++) {
@@ -307,6 +313,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   // Save report (6-sheet workbook)
   const handleSave = async (): Promise<void> => {
     if (!doc || !ensureRequiredFilled('lưu báo cáo')) return;
+    if (await onCheckMaintenance()) return;
     setIsSaving(true);
     try {
       const res = await dataService.saveReport(doc, templateBuffer);

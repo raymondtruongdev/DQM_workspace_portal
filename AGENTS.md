@@ -176,13 +176,17 @@ npm run build
    - **Bố cục logic theo cỡ màn hình:** desktop/tablet: tiêu đề bên trái, điều khiển (sắp xếp, làm mới, view tabs) bên phải cùng hàng; điện thoại: xếp dọc, điều khiển rộng hết chiều ngang, dùng 1 cột thẻ. Tablet: 2 cột thẻ. Giới hạn bề rộng nội dung (`max-width: 1440px`, căn giữa) trên màn hình rộng.
    - **Chuyên nghiệp & nhất quán:** dùng token trong `core/styles/tokens.css`, khoảng cách theo `--space-*`, vùng chạm tối thiểu ~36–44px trên cảm ứng, căn hàng đều giữa các nhóm điều khiển, bảng dữ liệu cuộn ngang trong `.table-responsive` thay vì tràn trang.
    - **Xác minh trước khi báo hoàn thành:** build sạch (`npm run build`, 0 cảnh báo lint) và, nếu có thể, kiểm tra trực quan ở 1440px, 1024px, 768px, 390px. Nếu không kiểm tra được trực quan, phải nói rõ với người dùng là chưa xem lại trên thiết bị.
-5. **Standard Recipe for Adding a New Module (e.g. `tasks`):**
+5. **Chế độ bảo trì (Shutdown Server) chặn MỌI module, kể cả module làm sau này (BẮT BUỘC):** khi admin bật Admin Config → Shutdown Server, người dùng không phải admin không được dùng bất kỳ module nào (không lưu, tải lên, xoá, tạo mới, Back/Home). `PortalShell` đã ẩn module đang mở và hiện màn hình bảo trì (đọc lại cấu hình mỗi 15 giây và khi quay lại tab); không được đi vòng qua cổng này. Mỗi module mới phải gọi `await checkMaintenance()` (có trong `ModuleProps`) ngay trước mọi thao tác ghi lên SharePoint và dừng nếu trả về `true`. Admin không bị chặn.
+6. **Standard Recipe for Adding a New Module (e.g. `tasks`):**
    - Create `src/modules/<name>/` with `<Name>Module.tsx` (receives `ModuleProps`; import `./<name>.css` ở đây), `views/`, `components/`, `services/<Name>Service.ts`, `types/<name>.types.ts`, `constants/`, `utils/`, and `index.ts` exporting a `PortalModule`.
    - Only files belonging to a module carry that module's name (e.g. `Report*`). Shared code in `core/` and `app/` must not contain module names or company names.
    - Register the module in `src/app/moduleRegistry.tsx`; `HomeView` lists it automatically and `PortalShell` opens it on click.
    - SharePoint access: build module services on `core/services/SharePointClient`; list names live in the module's service file.
+   - Mọi thao tác ghi lên SharePoint của module (lưu, tải/xoá file…) phải gọi `await checkMaintenance()` (có trong `ModuleProps`) ngay trước khi ghi và dừng nếu trả về `true` (portal đang bảo trì, người dùng không phải admin).
    - Dependencies are one-way: `modules/*` → `core/*`; `core/` never imports `modules/`; modules never import each other.
    - Storage keys use the prefix `portal_<module>_...`. Style: xem mục 8 (CSS riêng của module chỉ ở `modules/<name>/<name>.css`, class có tiền tố `<name>-`).
+
+7. **Nơi lưu quy tắc dự án:** mọi quy tắc, quy ước, quyết định kiến trúc và lưu ý lâu dài của dự án CHỈ được ghi vào file `AGENTS.md` này (nằm trong repo để dùng được trên mọi máy). Không lưu vào bộ nhớ/cấu hình cục bộ của công cụ AI (ví dụ thư mục `~/.claude`).
 
 ---
 

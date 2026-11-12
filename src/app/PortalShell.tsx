@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import '../core/styles';
 import type { IPortalProps } from './IPortalProps';
 import type { UserSession } from '../core/auth';
@@ -11,6 +11,9 @@ import { SESSION_STORAGE_KEY } from '../core/constants';
 import { HomeView } from '../modules/home';
 import { PORTAL_MODULES } from './moduleRegistry';
 import { EmptyState, Icon } from '../core/components';
+
+/** Chu kỳ kiểm tra chế độ bảo trì khi người dùng đang mở portal. */
+const MAINTENANCE_POLL_MS = 15000;
 
 export const PortalShell: React.FC<IPortalProps> = (props) => {
   const { spHttpClient, siteUrl, userDisplayName, userEmail, userLoginName } = props;
@@ -61,6 +64,38 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
       alive = false;
     };
   }, [configService, activeModuleId]);
+
+  // Module gọi trước mỗi thao tác ghi: đọc lại cấu hình ngay lúc đó (true = bị chặn)
+  const checkMaintenance = useCallback(async (): Promise<boolean> => {
+    const c = await configService.getConfig();
+    setPortalConfig(c);
+    return c.maintenance && !currentUser?.isAdmin;
+  }, [configService, currentUser]);
+
+  // Người dùng đang ở trong module khi admin bật bảo trì: kiểm tra định kỳ và khi quay lại tab
+  useEffect(() => {
+    let alive = true;
+    const refresh = (): void => {
+      configService
+        .getConfig()
+        .then((c) => {
+          if (alive) setPortalConfig(c);
+        })
+        .catch((e) => console.error(e));
+    };
+    const onVisible = (): void => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    const timer = window.setInterval(refresh, MAINTENANCE_POLL_MS);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', refresh);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [configService]);
 
   // Attempt automatic SSO resolution on component mount
   useEffect(() => {
@@ -150,37 +185,42 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
   }
 
   // Chế độ bảo trì: chỉ admin còn truy cập được
-  if (portalConfig.maintenance && !currentUser?.isAdmin) {
+  const isBlocked = portalConfig.maintenance && !currentUser?.isAdmin;
+  const maintenanceScreen = (
+    <main className="main-content landing-wrapper">
+      <EmptyState
+        narrow
+        icon="lock"
+        title="Hệ thống đang bảo trì"
+        message={portalConfig.message || 'Vui lòng quay lại sau.'}
+      />
+    </main>
+  );
+
+  const activeModule = PORTAL_MODULES.find((m) => m.id === activeModuleId && m.component);
+  if (activeModule && activeModule.component) {
+    const ModuleComponent = activeModule.component;
+    // Khung chuẩn cho MỌI module: .app-layout (token + base) + .main-content (lề, max-width).
+    // Khi bị khoá bảo trì: ẩn module (không tương tác được: lưu, Back, Home…) nhưng vẫn giữ trạng thái
+    // đang nhập để người dùng tiếp tục khi bảo trì kết thúc.
     return (
       <div className="app-layout">
-        <main className="main-content landing-wrapper">
-          <EmptyState
-            narrow
-            icon="lock"
-            title="Hệ thống đang bảo trì"
-            message={portalConfig.message || 'Vui lòng quay lại sau.'}
+        {isBlocked && maintenanceScreen}
+        <main className="main-content" style={isBlocked ? { display: 'none' } : undefined} aria-hidden={isBlocked}>
+          <ModuleComponent
+            currentUser={currentUser ?? undefined}
+            spHttpClient={spHttpClient}
+            siteUrl={siteUrl}
+            onGoHome={() => setActiveModuleId(null)}
+            checkMaintenance={checkMaintenance}
           />
         </main>
       </div>
     );
   }
 
-  const activeModule = PORTAL_MODULES.find((m) => m.id === activeModuleId && m.component);
-  if (activeModule && activeModule.component) {
-    const ModuleComponent = activeModule.component;
-    // Khung chuẩn cho MỌI module: .app-layout (token + base) + .main-content (lề, max-width)
-    return (
-      <div className="app-layout">
-        <main className="main-content">
-          <ModuleComponent
-            currentUser={currentUser ?? undefined}
-            spHttpClient={spHttpClient}
-            siteUrl={siteUrl}
-            onGoHome={() => setActiveModuleId(null)}
-          />
-        </main>
-      </div>
-    );
+  if (isBlocked) {
+    return <div className="app-layout">{maintenanceScreen}</div>;
   }
 
   return (

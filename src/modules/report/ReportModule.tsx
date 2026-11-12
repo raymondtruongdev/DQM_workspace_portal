@@ -17,7 +17,8 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
     currentUser,
     spHttpClient,
     siteUrl,
-    onGoHome
+    onGoHome,
+    checkMaintenance
   } = props;
 
   const isAdmin = !!currentUser?.isAdmin;
@@ -97,6 +98,7 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
           role={selectedRole}
           currentUserEmail={effectiveEmail}
           dataService={dataService}
+          onCheckMaintenance={checkMaintenance}
           onBack={handleBackToLanding}
         />
       ) : (
