@@ -1,6 +1,6 @@
 import type { PortalModule } from '../core/types';
 import { reportModule } from '../modules/report';
-import { styleGuideModule } from '../modules/styleguide';
+import { adminModule } from '../modules/admin';
 
 /**
  * Registry of all portal modules, in display order.
@@ -8,5 +8,5 @@ import { styleGuideModule } from '../modules/styleguide';
  */
 export const PORTAL_MODULES: PortalModule[] = [
   reportModule,
-  styleGuideModule, // UI Kit (chỉ admin) – tài liệu sống của các thành phần dùng chung
+  adminModule, // Admin Config (chỉ admin): UI Kit, Shutdown Server
 ];

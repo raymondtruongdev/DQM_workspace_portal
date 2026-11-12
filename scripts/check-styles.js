@@ -16,8 +16,7 @@ const MODULE_PREFIXES = { report: ['report-', 'bcn-'] };
 const LEGACY_CLASSES = new Set([
   'auto-calc-label', 'empty-tasks-row', 'id-tag', 'id-parent', 'id-leaf', 'kpi-box', 'kpi-label', 'kpi-value',
   'highlight', 'leaf-rate-input-wrap', 'parent-icon', 'parent-qty-dash', 'parent-rate-pill', 'parent-rate-val',
-  'qty-input', 'rate-input', 'rate-unit', 'task-name-text', 'task-name-wrap', 'font-parent', 'unit-text',
-  'sev-cao', 'sev-tb'
+  'qty-input', 'rate-input', 'rate-unit', 'task-name-text', 'task-name-wrap', 'font-parent', 'unit-text'
 ]);
 /**
  * Từ khóa trong tên class của module gợi ý đang viết lại thành phần có sẵn của core.
@@ -43,13 +42,12 @@ const REINVENT_ALLOW = {
   'report-row-lock-badge': 'ô vuông icon khoá trong bảng, không phải badge chữ'
 };
 /** Rule được phép dùng màu hex (CSS bản in A4 / xem trước phải cố định theo giấy). */
-const HEX_ALLOWED_SELECTOR = /\.bcn-|\.sev-cao|\.sev-tb/;
+const HEX_ALLOWED_SELECTOR = /\.bcn-/;
 /** File TSX được phép chứa hex (CSS in A4 trong chuỗi, hình thương hiệu module). */
 const HEX_ALLOWED_TSX = [
   /ReportPrintPreviewModal\.tsx$/,
   /moduleRegistry\.tsx$/,
-  /modules[\\/][^\\/]+[\\/]index\.ts$/, // định nghĩa icon thương hiệu của module
-  /avatarUtils\.ts$/ // bảng màu dữ liệu (hiện không còn dùng – ứng viên xoá)
+  /modules[\\/][^\\/]+[\\/]index\.ts$/ // định nghĩa icon thương hiệu của module
 ];
 
 function walk(dir, out = []) {

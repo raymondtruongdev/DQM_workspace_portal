@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { UserSession, UserProfileRecord } from '../../core/auth';
 import { UserProfileService, extractCleanEmail, checkIsAdmin } from '../../core/auth';
 import type { PortalModule } from '../../core/types';
-import { Icon } from '../../core/components/Icon';
+import { Icon, TileGrid } from '../../core/components';
 
 export interface HomeViewProps {
   currentUser?: UserSession;
@@ -14,6 +14,8 @@ export interface HomeViewProps {
   userDisplayName?: string;
   userEmail?: string;
   userLoginName?: string;
+  /** Portal đang ở chế độ bảo trì (chỉ admin còn thấy trang chủ). */
+  maintenance?: boolean;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -26,6 +28,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   userDisplayName = 'User',
   userEmail = '',
   userLoginName = '',
+  maintenance = false,
 }) => {
   const [profiles, setProfiles] = useState<UserProfileRecord[]>([]);
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
@@ -124,26 +127,25 @@ export const HomeView: React.FC<HomeViewProps> = ({
           {/* Primary Management Modules Grid (SharePoint Tile Style) */}
           {isAuthorized ? (
             <div className="landing-modules-container">
-              <div className="sp-tiles-grid">
-                {visibleModules.map((module) => (
-                  <button
-                    key={module.id}
-                    type="button"
-                    className="landing-grid-btn"
-                    onClick={() => onOpenModule(module.id)}
-                    title={`Nhấn để truy cập ${module.title}`}
-                  >
-                    <div className="landing-grid-btn-icon">
-                      {/* style-lint: allow-svg – icon thương hiệu do module cung cấp (khung 32x32) */}
-                      <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
-                        {module.icon}
-                      </svg>
-                    </div>
-                    <span className="landing-grid-btn-text">{module.title}</span>
-                    <Icon name="chevron-right" size={20} className="landing-grid-btn-arrow" />
-                  </button>
-                ))}
-              </div>
+              {maintenance && (
+                <div className="landing-alert-notice" role="status">
+                  <Icon name="info" size={20} />
+                  <span>Portal đang ở chế độ bảo trì: người dùng thường không thể truy cập. Tắt tại Admin Config → Shutdown Server.</span>
+                </div>
+              )}
+              <TileGrid
+                items={visibleModules.map((module) => ({
+                  id: module.id,
+                  title: module.title,
+                  // style-lint: allow-svg – icon thương hiệu do module cung cấp (khung 32x32)
+                  icon: (
+                    <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+                      {module.icon}
+                    </svg>
+                  ),
+                  onClick: () => onOpenModule(module.id)
+                }))}
+              />
             </div>
           ) : (
             <div className="landing-unauthorized">

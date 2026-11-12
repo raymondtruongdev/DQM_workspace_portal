@@ -3,17 +3,24 @@ import { useState, useEffect, useMemo } from 'react';
 import '../core/styles';
 import type { IPortalProps } from './IPortalProps';
 import type { UserSession } from '../core/auth';
+import type { PortalConfig } from '../core/types';
+import { DEFAULT_PORTAL_CONFIG } from '../core/types';
 import { UserProfileService, extractCleanEmail, checkIsAdmin } from '../core/auth';
-import { SharePointClient } from '../core/services';
+import { PortalConfigService, SharePointClient } from '../core/services';
 import { SESSION_STORAGE_KEY } from '../core/constants';
 import { HomeView } from '../modules/home';
 import { PORTAL_MODULES } from './moduleRegistry';
-import { Icon } from '../core/components/Icon';
+import { EmptyState, Icon } from '../core/components';
 
 export const PortalShell: React.FC<IPortalProps> = (props) => {
   const { spHttpClient, siteUrl, userDisplayName, userEmail, userLoginName } = props;
 
   const profileService = useMemo(() => new UserProfileService(new SharePointClient(spHttpClient)), [spHttpClient]);
+
+  // Cấu hình portal (chế độ bảo trì): đọc lại mỗi khi quay về trang chủ / đổi module
+  const configService = useMemo(() => new PortalConfigService(new SharePointClient(spHttpClient), siteUrl), [spHttpClient, siteUrl]);
+  const [portalConfig, setPortalConfig] = useState<PortalConfig>(DEFAULT_PORTAL_CONFIG);
+  const [isConfigLoaded, setIsConfigLoaded] = useState<boolean>(false);
 
   // Active module: null = Home (module launcher)
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
@@ -39,6 +46,21 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
     }
     return true;
   });
+
+  useEffect(() => {
+    let alive = true;
+    configService
+      .getConfig()
+      .then((c) => {
+        if (!alive) return;
+        setPortalConfig(c);
+        setIsConfigLoaded(true);
+      })
+      .catch((e) => console.error(e));
+    return () => {
+      alive = false;
+    };
+  }, [configService, activeModuleId]);
 
   // Attempt automatic SSO resolution on component mount
   useEffect(() => {
@@ -114,7 +136,7 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
   };
 
   // Loading state while checking M365 SSO
-  if (isResolvingAuth) {
+  if (isResolvingAuth || !isConfigLoaded) {
     return (
       <div className="app-layout">
         <main className="main-content landing-wrapper">
@@ -122,6 +144,22 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
             <Icon name="refresh" size={32} spin />
             <p>Đang xác thực danh tính Microsoft 365...</p>
           </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Chế độ bảo trì: chỉ admin còn truy cập được
+  if (portalConfig.maintenance && !currentUser?.isAdmin) {
+    return (
+      <div className="app-layout">
+        <main className="main-content landing-wrapper">
+          <EmptyState
+            narrow
+            icon="lock"
+            title="Hệ thống đang bảo trì"
+            message={portalConfig.message || 'Vui lòng quay lại sau.'}
+          />
         </main>
       </div>
     );
@@ -150,6 +188,7 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
       <HomeView
         currentUser={currentUser ?? undefined}
         modules={PORTAL_MODULES}
+        maintenance={portalConfig.maintenance}
         onOpenModule={setActiveModuleId}
         onSelectProfile={handleSelectProfile}
         profileService={profileService}

@@ -63,6 +63,7 @@ DQM_Check_In_App/
 │   │   └── styles/              # Design System (xem mục 8): tokens.css, base.css, components/*.css, layout/*.css, index.ts
 │   ├── modules/
 │   │   ├── home/                # HomeView: trang chủ liệt kê module từ registry
+│   │   ├── admin/               # Admin Config (chỉ admin): UI Kit (Style Guide), Shutdown Server (chế độ bảo trì)
 │   │   └── report/              # Module: Quản lý Report (Report_Role.xlsx, Daily/Weekly report, tree-table, SharePoint data/<Unit>/<DocID>_<yyyyMMdd>/)
 │   └── assets/
 ├── AGENTS.md
@@ -75,7 +76,8 @@ DQM_Check_In_App/
 ### 1. Portal Architecture & Authentication Flow (Landing Page + Zero-Click SSO)
 
 * **Portal Landing Page:** On entry, users land on the modern SaaS Welcome Portal (`modules/home/HomeView.tsx`). It greets the user with their verified Microsoft 365 identity, role badge, department, and an overview of system features.
-* **Module Tiles:** The Landing page lists modules from `moduleRegistry.tsx`; clicking an active tile opens that module.
+* **Module Tiles:** The Landing page lists modules from `moduleRegistry.tsx` (via `<TileGrid />`); clicking a tile opens that module. Modules flagged `adminOnly` (Admin Config) only show for admins.
+* **Admin Config (`modules/admin`, chỉ admin):** màn hình menu giống trang chủ (`<TileGrid />`) gồm **UI Kit (Style Guide)** (tài liệu sống của mọi thành phần dùng chung) và **Shutdown Server** = chế độ bảo trì: admin bật/tắt, cấu hình lưu ở `SiteAssets/portal_config.json` của site (`core/services/PortalConfigService.ts`; cần quyền ghi vào SiteAssets). Khi bật, `PortalShell` chỉ cho admin vào; người dùng thường thấy màn hình "Hệ thống đang bảo trì" kèm thông báo admin nhập; admin thấy cảnh báo trên trang chủ. Cấu hình được đọc lại mỗi lần quay về trang chủ / đổi module; không đọc được file thì coi như không bảo trì.
 * **Return Home Navigation:** Inside a module, users can click the **"Trang Chủ"** button to return to the Landing page at any time.
 * **Zero-Click SSO & Profile Resolution:** Identity is resolved via Microsoft Entra ID (`pageContext.user.email` / `loginName`) against the `UserProfiles` list.
   - If a matching email is found, role and department are seamlessly assigned.
@@ -200,7 +202,7 @@ src/core/styles/
 └── layout/             # app-bar, landing (khung portal)
 src/core/components/    # React tương ứng: Icon, PageHeader, FilterChips, SearchInput, LoadingState/EmptyState…
 src/modules/<name>/<name>.css   # CHỈ style riêng của module (nạp trong <Name>Module.tsx, SAU core)
-src/modules/styleguide/         # "UI Kit" (chỉ admin thấy trên trang chủ): tài liệu sống của mọi thành phần dùng chung
+src/modules/admin/              # Admin Config (chỉ admin thấy trên trang chủ): menu UI Kit (tài liệu sống của mọi thành phần dùng chung) + Shutdown Server
 ```
 
 ### 8.2 Nguyên tắc cốt lõi
@@ -215,7 +217,7 @@ src/modules/styleguide/         # "UI Kit" (chỉ admin thấy trên trang chủ
 
 ### 8.3 Danh mục thành phần dùng chung (dùng ĐÚNG, đừng tự chế)
 
-**Trước khi viết bất kỳ UI nào, theo thứ tự:** (1) đọc bảng dưới; (2) mở module **UI Kit** (`modules/styleguide`, admin thấy tile "UI Kit (Style Guide)" trên trang chủ) để xem mọi thành phần và biến thể; (3) đọc JSDoc `@example` của component trong `core/components/*.tsx` và đầu file `core/styles/components/*.css`; (4) chỉ khi KHÔNG có thành phần phù hợp mới thêm vào `core` (kèm cập nhật bảng này và UI Kit), rồi mới dùng.
+**Trước khi viết bất kỳ UI nào, theo thứ tự:** (1) đọc bảng dưới; (2) mở **UI Kit** (`modules/admin/views/StyleGuideView.tsx`; admin vào Admin Config → "UI Kit (Style Guide)") để xem mọi thành phần và biến thể; (3) đọc JSDoc `@example` của component trong `core/components/*.tsx` và đầu file `core/styles/components/*.css`; (4) chỉ khi KHÔNG có thành phần phù hợp mới thêm vào `core` (kèm cập nhật bảng này và UI Kit), rồi mới dùng.
 
 | Cần | Dùng | Ghi chú |
 |---|---|---|
@@ -224,6 +226,7 @@ src/modules/styleguide/         # "UI Kit" (chỉ admin thấy trên trang chủ
 | Nhãn + ô nhập | `.field` > `.field__label` (hoặc `field__label--bilingual` với `field__label-main`/`field__label-sub`) | |
 | Đầu trang view | `<PageHeader leading title badge meta actions divider />` | desktop: tiêu đề trái, actions phải; ≤768px xếp dọc |
 | Lọc / tìm | `<FilterChips />`, `<SearchInput />` | |
+| Lưới ô chức năng (trang chủ, menu module) | `<TileGrid items={[{ id, title, icon, onClick }]} />` | nút xanh đặc: icon + tên + mũi tên; `icon` là `<Icon … />` hoặc `<svg>` thương hiệu |
 | Đang tải / rỗng / không quyền | `<LoadingState />`, `<EmptyState icon title message hint action tone narrow />` | `tone="danger"` → `state--danger`; `narrow` → `state--narrow` (khung hẹp giữa trang) |
 | Khối nội dung | `.card`; khối có banner xanh đậm: `.section-card` > `__banner` (`__title`, `__title-sub`) + `__body` | |
 | Nhãn trạng thái | `.badge` + `badge--info` · `badge--success` · `badge--warning` · `badge--danger` | |
@@ -249,7 +252,7 @@ export const TasksModule: React.FC<ModuleProps> = ({ onGoHome }) => (
 3. Cần mẫu UI mới dùng chung? Thêm vào `core` (CSS + React) và ghi vào bảng 8.3, rồi mới dùng ở module.
 4. Responsive đủ 4 mốc: `≤1024`, `≤768`, `≤640`, `≤480` (xem mục 7, điều 4).
 5. Chạy `npm run lint:styles` – kiểm: không `!important`; không hex ngoài token; class module có tiền tố; **class module trùng ý thành phần có sẵn** (tên chứa `btn/card/badge/chip/header/input/search/loading/empty/toast…` → báo lỗi và gợi ý dùng thành phần của core; ngoại lệ có chủ đích phải ghi vào `REINVENT_ALLOW` kèm lý do); core không chứa tên module/không import `modules/`; không `<svg>` tay; **mọi component, biến thể (`block--x`) và block của core phải được ghi trong bảng 8.3** (thêm thành phần mà quên cập nhật tài liệu → lint lỗi). Chạy kèm `npx tsc --noEmit -p tsconfig.json` và `npx eslint src --ext .ts,.tsx`.
-6. Nếu thêm thành phần/biến thể mới ở core: thêm một ví dụ vào `modules/styleguide/StyleGuideModule.tsx`.
+6. Nếu thêm thành phần/biến thể mới ở core: thêm một ví dụ vào `modules/admin/views/StyleGuideView.tsx`.
 7. Xem trên workbench ở 1440 / 1024 / 768 / 390px. KHÔNG chạy `npm run build` khi `npm run start` đang chạy (build xoá `dist/` đang phục vụ nên workbench rơi về bản cũ).
 
 ### 8.6 Nợ kỹ thuật đã biết (đừng nhân rộng)

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { ModuleProps, ToastState } from '../../core/types';
+import type { ToastState } from '../../../core/types';
 import {
   EmptyState,
   FilterChips,
@@ -8,9 +8,9 @@ import {
   LoadingState,
   PageHeader,
   SearchInput,
+  TileGrid,
   ToastAlert
-} from '../../core/components';
-import './styleguide.css';
+} from '../../../core/components';
 
 const COLOR_TOKENS = [
   '--color-accent', '--color-accent-hover', '--color-accent-subtle', '--color-banner',
@@ -24,26 +24,30 @@ const SectionBlock: React.FC<{ title: string; hint?: React.ReactNode; children: 
   hint,
   children
 }) => (
-  <section className="card styleguide-section">
-    <h3 className="styleguide-section-title">{title}</h3>
-    {hint && <p className="styleguide-hint">{hint}</p>}
+  <section className="card admin-guide-section">
+    <h3 className="admin-guide-section-title">{title}</h3>
+    {hint && <p className="admin-guide-hint">{hint}</p>}
     {children}
   </section>
 );
 
+export interface StyleGuideViewProps {
+  onBack: () => void;
+}
+
 /** Trang UI Kit: liệt kê mọi thành phần dùng chung để module mới đối chiếu (chỉ admin). */
-export const StyleGuideModule: React.FC<ModuleProps> = ({ onGoHome }) => {
+export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
   const [chip, setChip] = React.useState<string>('ALL');
   const [query, setQuery] = React.useState<string>('');
   const [toast, setToast] = React.useState<ToastState | undefined>({ type: 'success', text: 'Đã lưu thành công' });
 
   return (
-    <div className="styleguide-root">
+    <div className="admin-guide-root">
       <PageHeader
         leading={
-          <button type="button" className="btn btn--secondary" onClick={onGoHome}>
-            <Icon name="home" />
-            <span>Trang Chủ</span>
+          <button type="button" className="btn btn--secondary" onClick={onBack}>
+            <Icon name="arrow-left" />
+            <span>Quay lại</span>
           </button>
         }
         title="UI Kit"
@@ -52,36 +56,36 @@ export const StyleGuideModule: React.FC<ModuleProps> = ({ onGoHome }) => {
       />
 
       <SectionBlock title="Màu (token)" hint={<>Chỉ dùng <code>var(--color-*)</code>; không viết hex.</>}>
-        <div className="styleguide-grid">
+        <div className="admin-guide-grid">
           {COLOR_TOKENS.map((t) => (
-            <div key={t} className="styleguide-cell">
-              <div className="styleguide-swatch" style={{ background: `var(${t})` }} />
-              <span className="styleguide-code">{t}</span>
+            <div key={t} className="admin-guide-cell">
+              <div className="admin-guide-swatch" style={{ background: `var(${t})` }} />
+              <span className="admin-guide-code">{t}</span>
             </div>
           ))}
         </div>
       </SectionBlock>
 
       <SectionBlock title="Button" hint={<>Một tông xanh. <code>primary</code> cho hành động chính, <code>secondary</code> cho mọi nút còn lại.</>}>
-        <div className="styleguide-row">
+        <div className="admin-guide-row">
           <button type="button" className="btn btn--primary"><Icon name="save" /><span>primary</span></button>
           <button type="button" className="btn btn--secondary"><Icon name="refresh" /><span>secondary</span></button>
           <button type="button" className="btn btn--ghost"><span>ghost</span></button>
           <button type="button" className="btn btn--danger"><span>danger</span></button>
           <button type="button" className="btn btn--primary" disabled><span>disabled</span></button>
         </div>
-        <div className="styleguide-row">
+        <div className="admin-guide-row">
           <button type="button" className="btn btn--secondary btn--sm"><span>btn--sm</span></button>
           <button type="button" className="btn btn--secondary btn--icon" aria-label="Trang chủ"><Icon name="home" /></button>
           <button type="button" className="btn btn--ghost-danger btn--icon btn--sm" aria-label="Xoá"><Icon name="dismiss" size={16} /></button>
         </div>
-        <div className="styleguide-row" style={{ background: 'var(--color-banner)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)' }}>
+        <div className="admin-guide-row" style={{ background: 'var(--color-banner)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)' }}>
           <button type="button" className="btn btn--light btn--sm"><span>btn--light (trên banner)</span></button>
         </div>
       </SectionBlock>
 
       <SectionBlock title="Form" hint={<><code>.input</code> / <code>.textarea</code> trong <code>.field</code>. Cao theo <code>--control-h</code>.</>}>
-        <div className="styleguide-form-grid">
+        <div className="admin-guide-form-grid">
           <div className="field">
             <label className="field__label field__label--bilingual">
               <span className="field__label-main">Vị trí / Trạm</span>
@@ -117,7 +121,7 @@ export const StyleGuideModule: React.FC<ModuleProps> = ({ onGoHome }) => {
       </SectionBlock>
 
       <SectionBlock title="Badge" hint={<><code>badge</code> + <code>badge--info | success | warning | danger</code></>}>
-        <div className="styleguide-row">
+        <div className="admin-guide-row">
           <span className="badge">mặc định</span>
           <span className="badge badge--info">badge--info</span>
           <span className="badge badge--success"><Icon name="check-circle" size={16} />badge--success</span>
@@ -144,7 +148,7 @@ export const StyleGuideModule: React.FC<ModuleProps> = ({ onGoHome }) => {
           badge={<span className="badge badge--info">ST01</span>}
           actions={<button type="button" className="btn btn--secondary"><Icon name="refresh" /><span>Làm mới</span></button>}
         />
-        <div className="styleguide-row">
+        <div className="admin-guide-row">
           <FilterChips
             options={[{ value: 'ALL', label: 'Tất cả (3)' }, { value: 'ST01', label: 'ST01 (2)' }, { value: 'ST02', label: 'ST02 (1)' }]}
             value={chip}
@@ -158,7 +162,7 @@ export const StyleGuideModule: React.FC<ModuleProps> = ({ onGoHome }) => {
         <LoadingState message="Đang tải dữ liệu…" />
         <EmptyState message="Không tìm thấy kết quả phù hợp" />
         <EmptyState narrow tone="danger" icon="error-circle" title="Chưa được phân quyền" message="Liên hệ quản trị viên để được cấp quyền." />
-        <div className="styleguide-row">
+        <div className="admin-guide-row">
           <button type="button" className="btn btn--secondary btn--sm" onClick={() => setToast({ type: 'success', text: 'Đã lưu thành công' })}>Toast thành công</button>
           <button type="button" className="btn btn--secondary btn--sm" onClick={() => setToast({ type: 'error', text: 'Có lỗi xảy ra khi lưu' })}>Toast lỗi</button>
         </div>
@@ -179,12 +183,21 @@ export const StyleGuideModule: React.FC<ModuleProps> = ({ onGoHome }) => {
         </div>
       </SectionBlock>
 
+      <SectionBlock title="TileGrid" hint={<>Lưới ô chức năng dùng ở trang chủ và menu module: <code>{'<TileGrid items={[{ id, title, icon, onClick }]} />'}</code></>}>
+        <TileGrid
+          items={[
+            { id: 'a', title: 'Ô chức năng A', icon: <Icon name="paint" size={26} />, onClick: () => undefined },
+            { id: 'b', title: 'Ô chức năng B', icon: <Icon name="power" size={26} />, onClick: () => undefined }
+          ]}
+        />
+      </SectionBlock>
+
       <SectionBlock title={`Icon (${ICON_NAMES.length})`} hint={<><code>{'<Icon name="…" size={16|20|24} />'}</code> – Fluent UI Regular</>}>
-        <div className="styleguide-grid">
+        <div className="admin-guide-grid">
           {ICON_NAMES.map((n) => (
-            <div key={n} className="styleguide-icon-cell">
+            <div key={n} className="admin-guide-icon-cell">
               <Icon name={n} size={24} />
-              <span className="styleguide-icon-name">{n}</span>
+              <span className="admin-guide-icon-name">{n}</span>
             </div>
           ))}
         </div>
