@@ -2,7 +2,7 @@ import { ReportDayInfo, ReportDoc, ReportMetadata, SignedDocInfo, TemplateVersio
 import { parseReportDocFromBuffer, encodeReportDocToBuffer } from '../utils/reportCodec';
 import { applyFormDefaults } from '../utils/reportForm';
 import { nextReportNo, syncMetadata } from '../utils/reportMeta';
-import { carryForwardTable } from '../utils/reportTable';
+import { carryForwardTable, collectAutoIdCounters, fillAutoIds } from '../utils/reportTable';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
 import { CatalogRow, ReportCatalog, emptyCatalog, mergeCatalogRows, parseCatalogFromWorkbook } from '../utils/reportCatalog';
 import { ReportFileService } from './ReportFileService';
@@ -110,6 +110,25 @@ export class ReportDataService {
   }
 
   /**
+   * Gắn bộ đếm mã tự tăng (Event ID, Issue ID…) từ sổ ReportRegistry vào báo cáo để dòng mới nhận số kế tiếp liên tục giữa các ngày,
+   * và điền các mã còn trống/còn nguyên mẫu "{n5}". Không đọc được sổ thì chỉ dựa vào các dòng đang có trong báo cáo.
+   */
+  private async applyIdCounters(doc: ReportDoc): Promise<ReportDoc> {
+    if (!this.isDaily(doc.docId)) return doc;
+    let counters: Record<string, number> = {};
+    try {
+      counters = await this._registry.getCounters(doc.unit, doc.docId);
+    } catch (err: unknown) {
+      console.warn('[ReportRegistry] Could not read ID counters:', err);
+    }
+    return {
+      ...doc,
+      idCounters: counters,
+      sections: doc.sections.map((s) => (s.kind === 'table' ? fillAutoIds(s, doc.unit, counters) : s))
+    };
+  }
+
+  /**
    * Load report for unit, docId and dateStr.
    * 1. Checks latest template in _template/ (e.g. template_ST01_20261109.xlsx).
    * 2. If existing file is found in data/<Unit>/<DocID>_<yyyyMMdd>/, loads it and checks if its templateVersion is outdated.
@@ -119,6 +138,17 @@ export class ReportDataService {
    * 4. If no previous report exists, loads fresh from the latest unit template.
    */
   public async loadReport(
+    docId: string,
+    unit: string,
+    dateStr: string,
+    currentUserEmail: string,
+    siteManager?: string
+  ): Promise<LoadedReportResult> {
+    const result = await this.loadReportCore(docId, unit, dateStr, currentUserEmail, siteManager);
+    return { ...result, doc: await this.applyIdCounters(result.doc) };
+  }
+
+  private async loadReportCore(
     docId: string,
     unit: string,
     dateStr: string,
@@ -254,7 +284,7 @@ export class ReportDataService {
     newDoc.copiedFromDate = undefined;
 
     return {
-      doc: currentDoc && currentDoc.isExisting ? newDoc : await this.applyRegistryNo(newDoc),
+      doc: await this.applyIdCounters(currentDoc && currentDoc.isExisting ? newDoc : await this.applyRegistryNo(newDoc)),
       templateBuffer: templateResult.templateBuffer,
       isExisting: Boolean(currentDoc?.isExisting)
     };
@@ -284,7 +314,16 @@ export class ReportDataService {
     let registryWarning: string | undefined;
     if (this.isDaily(doc.docId)) {
       try {
-        await this._registry.recordSave(doc.unit, doc.docId, doc.dateStr, toSave.metadata.reportNo, toSave.metadata.email);
+        // Bộ đếm cộng dồn: số lớn nhất của báo cáo này và của các báo cáo trước (để ngày/báo cáo sau không dùng lại số)
+        const counters = collectAutoIdCounters(toSave.sections, doc.unit, toSave.idCounters);
+        await this._registry.recordSave(
+          doc.unit,
+          doc.docId,
+          doc.dateStr,
+          toSave.metadata.reportNo,
+          toSave.metadata.email,
+          counters
+        );
       } catch (err: unknown) {
         console.warn('[ReportRegistry] Could not record save:', err);
         registryWarning = `Đã lưu báo cáo nhưng chưa ghi được vào sổ ReportRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}`;

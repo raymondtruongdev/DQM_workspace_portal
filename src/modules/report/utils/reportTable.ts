@@ -102,6 +102,7 @@ export function splitLabel(label: string): { vi: string; en: string } {
 
 export function columnAlign(col: TableColumn): 'left' | 'center' | 'right' {
   if (col.align) return col.align;
+  if (col.optionsBy) return 'left'; // chọn theo tên (vật tư, thiết bị…): chữ dài, canh trái cho dễ đọc
   if (col.type === 'number' || col.type === 'calc') return 'right';
   if (col.type === 'select' || col.type === 'date') return 'center';
   return 'left';
@@ -282,26 +283,91 @@ export function recalcTable(table: ReportTable): ReportTable {
 
 /* ------------------------------ Dòng ------------------------------ */
 
-/** Số thứ tự kế tiếp cho mẫu có {n<k>}: số lớn nhất đang có ở cột (khớp phần trước/sau {n<k>}) + 1, đệm k chữ số. */
-function expandDefault(tpl: string, unit: string, table: ReportTable, code: string): string {
+/** Tách mẫu mã tự tăng: phần trước, phần sau {n<k>} (đã thay {unit}) và độ rộng k; undefined nếu mẫu không có {n<k>}. */
+function splitAutoTemplate(tpl: string, unit: string): { prefix: string; suffix: string; width: number } | undefined {
   const withUnit = tpl.replace(/\{unit\}/gi, unit);
   const m = /\{n(\d*)\}/i.exec(withUnit);
-  if (!m) return withUnit;
-  const prefix = withUnit.slice(0, m.index);
-  const suffix = withUnit.slice(m.index + m[0].length);
+  if (!m) return undefined;
+  return { prefix: withUnit.slice(0, m.index), suffix: withUnit.slice(m.index + m[0].length), width: m[1] ? parseInt(m[1], 10) : 0 };
+}
+
+/** Số lớn nhất đang có trong cột `code` theo mẫu `tpl` (0 nếu chưa có dòng nào khớp). */
+function scanMaxAutoId(tpl: string, unit: string, table: ReportTable, code: string): number {
+  const parts = splitAutoTemplate(tpl, unit);
+  if (!parts) return 0;
   let max = 0;
   table.rows.forEach((r) => {
     const v = String(r.values[code] ?? '');
-    if (v.length > prefix.length + suffix.length && v.startsWith(prefix) && v.endsWith(suffix)) {
-      const n = parseInt(v.slice(prefix.length, v.length - suffix.length), 10);
+    if (v.length > parts.prefix.length + parts.suffix.length && v.startsWith(parts.prefix) && v.endsWith(parts.suffix)) {
+      const n = parseInt(v.slice(parts.prefix.length, v.length - parts.suffix.length), 10);
       if (!isNaN(n) && n > max) max = n;
     }
   });
-  const width = m[1] ? parseInt(m[1], 10) : 0;
-  return prefix + ('0'.repeat(width) + (max + 1)).slice(-Math.max(width, String(max + 1).length)) + suffix;
+  return max;
 }
 
-export function createRow(table: ReportTable, unit: string): TableRow {
+/**
+ * Số thứ tự kế tiếp cho mẫu có {n<k>}: lớn hơn cả số đang có ở cột lẫn `floor` (số đã dùng ở các báo cáo khác của đơn vị,
+ * lấy từ sổ ReportRegistry), đệm k chữ số.
+ */
+function expandDefault(tpl: string, unit: string, table: ReportTable, code: string, floor = 0): string {
+  const parts = splitAutoTemplate(tpl, unit);
+  if (!parts) return tpl.replace(/\{unit\}/gi, unit);
+  const next = Math.max(floor, scanMaxAutoId(tpl, unit, table, code)) + 1;
+  return parts.prefix + ('0'.repeat(parts.width) + next).slice(-Math.max(parts.width, String(next).length)) + parts.suffix;
+}
+
+/** Cột mã tự tăng: cột text có default chứa {n<k>} (vd default=EVT-{unit}-{n5}). */
+export function autoIdColumns(table: ReportTable): TableColumn[] {
+  return table.columns.filter((c) => c.type === 'text' && c.defaultValue !== undefined && /\{n\d*\}/i.test(c.defaultValue));
+}
+
+/** Khoá bộ đếm của một cột mã tự tăng trong sổ ReportRegistry: "events.eventid". */
+export function autoIdKey(table: ReportTable, col: TableColumn): string {
+  return `${table.key}.${col.code}`.toLowerCase();
+}
+
+/** Bộ đếm cần ghi vào sổ: với mỗi cột mã tự tăng, số lớn nhất của báo cáo này và của các báo cáo trước (`floor`). */
+export function collectAutoIdCounters(
+  sections: { kind: string }[],
+  unit: string,
+  floor: Record<string, number> = {}
+): Record<string, number> {
+  const out: Record<string, number> = { ...floor };
+  sections.forEach((s) => {
+    if (s.kind !== 'table') return;
+    const t = s as ReportTable;
+    autoIdColumns(t).forEach((c) => {
+      const k = autoIdKey(t, c);
+      out[k] = Math.max(out[k] || 0, scanMaxAutoId(c.defaultValue as string, unit, t, c.code));
+    });
+  });
+  return out;
+}
+
+/**
+ * Điền mã tự tăng còn trống hoặc còn nguyên mẫu "{n5}" (dòng tạo bởi bản cũ): số tiếp theo lớn hơn cả số đã dùng ở
+ * các báo cáo khác (`floor`) lẫn số đang có trong bảng.
+ */
+export function fillAutoIds(table: ReportTable, unit: string, floor: Record<string, number> = {}): ReportTable {
+  let current = table;
+  autoIdColumns(table).forEach((col) => {
+    let used = floor[autoIdKey(table, col)] || 0;
+    const rows = current.rows.map((r) => {
+      const v = String(r.values[col.code] ?? '');
+      if (v !== '' && !/\{n\d*\}/i.test(v)) return r;
+      const id = expandDefault(col.defaultValue as string, unit, current, col.code, used);
+      const parts = splitAutoTemplate(col.defaultValue as string, unit);
+      const n = parts ? parseInt(id.slice(parts.prefix.length, id.length - parts.suffix.length), 10) : NaN;
+      if (!isNaN(n)) used = Math.max(used, n);
+      return { ...r, values: { ...r.values, [col.code]: id } };
+    });
+    current = { ...current, rows };
+  });
+  return current;
+}
+
+export function createRow(table: ReportTable, unit: string, counters: Record<string, number> = {}): TableRow {
   const values: Record<string, CellValue> = {};
   table.columns.forEach((c) => {
     if (c.type === 'calc') {
@@ -315,7 +381,7 @@ export function createRow(table: ReportTable, unit: string): TableRow {
       values[c.code] =
         c.defaultValue !== undefined ? c.defaultValue : c.options && c.options.length ? c.options[0] : '';
     } else {
-      values[c.code] = c.defaultValue !== undefined ? expandDefault(c.defaultValue, unit, table, c.code) : '';
+      values[c.code] = c.defaultValue !== undefined ? expandDefault(c.defaultValue, unit, table, c.code, counters[autoIdKey(table, c)] || 0) : '';
     }
   });
   return recalcRow(table.columns, {
@@ -409,7 +475,10 @@ export function carryForwardTable(table: ReportTable): ReportTable {
 /** Bề rộng tối thiểu (px) của cột để không bị bóp chữ; bảng rộng hơn khung thì cuộn ngang. */
 export function columnMinPx(col: TableColumn): number {
   // Cột mã danh mục (CV-ST01-00001, RES-HUM-00001…) cần đủ rộng để hiện trọn mã cùng mũi tên dropdown
-  const floor = col.optionsRef
+  // (ô mã + mũi tên dropdown + lề: cần khoảng 210px để không bị cắt thành "MAT-ST01-000…")
+  const floor = col.optionsRef && !col.optionsBy
+    ? 210
+    : col.optionsRef
     ? 170
     : col.type === 'date'
     ? 140

@@ -39,6 +39,8 @@ export interface IReportDynamicTableProps {
    * `askLink` hỏi giá trị liên kết của mục mới (vd Activity của cấu kiện mới; link '' = bỏ qua, undefined = huỷ).
    */
   onAddCatalogItem?: (ref: string, value: string, byLink: boolean, askLink?: AskCatalogLink) => Promise<CatalogAddResult | undefined>;
+  /** Số lớn nhất đã dùng ở các báo cáo khác cho mã tự tăng (Event ID, Issue ID…), để dòng mới nhận số kế tiếp. */
+  idCounters?: Record<string, number>;
   dateStr: string;
   roman: string;
   anchor: string;
@@ -63,6 +65,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   unit,
   catalog,
   onAddCatalogItem,
+  idCounters,
   dateStr,
   roman,
   anchor,
@@ -149,7 +152,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     });
   };
 
-  const addRow = (): void => setRows([...rows, createRow(table, unit)]);
+  const addRow = (): void => setRows([...rows, createRow(table, unit, idCounters)]);
 
   const removeRow = (index: number): void => {
     if (rows[index]?.isLocked) return;

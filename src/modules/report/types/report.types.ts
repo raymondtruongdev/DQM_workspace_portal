@@ -163,6 +163,8 @@ export interface ReportDoc {
   templateUpdateRequired?: boolean;
   outdatedSourceType?: 'existing' | 'previous_day';
   outdatedTemplateVersion?: string;
+  /** Số lớn nhất đã dùng của các mã tự tăng (Event ID, Issue ID…) ở các báo cáo khác của đơn vị, đọc từ sổ ReportRegistry; khoá "events.eventid". */
+  idCounters?: Record<string, number>;
 }
 
 /** File PDF đã ký nằm trong thư mục báo cáo của một ngày. */

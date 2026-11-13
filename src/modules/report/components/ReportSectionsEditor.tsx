@@ -53,6 +53,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
               unit={doc.unit}
               catalog={catalog}
               onAddCatalogItem={onAddCatalogItem}
+              idCounters={doc.idCounters}
               dateStr={doc.dateStr}
               roman={roman}
               anchor={anchor}

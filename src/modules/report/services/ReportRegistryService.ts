@@ -9,7 +9,7 @@ export const REPORT_REGISTRY_LIST = 'ReportRegistry';
 export type RegistryStatus = 'unsigned' | 'done';
 
 /** Tên (tiêu đề) các cột của list; tên nội bộ thật được tra từ list vì có thể khác (vd Unit -> Unit0). */
-const COLS = ['Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt'] as const;
+const COLS = ['Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters'] as const;
 type Col = (typeof COLS)[number];
 
 /** Một dòng của list (khoá = tên cột chuẩn ở trên, đã đổi từ tên nội bộ). */
@@ -24,6 +24,8 @@ interface IRegistryRow {
   Status: RegistryStatus;
   SavedAt: string;
   SignedAt: string;
+  /** JSON bộ đếm mã tự tăng tại thời điểm lưu, vd {"events.eventid":5,"issues.issueid":4}. */
+  Counters: string;
 }
 
 const esc = (v: string): string => v.replace(/'/g, "''");
@@ -37,6 +39,8 @@ export class ReportRegistryService {
   private _siteUrl: string;
   private _libraryPath: () => string;
   private _names: Promise<Record<Col, string>> | undefined;
+  /** List đã có cột Counters chưa (chưa thêm thì bỏ qua bộ đếm, mã tự tăng chỉ dựa vào báo cáo đang mở). */
+  private _hasCounters = false;
 
   constructor(client: SharePointClient, siteUrl: string, libraryPath: () => string) {
     this._client = client;
@@ -56,6 +60,7 @@ export class ReportRegistryService {
         .getListFieldMap(this._siteUrl, REPORT_REGISTRY_LIST)
         .then((map) => {
           const out = {} as Record<Col, string>;
+          this._hasCounters = map.counters !== undefined;
           COLS.forEach((c) => {
             out[c] = map[c.toLowerCase()] || c;
           });
@@ -91,7 +96,8 @@ export class ReportRegistryService {
       Reporter: str('Reporter'),
       Status: str('Status') === 'done' ? 'done' : 'unsigned',
       SavedAt: str('SavedAt'),
-      SignedAt: str('SignedAt')
+      SignedAt: str('SignedAt'),
+      Counters: str('Counters')
     };
   }
 
@@ -121,23 +127,54 @@ export class ReportRegistryService {
     return formatReportNo((top[0] ? top[0].ReportNo : 0) + 1);
   }
 
-  /** Ghi nhận báo cáo vừa lưu: tạo dòng mới (báo cáo mới) hoặc cập nhật người lập + thời điểm lưu. */
+  /**
+   * Bộ đếm mã tự tăng (Event ID, Issue ID…) lớn nhất của đơn vị: lấy từ dòng có số báo cáo cao nhất (mỗi lần lưu ghi
+   * bộ đếm cộng dồn nên dòng mới nhất luôn lớn nhất). Chưa có cột Counters hoặc chưa có dòng nào thì trả rỗng.
+   */
+  public async getCounters(unit: string, docId: string): Promise<Record<string, number>> {
+    await this.names();
+    if (!this._hasCounters) return {};
+    const top = await this.query(
+      (n) => `$filter=${n.Unit} eq '${esc(unit)}' and ${n.DocID} eq '${esc(docId)}'&$orderby=${n.ReportNo} desc&$top=1`
+    );
+    return top[0] ? ReportRegistryService.parseCounters(top[0].Counters) : {};
+  }
+
+  /** JSON -> bộ đếm; chuỗi hỏng hoặc rỗng thì trả rỗng. */
+  public static parseCounters(raw: string): Record<string, number> {
+    try {
+      const obj = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+      const out: Record<string, number> = {};
+      Object.keys(obj).forEach((k) => {
+        const v = Number(obj[k]);
+        if (isFinite(v) && v > 0) out[k] = Math.floor(v);
+      });
+      return out;
+    } catch {
+      return {};
+    }
+  }
+
+  /** Ghi nhận báo cáo vừa lưu: tạo dòng mới (báo cáo mới) hoặc cập nhật người lập + thời điểm lưu (+ bộ đếm mã tự tăng). */
   public async recordSave(
     unit: string,
     docId: string,
     dateStr: string,
     reportNo: string,
-    reporter: string
+    reporter: string,
+    counters?: Record<string, number>
   ): Promise<void> {
     const n = await this.names();
     const now = new Date().toISOString();
+    const extra: Partial<Omit<IRegistryRow, 'id'>> =
+      this._hasCounters && counters ? { Counters: JSON.stringify(counters) } : {};
     const existing = await this.findItem(unit, docId, dateStr);
     if (existing) {
       await this._client.updateItem<Record<string, unknown>>(
         this._siteUrl,
         REPORT_REGISTRY_LIST,
         existing.id,
-        this.toInternal(n, { Reporter: reporter, SavedAt: now })
+        this.toInternal(n, { Reporter: reporter, SavedAt: now, ...extra })
       );
       return;
     }
@@ -152,7 +189,8 @@ export class ReportRegistryService {
         ReportNo: parseInt(reportNo, 10) || 0,
         Reporter: reporter,
         Status: 'unsigned',
-        SavedAt: now
+        SavedAt: now,
+        ...extra
       })
     );
   }
