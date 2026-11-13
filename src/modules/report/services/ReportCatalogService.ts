@@ -8,6 +8,9 @@ export const REPORT_CATALOG_LIST = 'CatalogItems';
 const COLS = ['Title', 'Unit', 'Catalog', 'Code', 'Link'] as const;
 type Col = (typeof COLS)[number];
 
+/** `Unit` của các mục dùng chung cho mọi nhà ga (vd mã nhân lực, thiết bị): nhập một dòng, mọi nhà ga đều thấy. */
+export const CATALOG_SHARED_UNIT = 'ALL';
+
 const esc = (v: string): string => v.replace(/'/g, "''");
 
 /** Mục có phải đã tồn tại không (SharePoint từ chối vì khoá duy nhất `Title` bị trùng). */
@@ -63,13 +66,13 @@ export class ReportCatalogService {
     return { table: str('Catalog').toLowerCase(), code: str('Code'), link: str('Link') };
   }
 
-  /** Mọi mục của một nhà ga. Lỗi (chưa tạo list, thiếu quyền…) thì ném ra để nơi gọi báo cảnh báo. */
+  /** Mọi mục của một nhà ga cộng các mục dùng chung (`Unit = ALL`). Lỗi (chưa tạo list, thiếu quyền…) thì ném ra để nơi gọi báo cảnh báo. */
   public async getRows(unit: string): Promise<CatalogRow[]> {
     const n = await this.names();
     const raw = await this._client.queryItems<Record<string, unknown>>(
       this._siteUrl,
       REPORT_CATALOG_LIST,
-      `$filter=${n.Unit} eq '${esc(unit)}'&$top=5000`
+      `$filter=(${n.Unit} eq '${esc(unit)}' or ${n.Unit} eq '${CATALOG_SHARED_UNIT}')&$top=5000`
     );
     return raw.map((r) => this.rowOf(n, r)).filter((r) => r.table && (r.code || r.link));
   }
