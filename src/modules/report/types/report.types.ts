@@ -48,13 +48,9 @@ export interface TableColumn {
   tones?: Record<string, ColumnTone>; // tô màu theo giá trị (select)
   carry?: string;                     // công thức tính trên dòng của báo cáo ngày trước, kết quả thành giá trị cột này (luỹ kế)
   reset?: boolean;                    // khi tạo từ báo cáo ngày trước: đưa về giá trị mặc định
-  optionsRef?: CatalogRef;            // select:@ActivityID / select:@Element — danh sách lấy từ ActivityP6.xlsx, không nằm trong spec
-  desc?: string;                      // desc=<mã cột>: ô text tự điền mô tả của mã đang chọn ở cột đó (ActivityID/Element); mã "---" thì tự nhập
-  from?: string;                      // from=<mã cột>: chọn cột đó thì cột này tự điền (vd Activity theo Element)
+  optionsRef?: string;                // select:@<tên bảng> — danh sách lấy từ bảng danh mục trong ActivityP6.xlsx (tên bảng chữ thường), không nằm trong spec
+  from?: string;                      // from=<mã cột>: chọn mã ở cột đó thì cột này tự điền giá trị ràng buộc của mã (vd Activity theo Element)
 }
-
-/** Danh mục dùng chung (file ActivityP6.xlsx) mà cột select có thể tham chiếu bằng @. */
-export type CatalogRef = 'activity' | 'element';
 
 export interface TableRow {
   id: string;

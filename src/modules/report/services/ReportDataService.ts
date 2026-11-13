@@ -4,7 +4,7 @@ import { applyFormDefaults } from '../utils/reportForm';
 import { nextReportNo, syncMetadata } from '../utils/reportMeta';
 import { carryForwardTable } from '../utils/reportTable';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
-import { ReportCatalog, parseCatalogFromWorkbook } from '../utils/reportCatalog';
+import { ReportCatalog, emptyCatalog, parseCatalogFromWorkbook } from '../utils/reportCatalog';
 import { ReportFileService } from './ReportFileService';
 import { ReportTemplateService } from './ReportTemplateService';
 import { ReportRegistryService } from './ReportRegistryService';
@@ -40,7 +40,7 @@ export class ReportDataService {
   private _catalogFile?: { at: number; wb: Promise<{ XLSX: typeof import('xlsx'); wb: import('xlsx').WorkBook } | undefined> };
 
   /**
-   * Danh mục Activity P6 + cấu kiện của đơn vị (file ActivityP6.xlsx ở gốc thư viện). File nhớ 5 phút trong bộ nhớ trang;
+   * Danh mục (Activity P6, cấu kiện, tài nguyên, vật tư…) của đơn vị (file ActivityP6.xlsx ở gốc thư viện). File nhớ 5 phút trong bộ nhớ trang;
    * `force` bỏ qua bộ nhớ. Không đọc được file thì trả danh mục rỗng kèm cảnh báo (form vẫn dùng được, chỉ giữ giá trị cũ).
    */
   public async getCatalog(unit: string, force = false): Promise<ReportCatalog> {
@@ -59,13 +59,13 @@ export class ReportDataService {
     try {
       const parsed = await this._catalogFile.wb;
       if (!parsed) {
-        return { unit, activities: [], elements: [], warnings: ['Chưa có file danh mục ActivityP6.xlsx ở gốc thư viện.'] };
+        return emptyCatalog(unit, 'Chưa có file danh mục ActivityP6.xlsx ở gốc thư viện.');
       }
       return parseCatalogFromWorkbook(parsed.XLSX, parsed.wb, unit);
     } catch (err: unknown) {
       this._catalogFile = undefined;
       console.warn('[Report] Could not read ActivityP6.xlsx:', err);
-      return { unit, activities: [], elements: [], warnings: ['Không đọc được file danh mục ActivityP6.xlsx.'] };
+      return emptyCatalog(unit, 'Không đọc được file danh mục ActivityP6.xlsx.');
     }
   }
 

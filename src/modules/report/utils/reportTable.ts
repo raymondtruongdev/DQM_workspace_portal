@@ -22,9 +22,10 @@ import {
  *     default=<giá trị, có thể dùng {unit} {n3}> · tone=<giá trị>:danger|warning|success|info|muted,… ·
  *     carry=<công thức> (khi tạo từ báo cáo ngày trước: giá trị = công thức tính trên dòng của ngày trước, vd Daily+PrevCum) ·
  *     reset (khi tạo từ báo cáo ngày trước: về giá trị mặc định) ·
- *     from=<mã cột> (chọn giá trị ở cột đó thì ô này tự điền theo danh mục, vd Activity theo Element)
- *     desc=<mã cột> (cột text: tự điền mô tả của mã đang chọn ở cột đó và khoá ô; mã "---" thì cho nhập tay)
- * Loại select có thể là select:@ActivityID hoặc select:@Element: danh sách lấy từ ActivityP6.xlsx (không có "Khác…").
+ *     from=<mã cột> (chọn mã ở cột đó thì ô này tự điền giá trị ràng buộc của mã trong danh mục và bị khoá, vd Activity theo Element;
+ *       mã chưa có ràng buộc hoặc "---" thì ô cho nhập/chọn tay)
+ * default có thể dùng {unit} và {n<k>}: số thứ tự tự tăng = số lớn nhất đang có trong cột + 1, đệm đủ k chữ số (vd default=ISS-{unit}-{n5} → ISS-ST01-00004).
+ * Loại select có thể là select:@<tên bảng> (vd select:@ActivityP6_ID, select:@Element_ID): danh sách lấy từ ActivityP6.xlsx (không có "Khác…").
  * Ô select luôn có mục cuối "Khác…" để nhập giá trị mới; giá trị mới được ghi lại vào spec (select:A/B/C/mới)
  * nên các ngày sau (tạo từ báo cáo ngày trước) có sẵn trong danh sách.
  */
@@ -54,8 +55,6 @@ export function parseColumnSpec(code: string, label: string, rawSpec: string): T
       col.type = 'number';
     } else if (i === 0 && lower === 'date') {
       col.type = 'date';
-    } else if (lower.startsWith('desc=')) {
-      col.desc = tok.slice(5).trim();
     } else if (lower.startsWith('from=')) {
       col.from = tok.slice(5).trim();
     } else if (lower === 'reset') {
@@ -277,11 +276,23 @@ export function recalcTable(table: ReportTable): ReportTable {
 
 /* ------------------------------ Dòng ------------------------------ */
 
-function expandDefault(tpl: string, unit: string, rowCount: number): string {
-  return tpl
-    .replace(/\{unit\}/gi, unit)
-    .replace(/\{n3\}/gi, ('000' + (rowCount + 1)).slice(-3))
-    .replace(/\{n\}/gi, String(rowCount + 1));
+/** Số thứ tự kế tiếp cho mẫu có {n<k>}: số lớn nhất đang có ở cột (khớp phần trước/sau {n<k>}) + 1, đệm k chữ số. */
+function expandDefault(tpl: string, unit: string, table: ReportTable, code: string): string {
+  const withUnit = tpl.replace(/\{unit\}/gi, unit);
+  const m = /\{n(\d*)\}/i.exec(withUnit);
+  if (!m) return withUnit;
+  const prefix = withUnit.slice(0, m.index);
+  const suffix = withUnit.slice(m.index + m[0].length);
+  let max = 0;
+  table.rows.forEach((r) => {
+    const v = String(r.values[code] ?? '');
+    if (v.length > prefix.length + suffix.length && v.startsWith(prefix) && v.endsWith(suffix)) {
+      const n = parseInt(v.slice(prefix.length, v.length - suffix.length), 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+  });
+  const width = m[1] ? parseInt(m[1], 10) : 0;
+  return prefix + ('0'.repeat(width) + (max + 1)).slice(-Math.max(width, String(max + 1).length)) + suffix;
 }
 
 export function createRow(table: ReportTable, unit: string): TableRow {
@@ -298,7 +309,7 @@ export function createRow(table: ReportTable, unit: string): TableRow {
       values[c.code] =
         c.defaultValue !== undefined ? c.defaultValue : c.options && c.options.length ? c.options[0] : '';
     } else {
-      values[c.code] = c.defaultValue !== undefined ? expandDefault(c.defaultValue, unit, table.rows.length) : '';
+      values[c.code] = c.defaultValue !== undefined ? expandDefault(c.defaultValue, unit, table, c.code) : '';
     }
   });
   return recalcRow(table.columns, {
@@ -391,9 +402,9 @@ export function carryForwardTable(table: ReportTable): ReportTable {
 
 /** Bề rộng tối thiểu (px) của cột để không bị bóp chữ; bảng rộng hơn khung thì cuộn ngang. */
 export function columnMinPx(col: TableColumn): number {
-  // Cột mã danh mục (CV-ST01-00012, ST01-DW-P13…) cần đủ rộng để hiện trọn mã cùng mũi tên dropdown
+  // Cột mã danh mục (CV-ST01-00001, RES-HUM-00001…) cần đủ rộng để hiện trọn mã cùng mũi tên dropdown
   const floor = col.optionsRef
-    ? 190
+    ? 170
     : col.type === 'date'
     ? 140
     : col.type === 'select'
