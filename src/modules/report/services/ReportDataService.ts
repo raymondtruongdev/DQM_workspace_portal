@@ -4,6 +4,7 @@ import { applyFormDefaults } from '../utils/reportForm';
 import { nextReportNo, syncMetadata } from '../utils/reportMeta';
 import { carryForwardTable } from '../utils/reportTable';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
+import { ReportCatalog, parseCatalogFromWorkbook } from '../utils/reportCatalog';
 import { ReportFileService } from './ReportFileService';
 import { ReportTemplateService } from './ReportTemplateService';
 import { ReportRegistryService } from './ReportRegistryService';
@@ -34,6 +35,38 @@ export class ReportDataService {
     this._fileService = fileService;
     this._templateService = templateService;
     this._registry = registry;
+  }
+
+  private _catalogFile?: { at: number; wb: Promise<{ XLSX: typeof import('xlsx'); wb: import('xlsx').WorkBook } | undefined> };
+
+  /**
+   * Danh mục Activity P6 + cấu kiện của đơn vị (file ActivityP6.xlsx ở gốc thư viện). File nhớ 5 phút trong bộ nhớ trang;
+   * `force` bỏ qua bộ nhớ. Không đọc được file thì trả danh mục rỗng kèm cảnh báo (form vẫn dùng được, chỉ giữ giá trị cũ).
+   */
+  public async getCatalog(unit: string, force = false): Promise<ReportCatalog> {
+    const now = Date.now();
+    if (force || !this._catalogFile || now - this._catalogFile.at > 5 * 60 * 1000) {
+      this._catalogFile = {
+        at: now,
+        wb: (async () => {
+          const buffer = await this._fileService.getActivityFileBuffer();
+          if (!buffer) return undefined;
+          const XLSX = await import(/* webpackChunkName: 'xlsx' */ 'xlsx');
+          return { XLSX, wb: XLSX.read(buffer, { type: 'array' }) };
+        })()
+      };
+    }
+    try {
+      const parsed = await this._catalogFile.wb;
+      if (!parsed) {
+        return { unit, activities: [], elements: [], warnings: ['Chưa có file danh mục ActivityP6.xlsx ở gốc thư viện.'] };
+      }
+      return parseCatalogFromWorkbook(parsed.XLSX, parsed.wb, unit);
+    } catch (err: unknown) {
+      this._catalogFile = undefined;
+      console.warn('[Report] Could not read ActivityP6.xlsx:', err);
+      return { unit, activities: [], elements: [], warnings: ['Không đọc được file danh mục ActivityP6.xlsx.'] };
+    }
   }
 
   /** Báo cáo ngày mới có số báo cáo theo sổ ReportRegistry (báo cáo tuần là placeholder nên bỏ qua). */

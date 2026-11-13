@@ -10,6 +10,7 @@ import { recalculateAllRates } from '../utils/reportTaskTree';
 import { getMissingRequiredFields, getFieldLabel, getMissingFormFields } from '../utils/reportValidation';
 import { ReportMetaForm } from '../components/ReportMetaForm';
 import { ReportTaskTable } from '../components/ReportTaskTable';
+import { ReportCatalog, fillDocCatalogDescriptions } from '../utils/reportCatalog';
 import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
 import { ReportSignedDocument } from '../components/ReportSignedDocument';
 import { getReportFolderName } from '../utils/reportFileNaming';
@@ -53,6 +54,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   const [showRequiredErrors, setShowRequiredErrors] = React.useState<boolean>(false);
   const [showPrintPreview, setShowPrintPreview] = React.useState<boolean>(false);
   const [toast, setToast] = React.useState<ToastState | null>(null);
+  const [catalog, setCatalog] = React.useState<ReportCatalog | undefined>(undefined);
   const [signedDoc, setSignedDoc] = React.useState<SignedDocInfo | undefined>(undefined);
   const [isSignedLoading, setIsSignedLoading] = React.useState<boolean>(false);
   const [isUploadingSigned, setIsUploadingSigned] = React.useState<boolean>(false);
@@ -62,14 +64,11 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     async (targetDate: string): Promise<void> => {
       setIsLoading(true);
       try {
-        const result = await dataService.loadReport(
-          role.docId,
-          role.unit,
-          targetDate,
-          currentUserEmail,
-          role.siteManager
-        );
-        setDoc(result.doc);
+        const [result, cat] = await Promise.all([
+          dataService.loadReport(role.docId, role.unit, targetDate, currentUserEmail, role.siteManager),
+          dataService.getCatalog(role.unit)
+        ]);
+        setDoc(fillDocCatalogDescriptions(result.doc, cat));
         setShowRequiredErrors(false);
         setTemplateBuffer(result.templateBuffer);
         setHasUnsavedChanges(false);
@@ -83,6 +82,22 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     },
     [dataService, role.docId, role.unit, role.siteManager, currentUserEmail]
   );
+
+  // Danh mục Activity/cấu kiện của đơn vị (cho các cột select:@…); lỗi thì để trống, form vẫn dùng được
+  React.useEffect(() => {
+    let cancelled = false;
+    dataService
+      .getCatalog(role.unit)
+      .then((c) => {
+        if (cancelled) return;
+        setCatalog(c);
+        if (c.warnings.length > 0) setToast({ type: 'error', text: `Danh mục Activity: ${c.warnings[0]}` });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [dataService, role.unit]);
 
   React.useEffect(() => {
     loadData(dateStr).catch(() => {});
@@ -329,7 +344,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
         role.siteManager,
         doc
       );
-      setDoc(result.doc);
+      setDoc(fillDocCatalogDescriptions(result.doc, await dataService.getCatalog(role.unit)));
       setTemplateBuffer(result.templateBuffer);
       setHasUnsavedChanges(true);
       setToast({
@@ -624,6 +639,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             doc={doc}
             disabled={isSaving}
             isUploadingPhoto={isUploadingPhoto}
+            catalog={catalog}
             showErrors={showRequiredErrors}
             onSectionChange={handleSectionChange}
             photosFolder={photosFolder}

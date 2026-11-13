@@ -20,6 +20,10 @@ export interface CreatableSelectProps {
   title?: string;
   /** Dòng gợi ý khi chưa chọn gì (value rỗng). */
   placeholder?: string;
+  /** false = ẩn mục "Khác…" (danh sách cố định, chỉ chọn trong danh sách). Mặc định true. */
+  allowOther?: boolean;
+  /** Nhãn hiển thị thay cho giá trị của từng mục (giá trị lưu vẫn là `options[i]`), ví dụ { 'A1': 'A1 – Mô tả' }. */
+  optionLabels?: Record<string, string>;
 }
 
 const OTHER = '__other__';
@@ -27,6 +31,7 @@ const OTHER = '__other__';
 /**
  * Ô chọn (dropdown) có mục cuối "Khác…": chọn mục này mở hộp thoại nhập giá trị mới.
  * Giá trị mới được chọn ngay và báo lại qua `onChange(value, true)` để nơi gọi thêm vào danh sách.
+ * Danh sách cố định: `allowOther={false}`; hiển thị nhãn khác giá trị: `optionLabels`.
  * @example <CreatableSelect value={v} options={opts} onChange={(val, isNew) => …} className="input" />
  */
 export const CreatableSelect: React.FC<CreatableSelectProps> = ({
@@ -41,7 +46,9 @@ export const CreatableSelect: React.FC<CreatableSelectProps> = ({
   dialogTitle = 'Thêm giá trị mới',
   ariaInvalid,
   title,
-  placeholder
+  placeholder,
+  allowOther = true,
+  optionLabels
 }) => {
   const [open, setOpen] = React.useState(false);
   const list = value && options.indexOf(value) === -1 ? [value].concat(options) : options;
@@ -75,10 +82,10 @@ export const CreatableSelect: React.FC<CreatableSelectProps> = ({
         )}
         {list.map((o) => (
           <option key={o} value={o}>
-            {o}
+            {(optionLabels && optionLabels[o]) || o}
           </option>
         ))}
-        <option value={OTHER}>{otherLabel}</option>
+        {allowOther && <option value={OTHER}>{otherLabel}</option>}
       </select>
       <Icon name="chevron-down" size={16} className="select__icon" />
       </span>

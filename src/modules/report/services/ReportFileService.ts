@@ -77,6 +77,16 @@ export class ReportFileService {
   }
 
   /**
+   * Fetch ActivityP6.xlsx (danh mục Activity P6 + cấu kiện) from the library root; undefined if missing
+   */
+  public async getActivityFileBuffer(): Promise<ArrayBuffer | undefined> {
+    return await this._client.getFileBuffer(
+      this._siteUrl,
+      `${this.getLibraryPath()}/${REPORT_CONFIG.ACTIVITY_FILE_NAME}`
+    );
+  }
+
+  /**
    * Path to _template folder
    */
   public getTemplateFolderPath(): string {

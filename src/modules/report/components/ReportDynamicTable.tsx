@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { CellValue, ReportTable, TableColumn, TableRow } from '../types/report.types';
+import { ReportCatalog, applyCatalogLinks, catalogOptions, findElement, isDescLocked } from '../utils/reportCatalog';
 import { Icon } from '../../../core/components/Icon';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
 import {
@@ -23,6 +24,8 @@ import {
 export interface IReportDynamicTableProps {
   table: ReportTable;
   unit: string;
+  /** Danh mục Activity/cấu kiện cho các cột select:@… (chưa tải xong thì undefined). */
+  catalog?: ReportCatalog;
   dateStr: string;
   roman: string;
   anchor: string;
@@ -45,6 +48,7 @@ const alignClass = (col: TableColumn): string => {
 export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   table,
   unit,
+  catalog,
   dateStr,
   roman,
   anchor,
@@ -55,11 +59,24 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
 
   const setRows = (next: TableRow[]): void => onChange({ ...table, rows: next });
 
+  /** Cột `from=<code>` (vd Activity theo Element): cấu kiện đang chọn trong dòng, nếu có trong danh mục. */
+  const sourceElement = (col: TableColumn, row: TableRow): ReturnType<typeof findElement> => {
+    if (!col.from) return undefined;
+    const src = columns.filter((c) => c.code.toLowerCase() === col.from?.toLowerCase())[0];
+    if (!src || src.optionsRef !== 'element') return undefined;
+    const el = findElement(catalog, String(row.values[src.code] ?? ''));
+    return el && el.activityId ? el : undefined;
+  };
+
   const updateCell = (index: number, code: string, value: CellValue): void => {
     setRows(
-      rows.map((row, idx) =>
-        idx === index ? recalcRow(columns, { ...row, values: { ...row.values, [code]: value } }) : row
-      )
+      rows.map((row, idx) => {
+        if (idx !== index) return row;
+        const values = { ...row.values, [code]: value };
+        // Cột from= (Activity theo cấu kiện) và desc= (mô tả của mã) tự điền theo danh mục
+        applyCatalogLinks(columns, values, code, catalog);
+        return recalcRow(columns, { ...row, values });
+      })
     );
   };
 
@@ -92,8 +109,12 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   const renderCell = (col: TableColumn, row: TableRow, idx: number): React.ReactNode => {
     const value = row.values[col.code];
     // Cột dropdown khoá (key/readonly): dòng thêm tay luôn giữ giá trị mặc định (vd "---"), không chọn đổi được
-    const locked =
-      Boolean(col.readonly) || (Boolean(col.key) && (Boolean(row.isLocked) || col.type === 'select'));
+    // Cột danh mục (@…) chỉ khoá khi khai báo readonly, hoặc khi đã tự điền từ cấu kiện (from=…)
+    const locked = col.desc
+      ? Boolean(col.readonly) || isDescLocked(columns, col, row.values, catalog)
+      : col.optionsRef
+      ? Boolean(col.readonly) || (Boolean(col.key) && Boolean(row.isLocked)) || Boolean(sourceElement(col, row))
+      : Boolean(col.readonly) || (Boolean(col.key) && (Boolean(row.isLocked) || col.type === 'select'));
     const align = alignClass(col);
     if (col.type === 'calc') {
       return (
@@ -143,14 +164,20 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     if (col.type === 'select') {
       const current = typeof value === 'string' ? value : '';
       const tone = toneOf(col, current);
+      const cat = col.optionsRef ? catalogOptions(catalog, col.optionsRef) : undefined;
+      // Đã có cột mô tả đứng cạnh thì ô chỉ hiện mã (không kèm mô tả) để thấy trọn mã
+      const hasDescColumn = columns.some((c) => c.desc && c.desc.toLowerCase() === col.code.toLowerCase());
       return (
         <td>
           <CreatableSelect
             className={`input input--cell${locked ? ' input--locked' : ''}${align}${tone ? ` input--${tone}` : ''}`}
             value={current}
-            options={col.options || []}
+            options={cat ? cat.options : col.options || []}
+            optionLabels={cat && !hasDescColumn ? cat.labels : undefined}
+            allowOther={!col.optionsRef}
             onChange={(v, isNew) => selectValue(idx, col, v, isNew)}
             disabled={disabled || locked}
+            title={cat && cat.labels[current] ? cat.labels[current] : undefined}
             dialogTitle={`Thêm giá trị mới – ${splitLabel(col.label).vi}`}
           />
         </td>

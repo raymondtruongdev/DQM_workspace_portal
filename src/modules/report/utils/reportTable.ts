@@ -1,3 +1,4 @@
+import { parseCatalogRef } from './reportCatalog';
 import {
   CellValue,
   ColumnTone,
@@ -20,7 +21,10 @@ import {
  * Cờ: key (chỉ đọc khi dòng bị khoá) · readonly (chỉ đọc ở mọi dòng; không cờ = cho sửa) · total (có dòng Tổng) · left|center|right · w=<%> ·
  *     default=<giá trị, có thể dùng {unit} {n3}> · tone=<giá trị>:danger|warning|success|info|muted,… ·
  *     carry=<công thức> (khi tạo từ báo cáo ngày trước: giá trị = công thức tính trên dòng của ngày trước, vd Daily+PrevCum) ·
- *     reset (khi tạo từ báo cáo ngày trước: về giá trị mặc định)
+ *     reset (khi tạo từ báo cáo ngày trước: về giá trị mặc định) ·
+ *     from=<mã cột> (chọn giá trị ở cột đó thì ô này tự điền theo danh mục, vd Activity theo Element)
+ *     desc=<mã cột> (cột text: tự điền mô tả của mã đang chọn ở cột đó và khoá ô; mã "---" thì cho nhập tay)
+ * Loại select có thể là select:@ActivityID hoặc select:@Element: danh sách lấy từ ActivityP6.xlsx (không có "Khác…").
  * Ô select luôn có mục cuối "Khác…" để nhập giá trị mới; giá trị mới được ghi lại vào spec (select:A/B/C/mới)
  * nên các ngày sau (tạo từ báo cáo ngày trước) có sẵn trong danh sách.
  */
@@ -37,6 +41,12 @@ export function parseColumnSpec(code: string, label: string, rawSpec: string): T
     if (i === 0 && lower.startsWith('select:')) {
       col.type = 'select';
       col.options = tok.slice(7).split('/').map((o) => o.trim()).filter(Boolean);
+      // select:@ActivityID / select:@Element -> danh sách lấy từ file danh mục lúc chạy (spec giữ nguyên khi lưu)
+      const ref = col.options.length === 1 ? parseCatalogRef(col.options[0]) : undefined;
+      if (ref) {
+        col.optionsRef = ref;
+        col.options = [];
+      }
     } else if (i === 0 && lower.startsWith('calc:')) {
       col.type = 'calc';
       col.formula = tok.slice(5).trim();
@@ -44,6 +54,10 @@ export function parseColumnSpec(code: string, label: string, rawSpec: string): T
       col.type = 'number';
     } else if (i === 0 && lower === 'date') {
       col.type = 'date';
+    } else if (lower.startsWith('desc=')) {
+      col.desc = tok.slice(5).trim();
+    } else if (lower.startsWith('from=')) {
+      col.from = tok.slice(5).trim();
     } else if (lower === 'reset') {
       col.reset = true;
     } else if (lower.startsWith('carry=')) {
@@ -377,6 +391,15 @@ export function carryForwardTable(table: ReportTable): ReportTable {
 
 /** Bề rộng tối thiểu (px) của cột để không bị bóp chữ; bảng rộng hơn khung thì cuộn ngang. */
 export function columnMinPx(col: TableColumn): number {
-  const floor = col.type === 'date' ? 140 : col.type === 'select' ? 140 : col.type === 'number' || col.type === 'calc' ? 110 : 100;
+  // Cột mã danh mục (CV-ST01-00012, ST01-DW-P13…) cần đủ rộng để hiện trọn mã cùng mũi tên dropdown
+  const floor = col.optionsRef
+    ? 190
+    : col.type === 'date'
+    ? 140
+    : col.type === 'select'
+    ? 140
+    : col.type === 'number' || col.type === 'calc'
+    ? 110
+    : 100;
   return Math.max(floor, Math.round((col.width || 14) * 9));
 }

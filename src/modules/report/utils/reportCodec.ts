@@ -311,6 +311,11 @@ export async function parseReportDocFromBuffer(
     return doc;
   }
 
+  // Báo cáo ngày chỉ hỗ trợ định dạng nhiều sheet có 01_General; file khác là sai định dạng (không còn đọc định dạng cũ)
+  if (!docId.toLowerCase().includes('week')) {
+    throw new Error('File báo cáo/template không đúng định dạng (thiếu sheet 01_General).');
+  }
+
   // WeeklyReport placeholder: 1-sheet task-tree template (không có mục form/bảng)
   const cleanUnit = unit.trim().toLowerCase();
   const sheetName =
