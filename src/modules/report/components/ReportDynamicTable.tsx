@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { CellValue, ReportTable, TableColumn, TableRow } from '../types/report.types';
-import { ReportCatalog, applyCatalogLinks, catalogOptions, linkedValue } from '../utils/reportCatalog';
+import { ReportCatalog, applyCatalogLinks, canAddToTable, catalogOptions, linkedValue } from '../utils/reportCatalog';
 import { Icon } from '../../../core/components/Icon';
+import { PromptDialog } from '../../../core/components/PromptDialog';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
 import {
   columnAlign,
@@ -21,11 +22,23 @@ import {
   vnToIso
 } from '../utils/reportTable';
 
+/** Hỏi giá trị liên kết của mục mới; `undefined` = người dùng huỷ. */
+export type AskCatalogLink = () => Promise<{ link: string } | undefined>;
+
+/** Kết quả thêm mục danh mục: giá trị gán cho ô + danh mục mới, hoặc người dùng đã huỷ. */
+export type CatalogAddResult = { value: string; catalog: ReportCatalog; cancelled?: false } | { cancelled: true };
+
 export interface IReportDynamicTableProps {
   table: ReportTable;
   unit: string;
   /** Danh mục cho các cột select:@… và from=… (chưa tải xong thì undefined). */
   catalog?: ReportCatalog;
+  /**
+   * Người dùng thêm giá trị mới ("Khác…") vào cột danh mục: ghi vào list CatalogItems (chống trùng). Trả về giá trị cần gán cho ô
+   * và danh mục mới; trả undefined nếu không ghi được (khi đó giá trị chỉ lưu trong spec của báo cáo này), `{ cancelled }` nếu người dùng huỷ.
+   * `askLink` hỏi giá trị liên kết của mục mới (vd Activity của cấu kiện mới; link '' = bỏ qua, undefined = huỷ).
+   */
+  onAddCatalogItem?: (ref: string, value: string, byLink: boolean, askLink?: AskCatalogLink) => Promise<CatalogAddResult | undefined>;
   dateStr: string;
   roman: string;
   anchor: string;
@@ -49,6 +62,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   table,
   unit,
   catalog,
+  onAddCatalogItem,
   dateStr,
   roman,
   anchor,
@@ -58,6 +72,31 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   const { columns, rows } = table;
 
   const setRows = (next: TableRow[]): void => onChange({ ...table, rows: next });
+
+  // Hộp thoại hỏi liên kết khi thêm mã mới (bước 2 của "Khác…")
+  const [linkAsk, setLinkAsk] = React.useState<
+    { title: string; label: string; options?: string[]; resolve: (v: { link: string } | undefined) => void } | undefined
+  >(undefined);
+
+  /** Cột phụ thuộc vào cột mã `col` (có from=<col>) mà mục mới cần liên kết; hỏi người dùng giá trị (có thể bỏ qua). */
+  const makeAskLink = (col: TableColumn, value: string): AskCatalogLink | undefined => {
+    const dep = columns.filter((c) => c.from && c.from.toLowerCase() === col.code.toLowerCase())[0];
+    if (!dep) return undefined;
+    const options =
+      dep.type === 'select'
+        ? (dep.optionsRef ? catalogOptions(catalog, dep.optionsRef) : dep.options || []).filter((o) => o !== '---')
+        : undefined;
+    if (options && options.length === 0) return undefined; // chưa có gì để chọn: bỏ qua bước hỏi
+    return () =>
+      new Promise<{ link: string } | undefined>((resolve) =>
+        setLinkAsk({
+          title: `Thêm "${value}"`,
+          label: `${splitLabel(dep.label).vi} của "${value}" (không bắt buộc, bỏ trống nếu chưa có)`,
+          options,
+          resolve
+        })
+      );
+  };
 
   const updateCell = (index: number, code: string, value: CellValue): void => {
     setRows(
@@ -72,10 +111,27 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   };
 
   /** Giá trị mới của ô select: thêm vào danh sách chọn của cột (ghi vào spec) và gán cho ô đang sửa. */
-  const selectValue = (index: number, col: TableColumn, value: string, isNew: boolean): void => {
+  const selectValue = async (index: number, col: TableColumn, value: string, isNew: boolean): Promise<void> => {
     if (!isNew) {
       updateCell(index, col.code, value);
       return;
+    }
+    // Cột danh mục: ghi vào list CatalogItems (có chống trùng); chọn lại mục sẵn có nếu đã tồn tại
+    if (col.optionsRef && onAddCatalogItem) {
+      const byLink = col.optionsBy === 'link';
+      const added = await onAddCatalogItem(col.optionsRef, value, byLink, byLink ? undefined : makeAskLink(col, value.trim()));
+      if (added && added.cancelled) return; // người dùng huỷ ở bước hỏi liên kết
+      if (added) {
+        setRows(
+          rows.map((row, idx) => {
+            if (idx !== index) return row;
+            const values = { ...row.values, [col.code]: added.value };
+            applyCatalogLinks(columns, values, col.code, added.catalog);
+            return recalcRow(columns, { ...row, values });
+          })
+        );
+        return;
+      }
     }
     const clean = sanitizeOption(value);
     if (!clean) return;
@@ -169,7 +225,10 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                   )
                 : col.options || []
             }
-            onChange={(v, isNew) => selectValue(idx, col, v, isNew)}
+            allowOther={col.optionsRef ? canAddToTable(catalog, col.optionsRef) : true}
+            onChange={(v, isNew) => {
+              selectValue(idx, col, v, isNew).catch(() => undefined);
+            }}
             disabled={disabled || locked}
             dialogTitle={`Thêm giá trị mới – ${splitLabel(col.label).vi}`}
           />
@@ -284,6 +343,22 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           />
         </div>
       </div>
+      )}
+      {linkAsk && (
+        <PromptDialog
+          title={linkAsk.title}
+          label={linkAsk.label}
+          options={linkAsk.options}
+          allowEmpty
+          onSubmit={(v) => {
+            linkAsk.resolve({ link: v });
+            setLinkAsk(undefined);
+          }}
+          onCancel={() => {
+            linkAsk.resolve(undefined);
+            setLinkAsk(undefined);
+          }}
+        />
       )}
     </div>
   );

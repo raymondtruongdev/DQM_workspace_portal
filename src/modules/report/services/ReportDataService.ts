@@ -4,10 +4,11 @@ import { applyFormDefaults } from '../utils/reportForm';
 import { nextReportNo, syncMetadata } from '../utils/reportMeta';
 import { carryForwardTable } from '../utils/reportTable';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
-import { ReportCatalog, emptyCatalog, parseCatalogFromWorkbook } from '../utils/reportCatalog';
+import { CatalogRow, ReportCatalog, emptyCatalog, mergeCatalogRows, parseCatalogFromWorkbook } from '../utils/reportCatalog';
 import { ReportFileService } from './ReportFileService';
 import { ReportTemplateService } from './ReportTemplateService';
 import { ReportRegistryService } from './ReportRegistryService';
+import { ReportCatalogService } from './ReportCatalogService';
 
 export interface LoadedReportResult {
   doc: ReportDoc;
@@ -26,15 +27,18 @@ export class ReportDataService {
   private _fileService: ReportFileService;
   private _templateService: ReportTemplateService;
   private _registry: ReportRegistryService;
+  private _catalogList: ReportCatalogService;
 
   constructor(
     fileService: ReportFileService,
     templateService: ReportTemplateService,
-    registry: ReportRegistryService
+    registry: ReportRegistryService,
+    catalogList: ReportCatalogService
   ) {
     this._fileService = fileService;
     this._templateService = templateService;
     this._registry = registry;
+    this._catalogList = catalogList;
   }
 
   private _catalogFile?: { at: number; wb: Promise<{ XLSX: typeof import('xlsx'); wb: import('xlsx').WorkBook } | undefined> };
@@ -44,6 +48,22 @@ export class ReportDataService {
    * `force` bỏ qua bộ nhớ. Không đọc được file thì trả danh mục rỗng kèm cảnh báo (form vẫn dùng được, chỉ giữ giá trị cũ).
    */
   public async getCatalog(unit: string, force = false): Promise<ReportCatalog> {
+    const fromFile = await this.getCatalogFromFile(unit, force);
+    // Bảng người dùng được tự thêm nằm ở list CatalogItems; không đọc được thì chỉ cảnh báo, vẫn dùng phần từ file
+    try {
+      return mergeCatalogRows(fromFile, await this._catalogList.getRows(unit));
+    } catch (err: unknown) {
+      console.warn('[Report] Could not read CatalogItems list:', err);
+      return { ...fromFile, warnings: fromFile.warnings.concat('Chưa đọc được list CatalogItems (kiểm tra list và quyền đọc).') };
+    }
+  }
+
+  /** Thêm một mục vào list CatalogItems (người dùng thêm bằng "Khác…"); trả về mục lưu được và `created` = false nếu đã có. */
+  public addCatalogItem(unit: string, row: CatalogRow): Promise<{ row: CatalogRow; created: boolean }> {
+    return this._catalogList.addRow(unit, row);
+  }
+
+  private async getCatalogFromFile(unit: string, force: boolean): Promise<ReportCatalog> {
     const now = Date.now();
     if (force || !this._catalogFile || now - this._catalogFile.at > 5 * 60 * 1000) {
       this._catalogFile = {

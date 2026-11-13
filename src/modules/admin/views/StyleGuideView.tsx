@@ -44,6 +44,7 @@ export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
   const [kind, setKind] = React.useState<string>('NGHIEM_THU');
   const [kinds, setKinds] = React.useState<string[]>(['KIEM_TRA_ATLD', 'NGHIEM_THU', 'CHI_THI_TVGS']);
   const [promptOpen, setPromptOpen] = React.useState<boolean>(false);
+  const [pickOpen, setPickOpen] = React.useState<boolean>(false);
   const [toast, setToast] = React.useState<ToastState | undefined>({ type: 'success', text: 'Đã lưu thành công' });
 
   return (
@@ -180,7 +181,20 @@ export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
           <button type="button" className="btn btn--secondary" onClick={() => setPromptOpen(true)}>
             Mở PromptDialog
           </button>
+          <button type="button" className="btn btn--secondary" onClick={() => setPickOpen(true)}>
+            PromptDialog chọn từ danh sách
+          </button>
         </div>
+        {pickOpen && (
+          <PromptDialog
+            title="Chọn liên kết"
+            label="Loại (không bắt buộc)"
+            options={kinds}
+            allowEmpty
+            onSubmit={() => setPickOpen(false)}
+            onCancel={() => setPickOpen(false)}
+          />
+        )}
         {promptOpen && (
           <PromptDialog
             title="Nhập tên mới"

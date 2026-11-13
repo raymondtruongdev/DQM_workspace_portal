@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ReportDoc, ReportSection } from '../types/report.types';
 import { ReportCatalog } from '../utils/reportCatalog';
 import { buildSectionNumbering, sectionAnchor } from '../utils/reportSections';
-import { ReportDynamicTable } from './ReportDynamicTable';
+import { IReportDynamicTableProps, ReportDynamicTable } from './ReportDynamicTable';
 import { ReportDynamicForm } from './ReportDynamicForm';
 import { ReportPhotoSectionEditor } from './ReportPhotoSectionEditor';
 
@@ -12,6 +12,8 @@ export interface IReportSectionsEditorProps {
   isUploadingPhoto?: boolean;
   /** Danh mục Activity/cấu kiện cho các cột select:@… (chưa tải xong thì undefined). */
   catalog?: ReportCatalog;
+  /** Thêm giá trị mới vào danh mục dùng chung, kèm hỏi liên kết (xem ReportDynamicTable). */
+  onAddCatalogItem?: IReportDynamicTableProps['onAddCatalogItem'];
   /** Tô đỏ các trường bắt buộc đang trống. */
   showErrors?: boolean;
   onSectionChange: (section: ReportSection) => void;
@@ -28,6 +30,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
   disabled = false,
   isUploadingPhoto = false,
   catalog,
+  onAddCatalogItem,
   showErrors = false,
   onSectionChange,
   photosFolder,
@@ -49,6 +52,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
               table={sec}
               unit={doc.unit}
               catalog={catalog}
+              onAddCatalogItem={onAddCatalogItem}
               dateStr={doc.dateStr}
               roman={roman}
               anchor={anchor}

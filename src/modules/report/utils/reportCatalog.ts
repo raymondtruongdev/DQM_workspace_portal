@@ -10,10 +10,13 @@ import { TableColumn, CellValue } from '../types/report.types';
  *   - cột 2 (không bắt buộc) = giá trị RÀNG BUỘC của mã đó (Element_ID → ActivityP6_ID, ResHuman_ID → Category…).
  *     Cột ở template khai báo `from=<cột mã>` sẽ tự điền giá trị này khi người dùng chọn mã.
  * Không có mô tả hay trạng thái: muốn bỏ một mã thì xoá dòng; báo cáo cũ vẫn giữ nguyên giá trị đã lưu.
+ * File này CHỈ do admin ghi (bảng `ActivityP6_ID`). Các bảng người dùng được tự thêm (Element, Resource, Vật tư…) nằm trong
+ * SharePoint List `CatalogItems` (xem ReportCatalogService) và được gộp vào cùng một `ReportCatalog`.
  * Mã "---" luôn có sẵn trong dropdown làm giá trị "chưa chọn"; mã không có ràng buộc để trống ô cột 2.
  */
 
 export interface CatalogItem {
+  /** Mã; '' khi mục chỉ có giá trị ràng buộc (vd vật tư người dùng thêm theo tên, chưa được cấp mã). */
   id: string;
   /** Giá trị ràng buộc theo mã ('' nếu để trống hoặc "---"). */
   link: string;
@@ -24,7 +27,16 @@ export interface CatalogTable {
   name: string;
   /** Tiêu đề cột ràng buộc (vd "ActivityP6_ID"); undefined nếu bảng chỉ có cột mã. */
   linkName?: string;
+  /** 'file' = từ ActivityP6.xlsx (chỉ admin sửa, người dùng không thêm được); 'list' = từ list CatalogItems (người dùng được thêm). */
+  source: 'file' | 'list';
   items: CatalogItem[];
+}
+
+/** Một dòng của list CatalogItems (tên bảng đã chuẩn hoá chữ thường). */
+export interface CatalogRow {
+  table: string;
+  code: string;
+  link: string;
 }
 
 export interface ReportCatalog {
@@ -69,7 +81,7 @@ export function parseCatalogFromWorkbook(XLSX: typeof XLSXTypes, wb: XLSXTypes.W
     const name = norm(header[c]);
     if (!name || (c > 0 && norm(header[c - 1]) !== '')) continue;
     const linkName = norm(header[c + 1]) || undefined;
-    const table: CatalogTable = { name, linkName, items: [] };
+    const table: CatalogTable = { name, linkName, source: 'file', items: [] };
     const seen = new Set<string>();
     for (let r = 1; r < rows.length; r++) {
       const id = norm(rows[r][c]);
@@ -106,7 +118,7 @@ export function findCatalogItem(catalog: ReportCatalog | undefined, ref: string,
   if (!catalog || !id || id === CATALOG_NONE) return undefined;
   const table = catalog.tables[ref.toLowerCase()];
   const k = id.toLowerCase();
-  return table ? table.items.filter((i) => i.id.toLowerCase() === k)[0] : undefined;
+  return table ? table.items.filter((i) => i.id !== '' && i.id.toLowerCase() === k)[0] : undefined;
 }
 
 /** Mục có giá trị ràng buộc = `link` (không phân biệt hoa thường); undefined nếu không có. */
@@ -127,7 +139,7 @@ export function catalogOptions(catalog: ReportCatalog | undefined, ref: string, 
     });
     return out;
   }
-  return [CATALOG_NONE].concat(table ? table.items.map((i) => i.id) : []);
+  return [CATALOG_NONE].concat(table ? table.items.filter((i) => i.id !== '').map((i) => i.id) : []);
 }
 
 function columnByCode(columns: TableColumn[], code: string): TableColumn | undefined {
@@ -172,4 +184,56 @@ export function applyCatalogLinks(
       values[c.code] = linkValue || (c.type === 'select' ? CATALOG_NONE : '');
     }
   });
+}
+
+/** Khoá so sánh chống trùng: bỏ khoảng trắng thừa, không phân biệt hoa thường và dấu tiếng Việt ("Thép D32" = "thep  d32"). */
+export function normKey(v: string): string {
+  return v
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/gi, 'd')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Mục đã có trong bảng `ref` có cùng giá trị (theo `normKey`) với `value`: so với mã (`byLink` = false) hoặc với giá trị
+ * ràng buộc (`byLink` = true). Dùng để chống trùng: có rồi thì chọn mục sẵn có thay vì tạo mới.
+ */
+export function findDuplicate(catalog: ReportCatalog | undefined, ref: string, byLink: boolean, value: string): CatalogItem | undefined {
+  const table = catalog ? catalog.tables[ref.toLowerCase()] : undefined;
+  const k = normKey(value);
+  if (!table || !k) return undefined;
+  return table.items.filter((i) => normKey(byLink ? i.link : i.id) === k)[0];
+}
+
+/** Gộp các dòng của list CatalogItems vào danh mục (bảng có sẵn từ file thì thêm mục, bảng chưa có thì tạo mới `source: 'list'`). */
+export function mergeCatalogRows(catalog: ReportCatalog, rows: CatalogRow[]): ReportCatalog {
+  const tables: Record<string, CatalogTable> = {};
+  Object.keys(catalog.tables).forEach((k) => {
+    tables[k] = { ...catalog.tables[k], items: catalog.tables[k].items.slice() };
+  });
+  rows.forEach((r) => {
+    const key = r.table.toLowerCase();
+    const t = tables[key] || (tables[key] = { name: r.table, source: 'list', items: [] });
+    const dup = t.items.some((i) => (r.code ? normKey(i.id) === normKey(r.code) : false) || (!r.code && normKey(i.link) === normKey(r.link)));
+    if (!dup) t.items.push({ id: r.code, link: r.link });
+  });
+  return { ...catalog, tables };
+}
+
+/** Danh mục sau khi thêm một mục (không sửa danh mục cũ). */
+export function catalogWithRow(catalog: ReportCatalog | undefined, unit: string, row: CatalogRow): ReportCatalog {
+  return mergeCatalogRows(catalog || { unit, tables: {}, warnings: [] }, [row]);
+}
+
+/** Bảng chỉ admin được thêm/bớt (nằm trong ActivityP6.xlsx), dù file có đọc được hay không. */
+const ADMIN_ONLY_TABLES = ['activityp6_id'];
+
+/** Người dùng có được thêm giá trị mới ("Khác…") vào bảng này không: bảng admin-only hoặc đến từ file thì không; còn lại được. */
+export function canAddToTable(catalog: ReportCatalog | undefined, ref: string): boolean {
+  if (!catalog || ADMIN_ONLY_TABLES.indexOf(ref.toLowerCase()) !== -1) return false;
+  const t = catalog.tables[ref.toLowerCase()];
+  return !t || t.source === 'list';
 }

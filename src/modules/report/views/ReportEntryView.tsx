@@ -10,7 +10,8 @@ import { recalculateAllRates } from '../utils/reportTaskTree';
 import { getMissingRequiredFields, getFieldLabel, getMissingFormFields } from '../utils/reportValidation';
 import { ReportMetaForm } from '../components/ReportMetaForm';
 import { ReportTaskTable } from '../components/ReportTaskTable';
-import { ReportCatalog } from '../utils/reportCatalog';
+import { AskCatalogLink, CatalogAddResult } from '../components/ReportDynamicTable';
+import { ReportCatalog, canAddToTable, catalogWithRow, findDuplicate } from '../utils/reportCatalog';
 import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
 import { ReportSignedDocument } from '../components/ReportSignedDocument';
 import { getReportFolderName } from '../utils/reportFileNaming';
@@ -134,6 +135,51 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   };
 
   // Dynamic table handlers
+  /**
+   * Người dùng chọn "Khác…" ở cột danh mục: chống trùng (mục đã có thì chọn mục sẵn có), chưa có thì ghi vào list CatalogItems
+   * để mọi người cùng thấy; mục có mã thì hỏi thêm giá trị liên kết. Trả `{ cancelled }` khi người dùng huỷ, undefined khi không ghi được
+   * (giá trị chỉ lưu trong báo cáo này).
+   */
+  const handleAddCatalogItem = async (
+    ref: string,
+    value: string,
+    byLink: boolean,
+    askLink?: AskCatalogLink
+  ): Promise<CatalogAddResult | undefined> => {
+    const clean = value.trim().replace(/\s+/g, ' ');
+    if (!clean || !catalog) return undefined;
+    const dup = findDuplicate(catalog, ref, byLink, clean);
+    if (dup) {
+      const existing = byLink ? dup.link : dup.id;
+      setToast({ type: 'success', text: `"${existing}" đã có trong danh mục, đã chọn giá trị có sẵn.` });
+      return { value: existing, catalog };
+    }
+    if (!canAddToTable(catalog, ref)) return undefined;
+    if (await onCheckMaintenance()) return undefined;
+    // Mục mới theo mã: hỏi luôn giá trị liên kết (vd Activity của cấu kiện), bỏ trống được; huỷ thì không thêm
+    let link = '';
+    if (!byLink && askLink) {
+      const asked = await askLink();
+      if (!asked) return { cancelled: true };
+      link = asked.link.trim();
+    }
+    try {
+      const res = await dataService.addCatalogItem(role.unit, { table: ref, code: byLink ? '' : clean, link: byLink ? clean : link });
+      const saved = byLink ? res.row.link : res.row.code;
+      const next = catalogWithRow(catalog, role.unit, res.row);
+      setCatalog(next);
+      setToast({
+        type: 'success',
+        text: res.created ? `Đã thêm "${saved}" vào danh mục dùng chung.` : `"${saved}" đã có trong danh mục, đã chọn giá trị có sẵn.`
+      });
+      return { value: saved, catalog: next };
+    } catch (err: unknown) {
+      console.warn('[Report] Could not add catalog item:', err);
+      setToast({ type: 'error', text: 'Chưa thêm được vào danh mục dùng chung (list CatalogItems); giá trị chỉ lưu trong báo cáo này.' });
+      return undefined;
+    }
+  };
+
   const handleSectionChange = (section: ReportSection): void => {
     if (!doc) return;
     setDoc({ ...doc, sections: doc.sections.map((x) => (x.key === section.key ? section : x)) });
@@ -637,6 +683,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             disabled={isSaving}
             isUploadingPhoto={isUploadingPhoto}
             catalog={catalog}
+            onAddCatalogItem={handleAddCatalogItem}
             showErrors={showRequiredErrors}
             onSectionChange={handleSectionChange}
             photosFolder={photosFolder}
