@@ -9,6 +9,13 @@ export interface IReportPrintFormProps {
   dateStr: string;
 }
 
+/** Chia nội dung thành các dòng kẻ: mỗi dòng văn bản một khối, bù dòng trống cho đủ `min` dòng. */
+function ruledLines(text: string, min: number): string[] {
+  const lines = text === '' ? [] : text.split('\n');
+  while (lines.length < min) lines.push('');
+  return lines;
+}
+
 /** Mục dạng form trong bản in A4 (dùng class `bcn-*` do ReportPrintPreviewModal định nghĩa). */
 export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman, dateStr }) => {
   const cols = effectiveColumns(form);
@@ -52,7 +59,7 @@ export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman, 
   const rest = first ? blocks.slice(1) : blocks;
 
   return (
-    <div className={form.sign ? 'bcn-keep-together' : undefined}>
+    <div className={form.sign || form.fields.some((f) => f.lines) ? 'bcn-keep-together' : undefined}>
       <div className="bcn-sec-title">
         {roman}. {resolveTitle(form.title, dateStr)} {form.titleEn && <span>| {form.titleEn}</span>}
       </div>
@@ -65,7 +72,19 @@ export const ReportPrintForm: React.FC<IReportPrintFormProps> = ({ form, roman, 
         <tbody>
           {first && <tr>{first.fields.map(valueCell)}</tr>}
           {rest.map((b, i) =>
-            b.kind === 'full' ? (
+            b.kind === 'full' && b.field.lines ? (
+              <tr key={`f-${b.field.key}`}>
+                <td colSpan={cols} style={{ padding: 0 }}>
+                  <div className="bcn-ruled">
+                    {ruledLines(formFieldDisplay(b.field), b.field.lines).map((line, k) => (
+                      <div key={k} className="bcn-ruled-line">
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </td>
+              </tr>
+            ) : b.kind === 'full' ? (
               <tr key={`f-${b.field.key}`}>
                 <td colSpan={cols}>
                   <strong>{b.field.label}:</strong> <span style={{ whiteSpace: 'pre-line' }}>{formFieldDisplay(b.field)}</span>

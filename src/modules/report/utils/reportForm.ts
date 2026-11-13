@@ -11,7 +11,7 @@ import { specWithOptions } from './reportTable';
  *   Dòng 5+: mỗi dòng một trường
  *
  * Spec: text · textarea · number · select:A/B/C (có mục cuối "Khác…" để nhập giá trị mới, ghi lại vào spec)
- * Cờ (nối bằng `;`): full (trải hết hàng) · span=<n> · rows=<n> · ph=<gợi ý> ·
+ * Cờ (nối bằng `;`): full (trải hết hàng) · span=<n> · rows=<n> · lines=<n> (textarea: bản in kẻ n dòng, không in nhãn) · ph=<gợi ý> ·
  *     default=<giá trị; {user} {siteManager} {unit} được điền tự động khi trống>
  */
 
@@ -34,6 +34,9 @@ export function parseFieldSpec(key: string, label: string, rawSpec: string, valu
     } else if (lower.startsWith('rows=')) {
       const n = parseInt(tok.slice(5), 10);
       if (!isNaN(n) && n > 0) field.rows = n;
+    } else if (lower.startsWith('lines=')) {
+      const n = parseInt(tok.slice(6), 10);
+      if (!isNaN(n) && n > 0) field.lines = n;
     } else if (lower.startsWith('ph=')) {
       field.placeholder = tok.slice(3);
     } else if (lower.startsWith('default=')) {

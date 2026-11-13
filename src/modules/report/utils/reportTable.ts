@@ -25,7 +25,8 @@ import {
  *     from=<mã cột> (chọn mã ở cột đó thì ô này tự điền giá trị ràng buộc của mã trong danh mục và bị khoá, vd Activity theo Element;
  *       mã chưa có ràng buộc hoặc "---" thì ô cho nhập/chọn tay)
  * default có thể dùng {unit} và {n<k>}: số thứ tự tự tăng = số lớn nhất đang có trong cột + 1, đệm đủ k chữ số (vd default=ISS-{unit}-{n5} → ISS-ST01-00004).
- * Loại select có thể là select:@<tên bảng> (vd select:@ActivityP6_ID, select:@Element_ID): danh sách lấy từ ActivityP6.xlsx (không có "Khác…").
+ * Loại select có thể là select:@<tên bảng> (vd select:@ActivityP6_ID, select:@Element_ID): danh sách lấy từ ActivityP6.xlsx;
+ * "Khác…" thêm giá trị vào spec (select:@Element_ID/Mới) vì file danh mục người dùng chỉ có quyền đọc.
  * Ô select luôn có mục cuối "Khác…" để nhập giá trị mới; giá trị mới được ghi lại vào spec (select:A/B/C/mới)
  * nên các ngày sau (tạo từ báo cáo ngày trước) có sẵn trong danh sách.
  */
@@ -42,11 +43,12 @@ export function parseColumnSpec(code: string, label: string, rawSpec: string): T
     if (i === 0 && lower.startsWith('select:')) {
       col.type = 'select';
       col.options = tok.slice(7).split('/').map((o) => o.trim()).filter(Boolean);
-      // select:@ActivityID / select:@Element -> danh sách lấy từ file danh mục lúc chạy (spec giữ nguyên khi lưu)
-      const ref = col.options.length === 1 ? parseCatalogRef(col.options[0]) : undefined;
+      // select:@Element_ID[/giá trị thêm…] -> danh sách lấy từ file danh mục lúc chạy; các giá trị sau @… là giá trị người dùng
+      // đã thêm bằng "Khác…" (ghi lại khi lưu để ngày sau có sẵn). Spec giữ nguyên `@…` khi lưu.
+      const ref = col.options.length > 0 ? parseCatalogRef(col.options[0]) : undefined;
       if (ref) {
         col.optionsRef = ref;
-        col.options = [];
+        col.options = col.options.slice(1);
       }
     } else if (i === 0 && lower.startsWith('calc:')) {
       col.type = 'calc';
@@ -154,7 +156,9 @@ export function columnWithOption(col: TableColumn, value: string): TableColumn {
   const options = col.options || [];
   if (options.some((o) => o.toLowerCase() === value.toLowerCase())) return col;
   const next = options.concat(value);
-  return { ...col, options: next, spec: specWithOptions(col.spec, next) };
+  // Cột danh mục: giữ `@bảng` ở đầu danh sách trong spec
+  const refToken = col.optionsRef ? col.spec.split(';')[0].slice(7).split('/')[0] : undefined;
+  return { ...col, options: next, spec: specWithOptions(col.spec, refToken ? [refToken].concat(next) : next) };
 }
 
 /* ---------------------------- Công thức ---------------------------- */

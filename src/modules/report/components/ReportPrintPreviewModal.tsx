@@ -244,6 +244,15 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
     .bcn-tone-info { color: #1d4ed8; font-weight: 700; }
     .bcn-tone-muted { color: #6b7280; font-weight: 700; }
     .bcn-preline { white-space: pre-line; }
+    .bcn-ruled-line {
+      min-height: 8mm;
+      line-height: 8mm;
+      padding: 0 2mm;
+      white-space: pre-wrap;
+      border-bottom: 1px solid #c9cdd3;
+      break-inside: avoid;
+    }
+    .bcn-ruled .bcn-ruled-line:last-child { border-bottom: 0; }
     .bcn-sign-box {
       height: 110px; /* chừa chỗ trống phía trên tên để ký */
       vertical-align: bottom !important;

@@ -894,6 +894,19 @@
   white-space: pre-line;
 }
 
+/* Vùng kẻ dòng (mục có lines=<n>), khớp CSS in trong ReportPrintPreviewModal */
+.bcn-ruled-line {
+  min-height: 8mm;
+  line-height: 8mm;
+  padding: 0 2mm;
+  white-space: pre-wrap;
+  border-bottom: 1px solid #c9cdd3;
+}
+
+.bcn-ruled .bcn-ruled-line:last-child {
+  border-bottom: 0;
+}
+
 .bcn-table td.bcn-sign-box {
   height: 110px; /* chừa chỗ trống phía trên tên để ký */
   vertical-align: bottom;

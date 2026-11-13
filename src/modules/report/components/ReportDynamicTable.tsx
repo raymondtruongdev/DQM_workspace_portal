@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { CellValue, ReportTable, TableColumn, TableRow } from '../types/report.types';
-import { ReportCatalog, applyCatalogLinks, catalogOptions, linkedValue } from '../utils/reportCatalog';
+import { ReportCatalog, applyCatalogLinks, catalogOptions, findCatalogItem, linkedValue } from '../utils/reportCatalog';
 import { Icon } from '../../../core/components/Icon';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
 import {
@@ -83,9 +83,13 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     onChange({
       ...table,
       columns: nextCols,
-      rows: rows.map((row, idx) =>
-        idx === index ? recalcRow(nextCols, { ...row, values: { ...row.values, [col.code]: clean } }) : row
-      )
+      rows: rows.map((row, idx) => {
+        if (idx !== index) return row;
+        const values = { ...row.values, [col.code]: clean };
+        // Giá trị mới chưa có ràng buộc: các ô from= của cột này về "---" (hoặc trống)
+        applyCatalogLinks(nextCols, values, col.code, catalog);
+        return recalcRow(nextCols, { ...row, values });
+      })
     });
   };
 
@@ -158,8 +162,13 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           <CreatableSelect
             className={`input input--cell${locked ? ' input--locked' : ''}${align}${tone ? ` input--${tone}` : ''}`}
             value={current}
-            options={col.optionsRef ? catalogOptions(catalog, col.optionsRef) : col.options || []}
-            allowOther={!col.optionsRef}
+            options={
+              col.optionsRef
+                ? catalogOptions(catalog, col.optionsRef).concat(
+                    (col.options || []).filter((o) => findCatalogItem(catalog, col.optionsRef as string, o) === undefined)
+                  )
+                : col.options || []
+            }
             onChange={(v, isNew) => selectValue(idx, col, v, isNew)}
             disabled={disabled || locked}
             dialogTitle={`Thêm giá trị mới – ${splitLabel(col.label).vi}`}

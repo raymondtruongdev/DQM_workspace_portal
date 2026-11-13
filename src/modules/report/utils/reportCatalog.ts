@@ -131,7 +131,7 @@ export function linkedValue(
 
 /**
  * Sau khi cột `changed` đổi giá trị (sửa `values` tại chỗ): mọi cột `from=<changed>` nhận giá trị ràng buộc của mã mới
- * (mã chưa có ràng buộc: cột select về "---", cột text xoá để nhập tay; mã "---" hoặc không có trong danh mục thì giữ nguyên).
+ * (mã chưa có ràng buộc hoặc mã mới thêm bằng "Khác…": cột select về "---", cột text xoá để nhập tay; mã "---" thì giữ nguyên).
  */
 export function applyCatalogLinks(
   columns: TableColumn[],
@@ -141,11 +141,13 @@ export function applyCatalogLinks(
 ): void {
   const src = columnByCode(columns, changed);
   if (!src || !src.optionsRef) return;
-  const item = findCatalogItem(catalog, src.optionsRef, String(values[changed] ?? ''));
-  if (!item) return;
+  const current = String(values[changed] ?? '');
+  if (current === CATALOG_NONE || current === '') return;
+  // Mã không có trong danh mục (giá trị mới thêm bằng "Khác…") thì chưa có ràng buộc: ô ràng buộc về "---" / để trống
+  const item = findCatalogItem(catalog, src.optionsRef, current);
   columns.forEach((c) => {
     if (c.from && c.from.toLowerCase() === changed.toLowerCase()) {
-      values[c.code] = item.link || (c.type === 'select' ? CATALOG_NONE : '');
+      values[c.code] = (item && item.link) || (c.type === 'select' ? CATALOG_NONE : '');
     }
   });
 }

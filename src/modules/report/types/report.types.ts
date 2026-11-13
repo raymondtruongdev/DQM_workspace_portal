@@ -85,6 +85,7 @@ export interface FormField {
   full?: boolean;               // trải hết hàng
   span?: number;                // số cột lưới chiếm (mặc định 1)
   rows?: number;                // số dòng của textarea
+  lines?: number;               // số dòng kẻ của textarea khi in (UI vẫn hiện `rows` dòng)
   placeholder?: string;
   defaultValue?: string;        // giá trị khi trống; {user} {siteManager} {unit} được điền tự động
   required?: boolean;           // cột Required của sheet
