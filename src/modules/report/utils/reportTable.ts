@@ -26,6 +26,7 @@ import {
  *       mã chưa có ràng buộc hoặc "---" thì ô cho nhập/chọn tay)
  * default có thể dùng {unit} và {n<k>}: số thứ tự tự tăng = số lớn nhất đang có trong cột + 1, đệm đủ k chữ số (vd default=ISS-{unit}-{n5} → ISS-ST01-00004).
  * Loại select có thể là select:@<tên bảng> (vd select:@ActivityP6_ID, select:@Element_ID): danh sách lấy từ ActivityP6.xlsx;
+ * select:@Bảng.<cột ràng buộc> (vd select:@Material_ID.Material): dropdown liệt kê giá trị ràng buộc, chọn thì cột from= tự điền mã;
  * "Khác…" thêm giá trị vào spec (select:@Element_ID/Mới) vì file danh mục người dùng chỉ có quyền đọc.
  * Ô select luôn có mục cuối "Khác…" để nhập giá trị mới; giá trị mới được ghi lại vào spec (select:A/B/C/mới)
  * nên các ngày sau (tạo từ báo cáo ngày trước) có sẵn trong danh sách.
@@ -47,7 +48,8 @@ export function parseColumnSpec(code: string, label: string, rawSpec: string): T
       // đã thêm bằng "Khác…" (ghi lại khi lưu để ngày sau có sẵn). Spec giữ nguyên `@…` khi lưu.
       const ref = col.options.length > 0 ? parseCatalogRef(col.options[0]) : undefined;
       if (ref) {
-        col.optionsRef = ref;
+        col.optionsRef = ref.table;
+        if (ref.byLink) col.optionsBy = 'link';
         col.options = col.options.slice(1);
       }
     } else if (i === 0 && lower.startsWith('calc:')) {

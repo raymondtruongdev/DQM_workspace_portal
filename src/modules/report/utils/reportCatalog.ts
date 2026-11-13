@@ -43,10 +43,13 @@ export function emptyCatalog(unit: string, warning: string): ReportCatalog {
   return { unit, tables: {}, warnings: [warning] };
 }
 
-/** `select:@Element_ID` -> tên bảng (chữ thường) "element_id"; không phải tham chiếu thì undefined. */
-export function parseCatalogRef(option: string): string | undefined {
-  const m = /^@\s*([A-Za-z0-9_]+)$/.exec(option.trim());
-  return m ? m[1].toLowerCase() : undefined;
+/**
+ * `select:@Element_ID` -> { table: 'element_id' }; `select:@Material_ID.Material` -> { table: 'material_id', byLink: true }
+ * (dropdown liệt kê cột ràng buộc "Material", chọn thì mã được tự điền). Không phải tham chiếu thì undefined.
+ */
+export function parseCatalogRef(option: string): { table: string; byLink: boolean } | undefined {
+  const m = /^@\s*([A-Za-z0-9_]+)(\.[A-Za-z0-9_]+)?$/.exec(option.trim());
+  return m ? { table: m[1].toLowerCase(), byLink: Boolean(m[2]) } : undefined;
 }
 
 function norm(v: unknown): string {
@@ -106,9 +109,24 @@ export function findCatalogItem(catalog: ReportCatalog | undefined, ref: string,
   return table ? table.items.filter((i) => i.id.toLowerCase() === k)[0] : undefined;
 }
 
-/** Danh sách chọn của cột tham chiếu: "---" + mọi mã của bảng. */
-export function catalogOptions(catalog: ReportCatalog | undefined, ref: string): string[] {
+/** Mục có giá trị ràng buộc = `link` (không phân biệt hoa thường); undefined nếu không có. */
+export function findCatalogItemByLink(catalog: ReportCatalog | undefined, ref: string, link: string): CatalogItem | undefined {
+  if (!catalog || !link) return undefined;
+  const table = catalog.tables[ref.toLowerCase()];
+  const k = link.toLowerCase();
+  return table ? table.items.filter((i) => i.link && i.link.toLowerCase() === k)[0] : undefined;
+}
+
+/** Danh sách chọn của cột tham chiếu: "---" + mọi mã của bảng (hoặc, với `byLink`, các giá trị ràng buộc không trùng nhau). */
+export function catalogOptions(catalog: ReportCatalog | undefined, ref: string, byLink = false): string[] {
   const table = catalog ? catalog.tables[ref.toLowerCase()] : undefined;
+  if (byLink) {
+    const out: string[] = [];
+    (table ? table.items : []).forEach((i) => {
+      if (i.link && out.indexOf(i.link) === -1) out.push(i.link);
+    });
+    return out;
+  }
   return [CATALOG_NONE].concat(table ? table.items.map((i) => i.id) : []);
 }
 
@@ -125,7 +143,9 @@ export function linkedValue(
 ): string | undefined {
   const src = col.from ? columnByCode(columns, col.from) : undefined;
   if (!src || !src.optionsRef) return undefined;
-  const item = findCatalogItem(catalog, src.optionsRef, String(values[src.code] ?? ''));
+  const cur = String(values[src.code] ?? '');
+  if (src.optionsBy) return findCatalogItemByLink(catalog, src.optionsRef, cur)?.id;
+  const item = findCatalogItem(catalog, src.optionsRef, cur);
   return item && item.link ? item.link : undefined;
 }
 
@@ -144,10 +164,12 @@ export function applyCatalogLinks(
   const current = String(values[changed] ?? '');
   if (current === CATALOG_NONE || current === '') return;
   // Mã không có trong danh mục (giá trị mới thêm bằng "Khác…") thì chưa có ràng buộc: ô ràng buộc về "---" / để trống
-  const item = findCatalogItem(catalog, src.optionsRef, current);
+  const linkValue = src.optionsBy
+    ? findCatalogItemByLink(catalog, src.optionsRef, current)?.id
+    : findCatalogItem(catalog, src.optionsRef, current)?.link;
   columns.forEach((c) => {
     if (c.from && c.from.toLowerCase() === changed.toLowerCase()) {
-      values[c.code] = (item && item.link) || (c.type === 'select' ? CATALOG_NONE : '');
+      values[c.code] = linkValue || (c.type === 'select' ? CATALOG_NONE : '');
     }
   });
 }

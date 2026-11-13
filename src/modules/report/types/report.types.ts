@@ -49,6 +49,7 @@ export interface TableColumn {
   carry?: string;                     // công thức tính trên dòng của báo cáo ngày trước, kết quả thành giá trị cột này (luỹ kế)
   reset?: boolean;                    // khi tạo từ báo cáo ngày trước: đưa về giá trị mặc định
   optionsRef?: string;                // select:@<tên bảng> — danh sách lấy từ bảng danh mục trong ActivityP6.xlsx (tên bảng chữ thường), không nằm trong spec
+  optionsBy?: 'link';                 // select:@Bảng.<cột ràng buộc>: dropdown liệt kê giá trị ràng buộc (vd tên vật tư) thay vì mã; chọn thì cột from= tự điền mã
   from?: string;                      // from=<mã cột>: chọn mã ở cột đó thì cột này tự điền giá trị ràng buộc của mã (vd Activity theo Element)
 }
 

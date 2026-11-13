@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { CellValue, ReportTable, TableColumn, TableRow } from '../types/report.types';
-import { ReportCatalog, applyCatalogLinks, catalogOptions, findCatalogItem, linkedValue } from '../utils/reportCatalog';
+import { ReportCatalog, applyCatalogLinks, catalogOptions, linkedValue } from '../utils/reportCatalog';
 import { Icon } from '../../../core/components/Icon';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
 import {
@@ -164,8 +164,8 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
             value={current}
             options={
               col.optionsRef
-                ? catalogOptions(catalog, col.optionsRef).concat(
-                    (col.options || []).filter((o) => findCatalogItem(catalog, col.optionsRef as string, o) === undefined)
+                ? ((base) => base.concat((col.options || []).filter((o) => base.indexOf(o) === -1)))(
+                    catalogOptions(catalog, col.optionsRef, col.optionsBy === 'link')
                   )
                 : col.options || []
             }
