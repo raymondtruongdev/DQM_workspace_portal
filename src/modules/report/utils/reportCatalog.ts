@@ -156,7 +156,7 @@ export function linkedValue(
   const src = col.from ? columnByCode(columns, col.from) : undefined;
   if (!src || !src.optionsRef) return undefined;
   const cur = String(values[src.code] ?? '');
-  if (src.optionsBy) return findCatalogItemByLink(catalog, src.optionsRef, cur)?.id;
+  if (src.optionsBy) return findCatalogItemByLink(catalog, src.optionsRef, cur)?.id || undefined;
   const item = findCatalogItem(catalog, src.optionsRef, cur);
   return item && item.link ? item.link : undefined;
 }
