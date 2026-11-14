@@ -1,0 +1,85 @@
+{
+  "_ghi_chu": "Cấu hình cho setup-sharepoint.mjs. Tên list/cột phải khớp code (REPORT_CONFIG, ReportRegistryService, ReportCatalogService, ReportRoleService, UserProfileService). Sửa file này thay vì sửa script.",
+  "siteUrl": "https://ytf84.sharepoint.com/sites/metro-checkin-dev",
+  "clientId": "",
+  "tenant": "organizations",
+  "library": {
+    "name": "CapNhatCongViec",
+    "description": "Báo cáo hằng ngày, template, danh mục Activity, logo (Workspace Portal)",
+    "versioning": true,
+    "folders": ["_template", "resource", "data"],
+    "unitFoldersUnderData": true,
+    "files": [
+      { "from": "data_test/sharepoint_sample/ActivityP6.xlsx", "to": "ActivityP6.xlsx" },
+      { "fromGlob": "data_test/sharepoint_sample/_template/template_DRP_*.json", "toFolder": "_template" },
+      { "fromGlob": "data_test/sharepoint_sample/resource/*.jpg", "toFolder": "resource" }
+    ]
+  },
+  "lists": [
+    {
+      "name": "UserProfiles",
+      "description": "Nhận diện người dùng và vai trò (admin/user). Người thường chỉ đọc.",
+      "titleRequired": false,
+      "titleUnique": false,
+      "versioning": true,
+      "columns": [
+        { "name": "Email", "type": "Text", "indexed": true },
+        { "name": "DisplayName", "type": "Text" },
+        { "name": "Department", "type": "Text" },
+        { "name": "DepartmentName", "type": "Text" },
+        { "name": "Role", "type": "Text" },
+        { "name": "Active", "type": "Boolean", "default": true }
+      ],
+      "seed": { "mode": "admin" }
+    },
+    {
+      "name": "Report_Role",
+      "description": "Phân quyền báo cáo theo người (Email x Unit x DocID). Người thường chỉ đọc.",
+      "titleRequired": false,
+      "titleUnique": false,
+      "versioning": true,
+      "columns": [
+        { "name": "Email", "type": "Text" },
+        { "name": "DisplayName", "type": "Text" },
+        { "name": "Unit", "type": "Text" },
+        { "name": "DocID", "type": "Text" },
+        { "name": "DocTitle", "type": "Text" },
+        { "name": "Active", "type": "Boolean", "default": true }
+      ],
+      "seed": { "mode": "sample", "file": "docs/sharepoint_setup/Report_Role_list.xlsx", "sheet": "Report_Role" }
+    },
+    {
+      "name": "ReportRegistry",
+      "description": "Sổ báo cáo: số báo cáo tự tăng, trạng thái từng ngày, tab Tổng quan.",
+      "titleRequired": true,
+      "titleUnique": true,
+      "versioning": true,
+      "columns": [
+        { "name": "Unit", "type": "Text", "indexed": true },
+        { "name": "DocID", "type": "Text" },
+        { "name": "ReportDate", "type": "Text", "indexed": true },
+        { "name": "ReportNo", "type": "Number", "decimals": 0, "indexed": true },
+        { "name": "Reporter", "type": "Text" },
+        { "name": "Status", "type": "Text" },
+        { "name": "SavedAt", "type": "Text" },
+        { "name": "SignedAt", "type": "Text" },
+        { "name": "Counters", "type": "Text" }
+      ],
+      "seed": { "mode": "none" }
+    },
+    {
+      "name": "CatalogItems",
+      "description": "Danh mục dùng chung cho dropdown (Element, nhân lực, thiết bị, vật tư, thời tiết...).",
+      "titleRequired": true,
+      "titleUnique": true,
+      "versioning": true,
+      "columns": [
+        { "name": "Unit", "type": "Text", "indexed": true },
+        { "name": "Catalog", "type": "Text" },
+        { "name": "Code", "type": "Text" },
+        { "name": "Link", "type": "Text" }
+      ],
+      "seed": { "mode": "sample", "file": "docs/sharepoint_setup/CatalogItems_list.xlsx", "sheet": "CatalogItems", "default": true }
+    }
+  ]
+}

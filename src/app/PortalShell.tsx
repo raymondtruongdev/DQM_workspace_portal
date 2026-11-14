@@ -105,6 +105,12 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
           );
         });
 
+        if (!match) {
+          console.warn(
+            `[PortalShell] Không khớp hồ sơ nào: đọc được ${profiles.length} dòng UserProfiles, email đăng nhập "${cleanEmail}", email trong list:`,
+            profiles.map((p) => p.email)
+          );
+        }
         if (match && isMounted) {
           const session: UserSession = {
             email: match.email || cleanEmail,

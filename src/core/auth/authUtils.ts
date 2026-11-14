@@ -38,6 +38,14 @@ export function checkIsAdmin(role?: string): boolean {
  * - Col 4: DepartmentName / field_4 / Department
  * - Col 5: Role / field_5
  */
+/** Cột Active: Yes/No (true/false) hoặc chữ yes/y/1/active…; để trống hoặc không có cột = đang hoạt động. */
+export function parseProfileActive(raw: unknown): boolean {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return true;
+  if (typeof raw === 'boolean') return raw;
+  if (typeof raw === 'number') return raw !== 0;
+  return ['true', '1', 'yes', 'y', 'active', 'x', 'hoạt động'].indexOf(String(raw).trim().toLowerCase()) !== -1;
+}
+
 export function mapSharePointUserProfile(raw: Record<string, unknown>): UserProfileRecord {
   // Extract email candidate
   const rawEmail = String(
@@ -69,5 +77,6 @@ export function mapSharePointUserProfile(raw: Record<string, unknown>): UserProf
     departmentCode: deptCode,
     departmentName: deptName || deptCode,
     role: role || 'user',
+    active: parseProfileActive(raw.Active ?? raw.active),
   };
 }

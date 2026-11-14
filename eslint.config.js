@@ -2,7 +2,7 @@ const spfxProfile = require('@microsoft/eslint-config-spfx/lib/flat-profiles/rea
 
 module.exports = [
   {
-    ignores: ['sharepoint/**', 'dist/**', 'lib/**', 'temp/**', 'config/**', '**/*.js']
+    ignores: ['sharepoint/**', 'dist/**', 'lib/**', 'temp/**', 'config/**', 'dev/**','**/*.js']
   },
   ...spfxProfile,
   {

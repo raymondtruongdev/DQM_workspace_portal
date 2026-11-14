@@ -1,7 +1,9 @@
 # Hướng dẫn cài đặt SharePoint cho module Report (bản lưu JSON)
 
 Dành cho admin triển khai lần đầu (site dev: `https://ytf84.sharepoint.com/sites/metro-checkin-dev`). Làm theo thứ tự các mục; mục 8 là danh sách kiểm tra sau khi cài.
-Tất cả file mẫu nằm trong `data_test/sharepoint_sample/` (thư mục này mô phỏng đúng cấu trúc thư viện SharePoint).
+> **Tự động hoá:** mục 2 (tạo thư viện, upload file) và mục 3 (tạo list) có thể chạy bằng script `docs/sharepoint_setup/setup-sharepoint.mjs` (xem `docs/sharepoint_setup/README.md`); phân quyền vẫn làm tay.
+
+Tất cả file mẫu nằm trong `data_test/sharepoint_sample/` (riêng các file `*_list.xlsx` tạo list nằm ở `docs/sharepoint_setup/`) (thư mục này mô phỏng đúng cấu trúc thư viện SharePoint).
 
 > Lưu ý: app mới chưa từng chạy trên SharePoint thật (mới chạy thử bằng khung giả lập `dev/`). Lần cài đầu hãy làm kỹ mục 8; gặp lỗi xem mục 9 hoặc gửi nguyên văn thông báo để sửa code.
 
@@ -76,27 +78,28 @@ Dòng 1: `ActivityID | Unit | Description`; mỗi dòng sau một Activity.
 
 ## 3. Bốn list trên site
 
-Đủ bốn list: `UserProfiles`, `Report_Role`, `ReportRegistry`, `CatalogItems`. Mỗi file `*_list.xlsx` có sẵn sheet `Huong_dan` mô tả từng bước và kiểu cột; phần dưới tóm tắt những điểm bắt buộc.
+Đủ bốn list: `UserProfiles`, `Report_Role`, `ReportRegistry`, `CatalogItems`. Mỗi file `docs/sharepoint_setup/*_list.xlsx` có sẵn sheet `Huong_dan` mô tả từng bước và kiểu cột; phần dưới tóm tắt những điểm bắt buộc.
 
-### 3.1 `UserProfiles` (từ `UserProfiles_list.xlsx`)
+### 3.1 `UserProfiles` (từ `docs/sharepoint_setup/UserProfiles_list.xlsx`)
 - Tạo list: New > List > From Excel > chọn bảng `UserProfiles`. Thay dữ liệu mẫu bằng danh sách người dùng thật.
 - Cột quan trọng nhất: `Email` (UPN M365), `Role` (`ADMIN` hoặc `USER`).
+- Cột `Active` (Yes/No): `No` = tạm khoá người dùng mà không xoá dòng; trống = Yes. Luôn giữ ít nhất một admin `Yes`. Import từ Excel không có kiểu Yes/No: chọn Single line of text (chữ Yes/No) hoặc Number (1/0), web đọc được cả hai; cột Yes/No thật chỉ có khi tạo bằng script `docs/sharepoint_setup`. Cột `Active` của `Report_Role` cũng vậy.
 - Quyền: người thường chỉ **đọc**; chỉ admin thêm/sửa/xoá (vai trò ADMIN trong list chính là quyền admin của web part).
 
-### 3.2 `Report_Role` (từ `Report_Role_list.xlsx`): phân quyền báo cáo theo người
+### 3.2 `Report_Role` (từ `docs/sharepoint_setup/Report_Role_list.xlsx`): phân quyền báo cáo theo người
 - Tạo list từ Excel (bảng `Report_Role`), đặt tên list đúng **`Report_Role`**. Cột: `Email`, `DisplayName`, `Unit`, `DocID`, `DocTitle` (Single line of text; `DisplayName` có thể là cột Title) và `Active` (**Yes/No**).
 - Mỗi dòng = một người × một đơn vị × một loại báo cáo (`DocID` = `DailyReport`; `WeeklyReport` chỉ là placeholder). Một ô `Email` có thể chứa nhiều email ngăn bằng `;` hoặc dấu phẩy. `DisplayName` là tên người phụ trách, tự điền vào ô "Trưởng ga / CHT" của mục ký duyệt.
 - Tên cột cùng ý nghĩa dùng cùng tên ở các list khác: `Email`, `DisplayName` (như `UserProfiles`), `Unit`, `DocID` (như `ReportRegistry`).
 - Người dùng chỉ thấy ô báo cáo có dòng `Active = Yes` với email của mình. Admin (`Role` = `ADMIN` trong `UserProfiles`) thấy tất cả mà không cần dòng ở đây. **Người dùng phải có trong cả `UserProfiles` và `Report_Role`.**
 - Quyền: người báo cáo chỉ **đọc**; chỉ admin thêm/sửa/xoá. Bật versioning.
 
-### 3.3 `ReportRegistry` (từ `ReportRegistry_list.xlsx`)
+### 3.3 `ReportRegistry` (từ `docs/sharepoint_setup/ReportRegistry_list.xlsx`)
 - Tạo list từ Excel (bảng `ReportRegistry`); cột `ReportDate`, `SavedAt`, `SignedAt`, `Status`, `Counters` đều chọn **Single line of text** (không chọn Date/Choice); `ReportNo` kiểu Number, **0 chữ số thập phân**.
 - Xoá dòng mẫu `ST00|DailyReport|2000-01-01` sau khi tạo.
 - List settings: cột `Title` bật **Indexed** và **Enforce unique values**; tạo Index cho `Title`, `Unit`, `ReportDate`, `ReportNo` (tránh ngưỡng 5000 dòng); bật versioning.
 - Quyền: người báo cáo được **thêm và sửa**, **không xoá** ("Contribute không xoá"); admin toàn quyền. Không xoá dòng cũ (số báo cáo kế tiếp lấy từ số lớn nhất trong list).
 
-### 3.4 `CatalogItems` (từ `CatalogItems_list.xlsx`)
+### 3.4 `CatalogItems` (từ `docs/sharepoint_setup/CatalogItems_list.xlsx`)
 - Tạo list từ Excel (bảng `CatalogItems`), mọi cột **Single line of text**. File đã gồm 63 dòng: mã nhân lực/thiết bị dùng chung (`Unit = ALL`), Element và Vật tư theo từng đơn vị, và các danh sách chọn dùng chung (`ALL`): `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`.
 - List settings: cột `Title` bật **Indexed** + **Enforce unique values**; Index thêm cho `Unit`; bật versioning.
 - Quyền: người báo cáo chỉ **thêm** dòng (không sửa/xoá); admin toàn quyền (sửa chính tả, gán mã, xoá mục sai).

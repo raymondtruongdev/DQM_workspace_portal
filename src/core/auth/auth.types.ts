@@ -15,4 +15,6 @@ export interface UserProfileRecord {
   departmentCode?: string;
   departmentName?: string;
   role: string;
+  /** Cột Active của UserProfiles: false = tạm khoá (coi như không có trong list). Trống = đang hoạt động. */
+  active: boolean;
 }
