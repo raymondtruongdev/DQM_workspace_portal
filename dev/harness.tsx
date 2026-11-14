@@ -36,9 +36,9 @@ seedList('ReportRegistry', [
   }
 ]);
 seedList('CatalogItems', seed.catalogRows);
-// ?norole=1: không tạo list Report_Role để thử thông báo lỗi
-if (new URLSearchParams(window.location.search).get('norole') !== '1') seedList('Report_Role', seed.roleRows);
-// ?as=<email>: mở như người dùng THƯỜNG có email đó (mặc định: admin) để thử phân quyền theo list Report_Role
+// ?norole=1: không tạo list ReportRole để thử thông báo lỗi
+if (new URLSearchParams(window.location.search).get('norole') !== '1') seedList('ReportRole', seed.roleRows);
+// ?as=<email>: mở như người dùng THƯỜNG có email đó (mặc định: admin) để thử phân quyền theo list ReportRole
 const asEmail = new URLSearchParams(window.location.search).get('as');
 
 (window as unknown as { __dev: unknown }).__dev = { dumpFiles, readText, dumpList, LIBRARY };

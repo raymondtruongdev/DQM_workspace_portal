@@ -3,10 +3,10 @@
  * Tự động cài đặt SharePoint cho Workspace Portal (module Report).
  *
  * Làm gì (idempotent: chạy lại nhiều lần an toàn, chỉ bổ sung phần còn thiếu):
- *   1. Tạo 4 list: UserProfiles, Report_Role, ReportRegistry, CatalogItems (cột, index, unique, versioning).
+ *   1. Tạo 4 list: UserProfiles, ReportRole, ReportRegistry, CatalogItems (cột, index, unique, versioning).
  *   2. Tạo thư viện CapNhatCongViec + thư mục _template, resource, data, data/<Unit>.
  *   3. Upload ActivityP6.xlsx, template JSON, logo (mặc định KHÔNG ghi đè file đã có).
- *   4. Nạp dữ liệu: CatalogItems (mẫu), admin đầu tiên vào UserProfiles, (tuỳ chọn) Report_Role mẫu.
+ *   4. Nạp dữ liệu: CatalogItems (mẫu), admin đầu tiên vào UserProfiles, (tuỳ chọn) ReportRole mẫu.
  *
  * KHÔNG làm (phải làm tay trên SharePoint, xem README.md): phân quyền list/thư viện, build + deploy .sppkg.
  *
@@ -46,7 +46,7 @@ if (args.help || args.h) {
   --tenant <id|domain> Mặc định "organizations"
   --token <jwt>        Dùng sẵn access token SharePoint (hoặc biến môi trường SP_TOKEN) thay cho đăng nhập
   --admin <email>      Email admin đầu tiên ghi vào UserProfiles (bắt buộc khi tạo mới UserProfiles)
-  --seed-sample        Nạp thêm dữ liệu mẫu cho Report_Role (CatalogItems luôn nạp mẫu; --no-seed-catalog để tắt)
+  --seed-sample        Nạp thêm dữ liệu mẫu cho ReportRole (CatalogItems luôn nạp mẫu; --no-seed-catalog để tắt)
   --no-seed-catalog    Không nạp mẫu CatalogItems
   --skip-lists         Bỏ qua phần list
   --skip-files         Bỏ qua phần thư viện + upload file
@@ -247,17 +247,17 @@ async function seedList(def, key) {
     const enabled = seed.default ? !args['no-seed-catalog'] : !!args['seed-sample'];
     if (!enabled) { skip('bỏ qua dữ liệu mẫu'); return; }
     rows = readSheet(seed.file, seed.sheet).filter((r) => Object.values(r).some((v) => String(v).trim() !== ''));
-    if (def.name === 'Report_Role') rows = rows.map((r) => ({ ...r, Title: r.DisplayName || r.Email }));
+    if (def.name === 'ReportRole') rows = rows.map((r) => ({ ...r, Title: r.DisplayName || r.Email }));
   } else return;
 
   if (DRY) { plan(`nạp ${rows.length} dòng vào ${def.name}`); return; }
 
-  // khoá nhận diện dòng đã có: Title (CatalogItems) hoặc Email (UserProfiles) hoặc cả bộ (Report_Role)
+  // khoá nhận diện dòng đã có: Title (CatalogItems) hoặc Email (UserProfiles) hoặc cả bộ (ReportRole)
   const idOf = (r) => def.name === 'UserProfiles' ? String(r.Email).toLowerCase()
-    : def.name === 'Report_Role' ? [r.Email, r.Unit, r.DocID].join('|').toLowerCase()
+    : def.name === 'ReportRole' ? [r.Email, r.Unit, r.DocID].join('|').toLowerCase()
       : String(r.Title).toLowerCase();
   const exist = new Set();
-  const selectCols = def.name === 'UserProfiles' ? 'Title,Email' : def.name === 'Report_Role' ? 'Title,Email,Unit,DocID' : 'Title';
+  const selectCols = def.name === 'UserProfiles' ? 'Title,Email' : def.name === 'ReportRole' ? 'Title,Email,Unit,DocID' : 'Title';
   let next = `${SITE}/_api/${key}/items?$select=${selectCols}&$top=5000`;
   while (next) {
     const r = await sp('GET', next);
@@ -343,7 +343,7 @@ async function main() {
   if (!args['skip-files']) await setupLibrary();
 
   log(`\n${DRY ? 'Kế hoạch xong.' : 'Hoàn tất.'} Việc còn lại phải làm tay (xem README.md mục 5):
-  • Phân quyền list/thư viện (người thường chỉ đọc UserProfiles, Report_Role, _template, resource; chỉ thêm CatalogItems...)
+  • Phân quyền list/thư viện (người thường chỉ đọc UserProfiles, ReportRole, _template, resource; chỉ thêm CatalogItems...)
   • Build + deploy workspace_portal.sppkg, thêm web part lên trang
   • Chạy bảng kiểm tra mục 8 của docs/SHAREPOINT_SETUP.md`);
 }

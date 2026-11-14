@@ -380,6 +380,18 @@ export class ReportFileService {
   }
 
   /**
+   * Xoá file PDF đã ký của một ngày (mọi file `*_signed.pdf` trong thư mục báo cáo). Trả về tên các file đã xoá
+   * (rỗng nếu chưa có file nào). File xoá nằm trong Recycle Bin của SharePoint nên admin còn khôi phục được.
+   */
+  public async deleteSignedPdfs(unit: string, docId: string, dateStr: string): Promise<string[]> {
+    const folder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
+    const files = await this._client.getFolderFiles(this._siteUrl, folder);
+    const signed = files.filter((f) => isSignedPdfName(f.name));
+    for (const f of signed) await this._client.deleteFile(this._siteUrl, f.serverRelativeUrl);
+    return signed.map((f) => f.name);
+  }
+
+  /**
    * Delete an uploaded photo
    */
   public async deleteReportPhoto(serverRelativeUrl: string): Promise<void> {

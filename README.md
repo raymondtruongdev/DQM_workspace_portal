@@ -11,7 +11,7 @@
 - Lưu trữ trên SharePoint Document Library **`CapNhatCongViec`**; báo cáo ngày lưu dạng **JSON + HTML độc lập** (app chỉ hỗ trợ JSON, không còn đọc/ghi báo cáo hay template Excel):
   - Template báo cáo: `_template/template_DRP_<Unit>_<yyyyMMdd>.json` (ngày trong tên file là phiên bản, bản mới nhất thắng).
   - Mỗi báo cáo một thư mục `data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/` gồm `<DRP|WRP>_<yyyyMMdd>_<Unit>.json` (dữ liệu), `<DRP|WRP>_<yyyyMMdd>_<Unit>.html` (bản xem/in độc lập, nhúng sẵn dữ liệu + ảnh + logo), `photos/<GroupID>/` (ảnh hiện trường) và `<DocCode>_signed.pdf` (bản đã ký).
-  - Phân quyền theo người: list `Report_Role`; nhận diện đăng nhập: list `UserProfiles`; sổ quản lý số báo cáo/trạng thái: list `ReportRegistry`; danh mục dùng chung: list `CatalogItems` + file `ActivityP6.xlsx` (chỉ admin ghi).
+  - Phân quyền theo người: list `ReportRole`; nhận diện đăng nhập: list `UserProfiles`; sổ quản lý số báo cáo/trạng thái: list `ReportRegistry`; danh mục dùng chung: list `CatalogItems` + file `ActivityP6.xlsx` (chỉ admin ghi).
 - **Tính năng nổi bật:**
   - **Lịch 14 ngày và 3 trạng thái** (Chưa nhập / Chưa upload bản ký / Hoàn tất), tab **Tổng quan** cho admin (ma trận đơn vị × ngày, xuất Excel).
   - **Tự động kế thừa dữ liệu ngày trước:** ngày mới chưa có báo cáo thì lấy báo cáo ngày trước làm nền (áp dụng luỹ kế/đặt lại theo template); đơn vị chưa có báo cáo nào thì tạo từ template.
@@ -43,7 +43,7 @@ Cần **4 SharePoint List** và **1 Document Library** trên site đích (Dev: `
 | Tài nguyên | Loại | Dùng cho |
 |---|---|---|
 | `UserProfiles` | List | Nhận diện đăng nhập, vai trò `admin` / `user`, phòng ban |
-| `Report_Role` | List | Ai được làm báo cáo nào (đơn vị × loại báo cáo) |
+| `ReportRole` | List | Ai được làm báo cáo nào (đơn vị × loại báo cáo) |
 | `ReportRegistry` | List | Sổ báo cáo: số báo cáo tự tăng, trạng thái, bộ đếm mã |
 | `CatalogItems` | List | Danh mục dùng chung (Element, Resource, Vật tư, thời tiết, trạng thái…) |
 | `CapNhatCongViec` | Document Library | `ActivityP6.xlsx`, `_template/`, `resource/` (logo), `data/<Unit>/...` |
@@ -66,7 +66,7 @@ CapNhatCongViec/
 
 - **Hướng dẫn từng bước:** [`docs/SHAREPOINT_SETUP.md`](./docs/SHAREPOINT_SETUP.md). File tạo list (`*_list.xlsx`) và script cài đặt tự động nằm ở [`docs/sharepoint_setup/`](./docs/sharepoint_setup/README.md).
 - **File mẫu** (`ActivityP6.xlsx`, template JSON, logo, báo cáo mẫu) nằm ở `data_test/sharepoint_sample/`, tải lên thủ công (hoặc bằng script); thư mục `data/...` do app tự tạo.
-- Tài khoản phải có trong **cả** `UserProfiles` và `Report_Role` mới làm được báo cáo; admin (`UserProfiles.Role = admin`) thấy mọi phân quyền.
+- Tài khoản phải có trong **cả** `UserProfiles` và `ReportRole` mới làm được báo cáo; admin (`UserProfiles.Role = admin`) thấy mọi phân quyền.
 - Người dùng báo cáo cần quyền **Edit** trên thư mục `data/<Unit>` của mình. Phân quyền SharePoint là bảo mật thật; kiểm tra quyền ở giao diện chỉ là tiện ích.
 
 ---

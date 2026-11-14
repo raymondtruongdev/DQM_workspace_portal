@@ -6,4 +6,5 @@ export * from './SearchInput';
 export * from './State';
 export * from './TileGrid';
 export * from './PromptDialog';
+export * from './ConfirmDialog';
 export * from './CreatableSelect';

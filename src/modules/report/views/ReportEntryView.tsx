@@ -4,6 +4,7 @@ import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { formatDateToYYYYMMDD } from '../../../core/utils';
 import { PhotoGroup, ReportDoc, ReportMetadata, ReportPhotoSection, ReportSection, SignedDocInfo } from '../types/report.types';
 import { ReportDataService } from '../services/ReportDataService';
+import type { ISignedTrail } from '../services/ReportRegistryService';
 import { extractTemplateVersionDate, formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 import { buildSectionNumbering } from '../utils/reportSections';
 import { recalculateAllRates } from '../utils/reportTaskTree';
@@ -16,7 +17,7 @@ import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
 import { ReportSignedDocument } from '../components/ReportSignedDocument';
 import { getReportFolderName } from '../utils/reportFileNaming';
 import { ReportPrintPreviewModal } from '../components/ReportPrintPreviewModal';
-import { Icon, PageHeader, LoadingState, EmptyState } from '../../../core/components';
+import { Icon, PageHeader, LoadingState, EmptyState, ConfirmDialog } from '../../../core/components';
 
 /** "YYYY-MM-DD" -> "dd/MM" */
 const tplDM = (d?: string): string => (d ? d.split('-').reverse().slice(0, 2).join('/') : '');
@@ -58,6 +59,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   const [signedDoc, setSignedDoc] = React.useState<SignedDocInfo | undefined>(undefined);
   const [isSignedLoading, setIsSignedLoading] = React.useState<boolean>(false);
   const [isUploadingSigned, setIsUploadingSigned] = React.useState<boolean>(false);
+  const [isRemovingSigned, setIsRemovingSigned] = React.useState<boolean>(false);
+  const [removeSignedOpen, setRemoveSignedOpen] = React.useState<boolean>(false);
 
   // Load report data for selected date
   const loadData = React.useCallback(
@@ -258,7 +261,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
         buf,
         doc.metadata.reportNo,
         doc.metadata.email,
-        doc.metadata.docCode
+        doc.metadata.docCode,
+        currentUserEmail
       );
       setSignedDoc(res.info);
       setToast(
@@ -272,6 +276,48 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       setToast({ type: 'error', text: msg });
     } finally {
       setIsUploadingSigned(false);
+    }
+  };
+
+  // Dấu vết bản đã ký (người upload, lần xoá gần nhất) đọc từ sổ ReportRegistry; đọc lại sau mỗi lần upload/xoá
+  const [signedTrail, setSignedTrail] = React.useState<ISignedTrail | undefined>(undefined);
+  React.useEffect(() => {
+    if (isWeekly || !isReportSaved) {
+      setSignedTrail(undefined);
+      return;
+    }
+    let alive = true;
+    dataService
+      .getSignedTrail(role.unit, role.docId, dateStr)
+      .then((r) => {
+        if (alive) setSignedTrail(r);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [dataService, role.unit, role.docId, dateStr, isReportSaved, isWeekly, signedDoc, isRemovingSigned, isUploadingSigned]);
+
+  // Xoá file PDF đã ký: xoá file, đưa ngày về "Chưa upload bản ký", ghi người xoá + thời điểm gần nhất vào sổ
+  const handleRemoveSigned = async (): Promise<void> => {
+    setRemoveSignedOpen(false);
+    if (!doc || !doc.isExisting) return;
+    if (await onCheckMaintenance()) return;
+    setIsRemovingSigned(true);
+    try {
+      const res = await dataService.removeSignedDocument(role.unit, role.docId, dateStr, currentUserEmail);
+      setSignedDoc(undefined);
+      setToast(
+        res.warning
+          ? { type: 'error', text: res.warning }
+          : { type: 'success', text: 'Đã xoá file đã ký. Báo cáo ngày này quay về "Chưa upload bản ký".' }
+      );
+    } catch (err: unknown) {
+      console.error('Error removing signed document:', err);
+      const msg = err instanceof Error ? err.message : 'Lỗi khi xoá file đã ký trên SharePoint';
+      setToast({ type: 'error', text: msg });
+    } finally {
+      setIsRemovingSigned(false);
     }
   };
 
@@ -705,6 +751,9 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
               isUploading={isUploadingSigned}
               disabled={isSaving}
               onUpload={handleUploadSigned}
+              onRemove={() => setRemoveSignedOpen(true)}
+              trail={signedTrail}
+              isRemoving={isRemovingSigned}
             />
           )}
 
@@ -718,6 +767,19 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
         </div>
       ) : (
         <EmptyState message="Không thể nạp dữ liệu mẫu báo cáo" />
+      )}
+
+      {removeSignedOpen && doc && (
+        <ConfirmDialog
+          danger
+          title="Xoá file đã ký?"
+          message={`File PDF đã ký của ngày ${dateStr} sẽ bị xoá và ngày này quay về "Chưa upload bản ký". Hệ thống ghi lại người xoá và thời điểm xoá.`}
+          confirmLabel="Xoá file đã ký"
+          onConfirm={() => {
+            handleRemoveSigned().catch((err) => console.error(err));
+          }}
+          onCancel={() => setRemoveSignedOpen(false)}
+        />
       )}
 
       {/* 5. Print / Export PDF A4 Preview Modal */}

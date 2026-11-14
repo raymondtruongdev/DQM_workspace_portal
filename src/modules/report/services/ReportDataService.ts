@@ -10,7 +10,7 @@ import { buildStandaloneHtml, ReportHtmlAssets } from '../utils/reportHtml';
 import { bufferToDataUrl, embeddableImage, mimeOfFile } from '../utils/reportImage';
 import { ReportFileService } from './ReportFileService';
 import { LoadedTemplate, ReportTemplateService } from './ReportTemplateService';
-import { ReportRegistryService } from './ReportRegistryService';
+import { ISignedTrail, ReportRegistryService } from './ReportRegistryService';
 import { ReportCatalogService } from './ReportCatalogService';
 
 export interface LoadedReportResult {
@@ -85,7 +85,7 @@ export class ReportDataService {
     } catch (err: unknown) {
       this._catalogFile = undefined;
       console.warn('[Report] Could not read ActivityP6.xlsx:', err);
-      return emptyCatalog(unit, 'Không đọc được file danh mục ActivityP6.xlsx.');
+      return emptyCatalog(unit, `Không đọc được file danh mục ActivityP6.xlsx. ${errorDetail(err)}`);
     }
   }
 
@@ -398,7 +398,8 @@ export class ReportDataService {
     buffer: ArrayBuffer,
     reportNo = '',
     reporter = '',
-    docCode = ''
+    docCode = '',
+    uploader = ''
   ): Promise<{ info: SignedDocInfo; registryWarning?: string }> {
     // Upload từ lịch không biết Doc. code: đọc từ file báo cáo đã lưu
     let code = docCode;
@@ -413,13 +414,43 @@ export class ReportDataService {
     let registryWarning: string | undefined;
     if (this.isDaily(docId)) {
       try {
-        await this._registry.recordSigned(unit, docId, dateStr, reportNo, reporter);
+        await this._registry.recordSigned(unit, docId, dateStr, reportNo, reporter, uploader);
       } catch (err: unknown) {
         console.warn('[ReportRegistry] Could not record signed:', err);
         registryWarning = `Đã upload bản ký nhưng chưa cập nhật được sổ ReportRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}`;
       }
     }
     return { info, registryWarning };
+  }
+
+  /**
+   * Xoá bản đã ký của một ngày: xoá file PDF rồi đưa sổ ReportRegistry về "Chưa upload bản ký", ghi thời điểm + người xoá
+   * GẦN NHẤT (cột SignedRemovedAt/SignedRemovedBy). Xoá file lỗi thì ném ra; ghi sổ lỗi chỉ trả cảnh báo.
+   * Nơi gọi phải `checkMaintenance()` trước.
+   */
+  public async removeSignedDocument(unit: string, docId: string, dateStr: string, actor: string): Promise<{ warning?: string }> {
+    await this._fileService.deleteSignedPdfs(unit, docId, dateStr);
+    if (!this.isDaily(docId)) return {};
+    try {
+      const logged = await this._registry.recordUnsigned(unit, docId, dateStr, actor);
+      if (!logged) {
+        return { warning: 'Đã xoá bản đã ký nhưng chưa ghi được người xoá: list ReportRegistry chưa có cột SignedRemovedAt và SignedRemovedBy.' };
+      }
+    } catch (err: unknown) {
+      console.warn('[ReportRegistry] Could not record unsigned:', err);
+      return { warning: `Đã xoá bản đã ký nhưng chưa cập nhật được sổ ReportRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}` };
+    }
+    return {};
+  }
+
+  /** Dấu vết bản đã ký của một ngày (người upload, lần xoá gần nhất); không có hoặc không đọc được thì undefined. */
+  public async getSignedTrail(unit: string, docId: string, dateStr: string): Promise<ISignedTrail | undefined> {
+    if (!this.isDaily(docId)) return undefined;
+    try {
+      return await this._registry.getSignedTrail(unit, docId, dateStr);
+    } catch {
+      return undefined;
+    }
   }
 
   /**

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Dialog – hộp thoại nhỏ giữa màn hình
-   <PromptDialog /> (.dialog-backdrop > .dialog > __title, __body, __actions)
+   <PromptDialog /> / <ConfirmDialog /> (.dialog-backdrop > .dialog > __title, __body, __actions)
    ========================================================================== */
 :where(.app-layout) .dialog-backdrop {
   position: fixed;

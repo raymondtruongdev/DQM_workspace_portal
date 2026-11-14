@@ -67,7 +67,7 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
   const [isLoadingRoles, setIsLoadingRoles] = React.useState<boolean>(true);
   const [assignedRoles, setAssignedRoles] = React.useState<RoleEntry[]>([]);
   const [allRoles, setAllRoles] = React.useState<RoleEntry[]>([]);
-  // Lỗi đọc list phân quyền Report_Role (chưa tạo list, thiếu quyền đọc…): báo rõ thay vì hiện trang trống
+  // Lỗi đọc list phân quyền ReportRole (chưa tạo list, thiếu quyền đọc…): báo rõ thay vì hiện trang trống
   const [rolesError, setRolesError] = React.useState<string>('');
 
   // Load and resolve roles
@@ -82,7 +82,7 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
       console.error('Error loading report roles:', err);
       setAssignedRoles([]);
       setAllRoles([]);
-      setRolesError(err instanceof Error ? err.message : 'Không đọc được list Report_Role.');
+      setRolesError(err instanceof Error ? err.message : 'Không đọc được list ReportRole.');
     } finally {
       setIsLoadingRoles(false);
     }
@@ -153,6 +153,7 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
           onCheckMaintenance={checkMaintenance}
           onBack={handleBackToLanding}
           onOpenDate={handleOpenDate}
+          currentUserEmail={effectiveEmail}
         />
       ) : currentView === 'entry' && selectedRole ? (
         <ReportEntryView
@@ -180,7 +181,7 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
             icon="error-circle"
             title="Chưa đọc được phân quyền báo cáo"
             message={rolesError.slice(0, 300)}
-            hint="Kiểm tra list Report_Role đã tạo đúng tên và bạn có quyền đọc (xem docs/SHAREPOINT_SETUP.md)."
+            hint="Kiểm tra list ReportRole đã tạo đúng tên và bạn có quyền đọc (xem docs/SHAREPOINT_SETUP.md)."
             action={
               <button type="button" className="btn btn--primary" onClick={() => loadRoles().catch(() => undefined)}>
                 Thử lại

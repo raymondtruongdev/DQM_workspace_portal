@@ -90,7 +90,7 @@ DQM_workspace_portal/
 - **Dữ liệu và cách nhập tách đôi:** file `.json` chỉ chứa định danh, nhãn và giá trị thật; kiểu ô, danh mục dropdown, công thức, mặc định, luỹ kế, bố cục nằm ở template JSON `_template/template_DRP_<Unit>_<yyyyMMdd>.json`, ghép theo `id` (`jsonToDoc`). Thêm/bớt mục, cột, trường chỉ cần sửa template.
 - **Sổ `ReportRegistry`:** nguồn của số báo cáo tự tăng, trạng thái từng ngày (lịch 14 ngày, tab Tổng quan) và bộ đếm mã tự tăng (Event ID, Issue ID).
 - **Danh mục dùng chung:** `ActivityP6.xlsx` (chỉ admin ghi) + list `CatalogItems` (người dùng thêm bằng "Khác…", chống trùng hai lớp).
-- **Phân quyền báo cáo:** list `Report_Role` kết hợp `UserProfiles`; admin thấy mọi phân quyền.
+- **Phân quyền báo cáo:** list `ReportRole` kết hợp `UserProfiles`; admin thấy mọi phân quyền.
 - **Khoá dòng cố định (`locked`)**, **kế thừa dữ liệu ngày trước**, **Apply template theo `id`** khi có phiên bản mới.
 - **In / PDF A4 và HTML độc lập:** `ReportPrintDocument` render bản in song ngữ; `buildStandaloneHtml` dùng `createRoot` + `flushSync` vào div rời (không dùng `react-dom/server`) để sinh file HTML nhúng dữ liệu, ảnh và logo.
 - **Ghi lên SharePoint luôn gọi `checkMaintenance()` trước** (chế độ bảo trì chặn người thường).
@@ -103,7 +103,7 @@ DQM_workspace_portal/
 | Tài nguyên | Loại | Dùng cho |
 |---|---|---|
 | `UserProfiles` | List | Nhận diện đăng nhập, vai trò `admin` / `user`, phòng ban (`core/auth/UserProfileService`) |
-| `Report_Role` | List | Phân quyền báo cáo theo người (đơn vị × loại báo cáo) |
+| `ReportRole` | List | Phân quyền báo cáo theo người (đơn vị × loại báo cáo) |
 | `ReportRegistry` | List | Sổ báo cáo: số tự tăng, trạng thái, bộ đếm mã |
 | `CatalogItems` | List | Danh mục dùng chung của form báo cáo |
 | `CapNhatCongViec` | Document Library | `ActivityP6.xlsx`, `_template/`, `resource/`, `data/<Unit>/...` của module Report |

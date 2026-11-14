@@ -1,7 +1,7 @@
 import { extractCleanEmail } from '../../../core/auth';
 import { RoleEntry } from '../../../core/types';
 
-/** Tên nội bộ (SharePoint) của các cột trong list Report_Role; tra từ tên hiển thị bằng getListFieldMap. */
+/** Tên nội bộ (SharePoint) của các cột trong list ReportRole; tra từ tên hiển thị bằng getListFieldMap. */
 export interface RoleListNames {
   displayName: string;
   email: string;
@@ -31,7 +31,7 @@ export function parseActive(raw: unknown): boolean {
 }
 
 /**
- * Các dòng của list Report_Role thành RoleEntry: mỗi dòng = một người × một đơn vị × một loại báo cáo.
+ * Các dòng của list ReportRole thành RoleEntry: mỗi dòng = một người × một đơn vị × một loại báo cáo.
  * Một ô Email có thể chứa nhiều email ngăn bằng `;` `,` hoặc xuống dòng (mỗi email thành một phân quyền).
  * Dòng thiếu Unit, DocID hoặc Email bị bỏ qua. `DisplayName` là tên người phụ trách (tự điền vào ô "Trưởng ga / CHT").
  */

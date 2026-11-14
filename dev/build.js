@@ -2,7 +2,7 @@
  * Dựng khung chạy thử cục bộ của module Report (không cần SharePoint):  node dev/build.js
  * Kết quả: temp/dev/index.html (mở bằng trình duyệt). Chi tiết: AGENTS.md mục "Chạy thử cục bộ".
  *  1. tsc biên dịch src/ + dev/ sang temp/dev/js
- *  2. nạp data_test/sharepoint_sample (template, ActivityP6.xlsx, logo, báo cáo mẫu; list CatalogItems, Report_Role từ các file *_list.xlsx ở docs/sharepoint_setup) thành seed.js
+ *  2. nạp data_test/sharepoint_sample (template, ActivityP6.xlsx, logo, báo cáo mẫu; list CatalogItems, ReportRole từ các file *_list.xlsx ở docs/sharepoint_setup) thành seed.js
  *  3. webpack gộp, thay `core/services/SharePointClient` bằng bản giả lập trong bộ nhớ và `@microsoft/sp-http` bằng stub
  */
 const fs = require('fs');
@@ -51,7 +51,7 @@ const XLSX = require('xlsx');
 const catalogRows = XLSX.utils.sheet_to_json(XLSX.readFile(path.join(root, 'docs', 'sharepoint_setup', 'CatalogItems_list.xlsx')).Sheets['CatalogItems'], { defval: '' });
 // Phân quyền báo cáo: DisplayName nằm ở cột Title của list (như hướng dẫn tạo list)
 const roleRows = XLSX.utils
-  .sheet_to_json(XLSX.readFile(path.join(root, 'docs', 'sharepoint_setup', 'Report_Role_list.xlsx')).Sheets['Report_Role'], { defval: '' })
+  .sheet_to_json(XLSX.readFile(path.join(root, 'docs', 'sharepoint_setup', 'ReportRole_list.xlsx')).Sheets['ReportRole'], { defval: '' })
   .map((r) => ({ Title: r.DisplayName, Email: r.Email, Unit: r.Unit, DocID: r.DocID, DocTitle: r.DocTitle, Active: r.Active }));
 fs.writeFileSync(path.join(out, 'seed.js'), `window.__SEED__=${JSON.stringify({ files, catalogRows, roleRows })};\n`);
 fs.writeFileSync(

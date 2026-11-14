@@ -8,8 +8,15 @@ export const REPORT_REGISTRY_LIST = 'ReportRegistry';
 
 export type RegistryStatus = 'unsigned' | 'done';
 
+/** Dấu vết bản đã ký: ai upload bản hiện tại, ai xoá và lúc nào (lần xoá gần nhất). */
+export interface ISignedTrail {
+  uploadBy: string;
+  removedAt: string;
+  removedBy: string;
+}
+
 /** Tên (tiêu đề) các cột của list; tên nội bộ thật được tra từ list vì có thể khác (vd Unit -> Unit0). */
-const COLS = ['Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters'] as const;
+const COLS = ['Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy'] as const;
 type Col = (typeof COLS)[number];
 
 /** Một dòng của list (khoá = tên cột chuẩn ở trên, đã đổi từ tên nội bộ). */
@@ -26,6 +33,11 @@ interface IRegistryRow {
   SignedAt: string;
   /** JSON bộ đếm mã tự tăng tại thời điểm lưu, vd {"events.eventid":5,"issues.issueid":4}. */
   Counters: string;
+  /** Email người upload bản đã ký hiện tại (cột không bắt buộc; trống khi chưa có bản ký). */
+  SignedUploadBy: string;
+  /** Lần xoá bản đã ký gần nhất: thời điểm ISO và người xoá (cột không bắt buộc). */
+  SignedRemovedAt: string;
+  SignedRemovedBy: string;
 }
 
 const esc = (v: string): string => v.replace(/'/g, "''");
@@ -41,6 +53,10 @@ export class ReportRegistryService {
   private _names: Promise<Record<Col, string>> | undefined;
   /** List đã có cột Counters chưa (chưa thêm thì bỏ qua bộ đếm, mã tự tăng chỉ dựa vào báo cáo đang mở). */
   private _hasCounters = false;
+  /** List đã có cột SignedRemovedAt/SignedRemovedBy chưa (chưa thêm thì không ghi/đọc lần xoá bản ký). */
+  private _hasRemoval = false;
+  /** List đã có cột SignedUploadBy chưa. */
+  private _hasUploadBy = false;
 
   constructor(client: ISharePointClient, siteUrl: string, libraryPath: () => string) {
     this._client = client;
@@ -61,6 +77,8 @@ export class ReportRegistryService {
         .then((map) => {
           const out = {} as Record<Col, string>;
           this._hasCounters = map.counters !== undefined;
+          this._hasUploadBy = map.signeduploadby !== undefined;
+          this._hasRemoval = map.signedremovedat !== undefined && map.signedremovedby !== undefined;
           COLS.forEach((c) => {
             out[c] = map[c.toLowerCase()] || c;
           });
@@ -97,7 +115,10 @@ export class ReportRegistryService {
       Status: str('Status') === 'done' ? 'done' : 'unsigned',
       SavedAt: str('SavedAt'),
       SignedAt: str('SignedAt'),
-      Counters: str('Counters')
+      Counters: str('Counters'),
+      SignedUploadBy: str('SignedUploadBy'),
+      SignedRemovedAt: str('SignedRemovedAt'),
+      SignedRemovedBy: str('SignedRemovedBy')
     };
   }
 
@@ -195,13 +216,14 @@ export class ReportRegistryService {
     );
   }
 
-  /** Ghi nhận đã upload bản đã ký: trạng thái Hoàn tất + thời điểm ký. */
+  /** Ghi nhận đã upload bản đã ký: trạng thái Hoàn tất + thời điểm ký + email người upload (`uploader`). */
   public async recordSigned(
     unit: string,
     docId: string,
     dateStr: string,
     reportNo: string,
-    reporter: string
+    reporter: string,
+    uploader = ''
   ): Promise<void> {
     const n = await this.names();
     let item = await this.findItem(unit, docId, dateStr);
@@ -214,8 +236,45 @@ export class ReportRegistryService {
       this._siteUrl,
       REPORT_REGISTRY_LIST,
       item.id,
-      this.toInternal(n, { Status: 'done', SignedAt: new Date().toISOString() })
+      this.toInternal(n, {
+        Status: 'done',
+        SignedAt: new Date().toISOString(),
+        ...(this._hasUploadBy ? { SignedUploadBy: uploader || reporter } : {})
+      })
     );
+  }
+
+  /**
+   * Ghi nhận đã xoá bản đã ký: trạng thái về "Chưa upload bản ký", xoá thời điểm ký, và (nếu list có cột
+   * SignedRemovedAt/SignedRemovedBy) ghi thời điểm + người xoá GẦN NHẤT. Trả về true nếu đã ghi được người xoá.
+   */
+  public async recordUnsigned(unit: string, docId: string, dateStr: string, actor: string): Promise<boolean> {
+    const n = await this.names();
+    const item = await this.findItem(unit, docId, dateStr);
+    if (!item) return false;
+    const removal: Partial<Omit<IRegistryRow, 'id'>> = this._hasRemoval
+      ? { SignedRemovedAt: new Date().toISOString(), SignedRemovedBy: actor }
+      : {};
+    await this._client.updateItem<Record<string, unknown>>(
+      this._siteUrl,
+      REPORT_REGISTRY_LIST,
+      item.id,
+      this.toInternal(n, { Status: 'unsigned', SignedAt: '', ...(this._hasUploadBy ? { SignedUploadBy: '' } : {}), ...removal })
+    );
+    return this._hasRemoval;
+  }
+
+  /** Dấu vết bản đã ký của một ngày: người upload hiện tại và lần xoá gần nhất (cột chưa có thì trường tương ứng trống). */
+  public async getSignedTrail(unit: string, docId: string, dateStr: string): Promise<ISignedTrail | undefined> {
+    await this.names();
+    if (!this._hasRemoval && !this._hasUploadBy) return undefined;
+    const item = await this.findItem(unit, docId, dateStr);
+    if (!item) return undefined;
+    return {
+      uploadBy: item.SignedUploadBy,
+      removedAt: item.SignedRemovedAt,
+      removedBy: item.SignedRemovedBy
+    };
   }
 
   /**

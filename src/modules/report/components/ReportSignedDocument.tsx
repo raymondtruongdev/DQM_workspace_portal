@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { SignedDocInfo } from '../types/report.types';
+import type { ISignedTrail } from '../services/ReportRegistryService';
 import { Icon } from '../../../core/components';
 import { formatFileSize, formatSavedAt } from '../utils/reportCalendar';
 
@@ -15,6 +16,11 @@ export interface IReportSignedDocumentProps {
   isUploading: boolean;
   disabled?: boolean;
   onUpload: (file: File) => Promise<void>;
+  /** Xoá file đã ký (có hộp thoại xác nhận + lý do). Không truyền = không hiện nút. */
+  onRemove?: () => void;
+  isRemoving?: boolean;
+  /** Dấu vết bản đã ký từ sổ ReportRegistry: người upload (khi đã có bản ký), lần xoá gần nhất (khi chưa có). */
+  trail?: ISignedTrail;
 }
 
 /**
@@ -29,13 +35,16 @@ export const ReportSignedDocument: React.FC<IReportSignedDocumentProps> = ({
   isLoading,
   isUploading,
   disabled = false,
-  onUpload
+  onUpload,
+  onRemove,
+  isRemoving = false,
+  trail
 }) => {
   const fileRef = React.useRef<HTMLInputElement | null>(null);
   const [dragOver, setDragOver] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>('');
 
-  const busy = disabled || isUploading || isLoading;
+  const busy = disabled || isUploading || isLoading || isRemoving;
 
   const accept = async (file: File | undefined): Promise<void> => {
     if (!file) return;
@@ -98,6 +107,7 @@ export const ReportSignedDocument: React.FC<IReportSignedDocumentProps> = ({
                 </a>
                 <div className="report-signed-file__meta">
                   {formatFileSize(signed.length)} · {formatSavedAt(signed.timeLastModified)}
+                  {trail && trail.uploadBy ? <> · upload bởi {trail.uploadBy}</> : null}
                 </div>
               </div>
             </div>
@@ -116,6 +126,18 @@ export const ReportSignedDocument: React.FC<IReportSignedDocumentProps> = ({
                 <Icon name="upload" size={16} />
                 <span>{isUploading ? 'Đang tải...' : 'Thay file'}</span>
               </button>
+              {onRemove && (
+                <button
+                  type="button"
+                  className="btn btn--danger btn--sm"
+                  onClick={onRemove}
+                  disabled={busy}
+                  title="Xoá file đã ký (có ghi nhật ký)"
+                >
+                  <Icon name="delete" size={16} />
+                  <span>{isRemoving ? 'Đang xoá...' : 'Xoá file đã ký'}</span>
+                </button>
+              )}
             </div>
           </div>
         ) : (
@@ -146,6 +168,13 @@ export const ReportSignedDocument: React.FC<IReportSignedDocumentProps> = ({
               <span>{isUploading ? 'Đang tải lên...' : 'Upload file đã ký'}</span>
             </button>
           </div>
+        )}
+
+        {!hasSigned && trail && trail.removedAt && (
+          <p className="report-signed-folder">
+            Bản đã ký từng bị xoá gần nhất lúc {formatSavedAt(trail.removedAt)}
+            {trail.removedBy ? <> bởi <b>{trail.removedBy}</b></> : null}.
+          </p>
         )}
 
         {error && (

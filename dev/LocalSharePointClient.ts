@@ -133,8 +133,8 @@ function evalFilter(filter: string, row: Record<string, unknown>): boolean {
 
 /** Cột chuẩn của các list; "Hiển thị=Nội bộ" khi tên nội bộ khác tên hiển thị (vd DisplayName là cột Title). */
 const FIELD_MAPS: Record<string, string[]> = {
-  Report_Role: ['DisplayName=Title', 'Email', 'Unit', 'DocID', 'DocTitle', 'Active'],
-  ReportRegistry: ['Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters'],
+  ReportRole: ['DisplayName=Title', 'Email', 'Unit', 'DocID', 'DocTitle', 'Active'],
+  ReportRegistry: ['Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy'],
   CatalogItems: ['Title', 'Unit', 'Catalog', 'Code', 'Link']
 };
 

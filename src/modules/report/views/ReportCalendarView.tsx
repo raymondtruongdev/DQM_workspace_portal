@@ -35,6 +35,8 @@ export interface IReportCalendarViewProps {
   onBack: () => void;
   /** Mở form nhập báo cáo của một ngày (YYYY-MM-DD). */
   onOpenDate: (dateStr: string) => void;
+  /** Email người đang đăng nhập (ghi vào sổ khi upload bản ký). */
+  currentUserEmail: string;
 }
 
 type CalendarMode = 'cal' | 'list';
@@ -53,7 +55,8 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   dataService,
   onCheckMaintenance,
   onBack,
-  onOpenDate
+  onOpenDate,
+  currentUserEmail
 }) => {
   const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS), []);
   const todayStr = dates[dates.length - 1];
@@ -176,7 +179,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
     setIsUploading(true);
     try {
       const buf = await file.arrayBuffer();
-      await dataService.uploadSignedDocument(role.unit, role.docId, target, buf);
+      await dataService.uploadSignedDocument(role.unit, role.docId, target, buf, '', '', '', currentUserEmail);
       setToast({ type: 'success', text: `Đã upload bản ký cho ngày ${formatDM(target)}. Ngày này đã hoàn tất.` });
       await load();
     } catch (err: unknown) {

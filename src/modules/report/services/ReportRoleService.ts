@@ -3,8 +3,8 @@ import { ISharePointClient, RoleResolutionService } from '../../../core/services
 import { REPORT_CONFIG } from '../constants/reportConfig';
 import { RoleListNames, parseRoleRows } from '../utils/reportRole';
 
-/** Tên SharePoint List phân quyền báo cáo (cột: xem docs/SHAREPOINT_SETUP.md và Report_Role_list.xlsx). */
-export const REPORT_ROLE_LIST = 'Report_Role';
+/** Tên SharePoint List phân quyền báo cáo (cột: xem docs/SHAREPOINT_SETUP.md và ReportRole_list.xlsx). */
+export const REPORT_ROLE_LIST = 'ReportRole';
 
 export class ReportRoleService {
   private _client: ISharePointClient;
@@ -30,7 +30,7 @@ export class ReportRoleService {
   }
 
   /**
-   * Phân quyền báo cáo của người dùng, đọc từ list Report_Role (đọc lại mỗi lần mở module). Admin thấy mọi phân quyền đang hiệu lực.
+   * Phân quyền báo cáo của người dùng, đọc từ list ReportRole (đọc lại mỗi lần mở module). Admin thấy mọi phân quyền đang hiệu lực.
    * Không đọc được list (chưa tạo, thiếu quyền đọc…) thì ném lỗi để giao diện báo cho người dùng.
    */
   public async resolveUserRoles(rawUserEmail: string, isAdmin: boolean): Promise<UserRoleResolution> {

@@ -33,7 +33,7 @@
       "seed": { "mode": "admin" }
     },
     {
-      "name": "Report_Role",
+      "name": "ReportRole",
       "description": "Phân quyền báo cáo theo người (Email x Unit x DocID). Người thường chỉ đọc.",
       "titleRequired": false,
       "titleUnique": false,
@@ -46,7 +46,7 @@
         { "name": "DocTitle", "type": "Text" },
         { "name": "Active", "type": "Boolean", "default": true }
       ],
-      "seed": { "mode": "sample", "file": "docs/sharepoint_setup/Report_Role_list.xlsx", "sheet": "Report_Role" }
+      "seed": { "mode": "sample", "file": "docs/sharepoint_setup/ReportRole_list.xlsx", "sheet": "ReportRole" }
     },
     {
       "name": "ReportRegistry",
@@ -63,7 +63,10 @@
         { "name": "Status", "type": "Text" },
         { "name": "SavedAt", "type": "Text" },
         { "name": "SignedAt", "type": "Text" },
-        { "name": "Counters", "type": "Text" }
+        { "name": "Counters", "type": "Text" },
+        { "name": "SignedUploadBy", "type": "Text" },
+        { "name": "SignedRemovedAt", "type": "Text" },
+        { "name": "SignedRemovedBy", "type": "Text" }
       ],
       "seed": { "mode": "none" }
     },

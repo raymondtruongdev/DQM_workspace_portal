@@ -1,4 +1,4 @@
-/** Test đọc phân quyền báo cáo từ list Report_Role. Chạy: npm run test:report */
+/** Test đọc phân quyền báo cáo từ list ReportRole. Chạy: npm run test:report */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
