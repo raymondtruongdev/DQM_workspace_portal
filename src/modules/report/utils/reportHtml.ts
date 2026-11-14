@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { flushSync } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { ReportDoc } from '../types/report.types';
 import { ReportPrintDocument } from '../components/ReportPrintDocument';
 import { PRINT_CSS } from './reportPrintCss';
@@ -54,17 +56,23 @@ const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;',
 /**
  * File HTML độc lập của báo cáo: nội dung bản in A4 đã render sẵn (giống hệt cửa sổ xem trước của web) + CSS in + logo/ảnh nhúng
  * + toàn bộ dữ liệu `.data.json` trong thẻ `<script type="application/json" id="report-data">`.
- * Mở bằng trình duyệt không cần mạng hay web server; bấm nút In để lưu PDF. `react-dom/server` chỉ được tải khi gọi hàm này.
- */
+ * Mở bằng trình duyệt không cần mạng hay web server; bấm nút In để lưu PDF. */
 export async function buildStandaloneHtml(doc: ReportDoc, jsonText: string, assets: ReportHtmlAssets): Promise<string> {
-  const { renderToStaticMarkup } = await import(/* webpackChunkName: 'report-html' */ 'react-dom/server');
-  const body = renderToStaticMarkup(
-    React.createElement(ReportPrintDocument, {
-      doc,
-      logoSrc: assets.logos,
-      photoSrc: (groupId: string, name: string) => assets.photos[`${groupId}/${name}`] || `photos/${groupId}/${name}`
-    })
-  );
+  // Render bằng chính bản React của web part vào một thẻ div rời (không gắn vào trang) rồi lấy innerHTML. Không dùng
+  // `react-dom/server`: trong gói SPFx nó lỗi "Cannot read properties of undefined (reading 'getCurrentStack')".
+  const host = document.createElement('div');
+  const root = createRoot(host);
+  flushSync(() => {
+    root.render(
+      React.createElement(ReportPrintDocument, {
+        doc,
+        logoSrc: assets.logos,
+        photoSrc: (groupId: string, name: string) => assets.photos[`${groupId}/${name}`] || `photos/${groupId}/${name}`
+      })
+    );
+  });
+  const body = host.innerHTML;
+  root.unmount();
   const title = getPdfFileName(doc);
   // "<" trong JSON thành < để dữ liệu không thể đóng thẻ <script> sớm; JSON.parse vẫn đọc đúng
   const data = jsonText.replace(/</g, '\\u003c');
