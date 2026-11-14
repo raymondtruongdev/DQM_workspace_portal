@@ -10,7 +10,9 @@
     "clean": "heft clean",
     "eject-webpack": "heft eject-webpack",
     "start": "heft start --clean",
-    "lint:styles": "node scripts/check-styles.js"
+    "lint:styles": "node scripts/check-styles.js",
+    "dev:report": "node dev/build.js",
+    "test:report": "node dev/build.js && node --test dev/tests"
   },
   "dependencies": {
     "@fluentui/react": "^8.106.4",

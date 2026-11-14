@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { CellValue, ReportTable, TableColumn, TableRow } from '../types/report.types';
-import { ReportCatalog, applyCatalogLinks, canAddToTable, catalogOptions, linkedValue } from '../utils/reportCatalog';
+import { CellValue, FormField, ReportTable, TableColumn, TableRow } from '../types/report.types';
+import { ReportFieldsGrid } from './ReportFieldsGrid';
+import { ReportCatalog, applyCatalogLinks, canAddToTable, catalogOptionLabels, catalogOptions, linkedValue } from '../utils/reportCatalog';
 import { Icon } from '../../../core/components/Icon';
 import { PromptDialog } from '../../../core/components/PromptDialog';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
@@ -13,13 +14,11 @@ import {
   firstTotalIndex,
   formatNumber,
   hasTotals,
-  isoToVN,
   recalcRow,
   resolveTitle,
   sanitizeOption,
   splitLabel,
-  toneOf,
-  vnToIso
+  toneOf
 } from '../utils/reportTable';
 
 /** Hỏi giá trị liên kết của mục mới; `undefined` = người dùng huỷ. */
@@ -45,6 +44,8 @@ export interface IReportDynamicTableProps {
   roman: string;
   anchor: string;
   disabled?: boolean;
+  /** Tô đỏ các trường bắt buộc đang trống. */
+  showErrors?: boolean;
   onChange: (table: ReportTable) => void;
 }
 
@@ -59,7 +60,7 @@ const alignClass = (col: TableColumn): string => {
   return a === 'right' ? ' text-right' : a === 'center' ? ' text-center' : '';
 };
 
-/** Mục dạng bảng sinh từ sheet của template: tiêu đề, bảng nhập, dòng Tổng, ô Tóm tắt. */
+/** Mục dạng bảng: tiêu đề, bảng nhập, dòng Tổng, các trường văn bản (nếu có), ô Tóm tắt. */
 export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   table,
   unit,
@@ -70,6 +71,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   roman,
   anchor,
   disabled = false,
+  showErrors = false,
   onChange
 }) => {
   const { columns, rows } = table;
@@ -205,8 +207,8 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           <input
             type="date"
             className={`input input--cell${locked ? ' input--locked' : ''}${align}`}
-            value={vnToIso(text)}
-            onChange={(e) => updateCell(idx, col.code, isoToVN(e.target.value))}
+            value={text}
+            onChange={(e) => updateCell(idx, col.code, e.target.value)}
             disabled={disabled || locked}
             title={splitLabel(col.label).vi}
           />
@@ -224,10 +226,11 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
             options={
               col.optionsRef
                 ? ((base) => base.concat((col.options || []).filter((o) => base.indexOf(o) === -1)))(
-                    catalogOptions(catalog, col.optionsRef, col.optionsBy === 'link')
+                    catalogOptions(catalog, col.optionsRef, col.optionsBy === 'link', col.noNone)
                   )
                 : col.options || []
             }
+            optionLabels={col.optionsRef && col.optionsBy !== 'link' ? catalogOptionLabels(catalog, col.optionsRef) : undefined}
             allowOther={col.optionsRef ? canAddToTable(catalog, col.optionsRef) : true}
             onChange={(v, isNew) => {
               selectValue(idx, col, v, isNew).catch(() => undefined);
@@ -331,6 +334,19 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {table.fields && table.fields.length > 0 && (
+        <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <ReportFieldsGrid
+            fields={table.fields}
+            cols={table.fieldColumns || 1}
+            anchor={`${anchor}-f`}
+            disabled={disabled}
+            showErrors={showErrors}
+            onChange={(fields: FormField[]) => onChange({ ...table, fields })}
+          />
+        </div>
+      )}
 
       {table.showSummary && (
       <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>

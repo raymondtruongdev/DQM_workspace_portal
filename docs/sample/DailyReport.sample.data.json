@@ -10,195 +10,941 @@
     "en": "DAILY REPORT",
     "sub": "Dự án xây dựng tuyến tàu điện ngầm số 2 TP.HCM - Tuyến Bến Thành - Tham Lương"
   },
-  "template": "template_DRP_ST01_20261113",
-  "created": { "by": "user@example.com", "at": "2026-11-10T01:00:00.000Z" },
-  "updated": { "by": "user@example.com", "at": "2026-11-10T09:30:00.000Z" },
-  "subcontractors": ["THAC_CRSG", "THAC_THAN"],
+  "template": "template_DRP_ST01_20261114",
+  "created": {
+    "by": "user@example.com",
+    "at": "2026-11-10T01:00:00.000Z"
+  },
+  "updated": {
+    "by": "user@example.com",
+    "at": "2026-11-14T02:47:46.958Z"
+  },
+  "subcontractors": [
+    "THAC_CRSG",
+    "THAC_THAN"
+  ],
   "sections": [
     {
       "id": "weather",
-      "title": { "vi": "THÔNG TIN CHUNG & THỜI TIẾT", "en": "GENERAL & WEATHER", "short": "Thời tiết" },
+      "title": {
+        "vi": "THÔNG TIN CHUNG & THỜI TIẾT",
+        "en": "GENERAL & WEATHER",
+        "short": "Thời tiết"
+      },
       "summary": "",
       "columns": [
-        { "id": "am", "label": { "vi": "Sáng 08h-16h", "en": "Morning" } },
-        { "id": "pm", "label": { "vi": "Chiều 16h-24h", "en": "Afternoon" } },
-        { "id": "night", "label": { "vi": "Tối 00h-08h", "en": "Night" } },
-        { "id": "hrsLost", "label": { "vi": "Giờ ngừng do thời tiết", "en": "Hrs lost" } },
-        { "id": "value", "label": { "vi": "Chỉ số đánh giá", "en": "Value" } }
+        {
+          "id": "am",
+          "label": {
+            "vi": "Sáng 08h-16h",
+            "en": "Morning"
+          }
+        },
+        {
+          "id": "pm",
+          "label": {
+            "vi": "Chiều 16h-24h",
+            "en": "Afternoon"
+          }
+        },
+        {
+          "id": "night",
+          "label": {
+            "vi": "Tối 00h-08h",
+            "en": "Night"
+          }
+        },
+        {
+          "id": "hrsLost",
+          "label": {
+            "vi": "Giờ ngừng do thời tiết",
+            "en": "Hrs lost"
+          }
+        },
+        {
+          "id": "value",
+          "label": {
+            "vi": "Chỉ số đánh giá",
+            "en": "Value"
+          }
+        }
       ],
       "rows": [
-        { "id": "r1", "cells": { "am": "Nắng", "pm": "Mưa", "night": "Bão", "hrsLost": 1.5, "value": "SV | EV | AC" } }
+        {
+          "id": "r1",
+          "cells": {
+            "am": "Nắng",
+            "pm": "Mưa",
+            "night": "Bão",
+            "hrsLost": 1.5,
+            "value": "SV | EV | AC"
+          }
+        }
       ]
     },
     {
       "id": "hse",
-      "title": { "vi": "AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS", "en": "HSE – QUALITY – ENGINEER'S INSTRUCTIONS", "short": "HSE" },
+      "title": {
+        "vi": "AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS",
+        "en": "HSE – QUALITY – ENGINEER'S INSTRUCTIONS",
+        "short": "HSE"
+      },
       "summary": "",
       "columns": [
-        { "id": "hseIncidents", "label": { "vi": "Sự cố HSE", "en": "HSE incidents" } },
-        { "id": "envIncidents", "label": { "vi": "Sự cố môi trường", "en": "Environmental incidents" } },
-        { "id": "hseInspections", "label": { "vi": "Kiểm tra ATLĐ", "en": "HSE inspections" } },
-        { "id": "inspectionRequests", "label": { "vi": "Nghiệm thu (IR)", "en": "Inspection request" } },
-        { "id": "newNcr", "label": { "vi": "NCR mới", "en": "New NCR" } }
+        {
+          "id": "hseIncidents",
+          "label": {
+            "vi": "Sự cố HSE",
+            "en": "HSE incidents"
+          }
+        },
+        {
+          "id": "envIncidents",
+          "label": {
+            "vi": "Sự cố môi trường",
+            "en": "Environmental incidents"
+          }
+        },
+        {
+          "id": "hseInspections",
+          "label": {
+            "vi": "Kiểm tra ATLĐ",
+            "en": "HSE inspections"
+          }
+        },
+        {
+          "id": "inspectionRequests",
+          "label": {
+            "vi": "Nghiệm thu (IR)",
+            "en": "Inspection request"
+          }
+        },
+        {
+          "id": "newNcr",
+          "label": {
+            "vi": "NCR mới",
+            "en": "New NCR"
+          }
+        }
       ],
       "rows": [
-        { "id": "r1", "cells": { "hseIncidents": 0, "envIncidents": 0, "hseInspections": 3, "inspectionRequests": 2, "newNcr": 0 } }
+        {
+          "id": "r1",
+          "cells": {
+            "hseIncidents": 0,
+            "envIncidents": 0,
+            "hseInspections": 3,
+            "inspectionRequests": 2,
+            "newNcr": 0
+          }
+        }
       ],
       "fields": [
-        { "id": "incidentDetails", "label": { "vi": "Mô tả sự cố", "en": "Incident details" }, "value": "Không có" },
-        { "id": "engineerInstructions", "label": { "vi": "Chỉ thị / ý kiến TVGS", "en": "Engineer's instructions" }, "value": "TVGS yêu cầu kiểm tra dung dịch trước khi hạ lồng thép" }
+        {
+          "id": "incidentDetails",
+          "label": {
+            "vi": "Mô tả sự cố",
+            "en": "Incident details"
+          },
+          "value": "Không có"
+        },
+        {
+          "id": "engineerInstructions",
+          "label": {
+            "vi": "Chỉ thị / ý kiến TVGS",
+            "en": "Engineer's instructions"
+          },
+          "value": "TVGS yêu cầu kiểm tra dung dịch trước khi hạ lồng thép"
+        }
       ]
     },
     {
       "id": "events",
-      "title": { "vi": "SỰ KIỆN TRONG NGÀY", "en": "EVENT LOGS", "short": "Sự kiện" },
+      "title": {
+        "vi": "SỰ KIỆN TRONG NGÀY",
+        "en": "EVENT LOGS",
+        "short": "Sự kiện"
+      },
       "summary": "",
       "columns": [
-        { "id": "eventId", "label": { "vi": "Mã sự kiện", "en": "Event ID" } },
-        { "id": "type", "label": { "vi": "Loại sự kiện", "en": "Type" } },
-        { "id": "description", "label": { "vi": "Nội dung", "en": "Description" } },
-        { "id": "due", "label": { "vi": "Hạn xử lý", "en": "Due" } },
-        { "id": "status", "label": { "vi": "Trạng thái", "en": "Status" } },
-        { "id": "remark", "label": { "vi": "Ghi chú", "en": "Remarks" } }
+        {
+          "id": "eventId",
+          "label": {
+            "vi": "Mã sự kiện",
+            "en": "Event ID"
+          }
+        },
+        {
+          "id": "type",
+          "label": {
+            "vi": "Loại sự kiện",
+            "en": "Type"
+          }
+        },
+        {
+          "id": "description",
+          "label": {
+            "vi": "Nội dung",
+            "en": "Description"
+          }
+        },
+        {
+          "id": "due",
+          "label": {
+            "vi": "Hạn xử lý",
+            "en": "Due"
+          }
+        },
+        {
+          "id": "status",
+          "label": {
+            "vi": "Trạng thái",
+            "en": "Status"
+          }
+        },
+        {
+          "id": "remark",
+          "label": {
+            "vi": "Ghi chú",
+            "en": "Remarks"
+          }
+        }
       ],
       "rows": [
-        { "id": "r1", "cells": { "eventId": "EVT-ST01-00001", "type": "KIEM_TRA_ATLD", "description": "3 lượt kiểm tra hiện trường (cẩu, hố đào, điện)", "due": "2026-11-22", "status": "Đạt", "remark": "" } },
-        { "id": "r2", "cells": { "eventId": "EVT-ST01-00002", "type": "NGHIEM_THU", "description": "Nghiệm thu lồng thép tấm P-12", "due": "2026-11-26", "status": "Không Đạt", "remark": "" } },
-        { "id": "r3", "cells": { "eventId": "EVT-ST01-00003", "type": "CHI_THI_TVGS", "description": "Bổ sung biên bản kiểm tra dung dịch bentonite tấm P-12", "due": "2026-11-24", "status": "Đạt", "remark": "" } },
-        { "id": "r4", "cells": { "eventId": "EVT-ST01-00004", "type": "NGHIEM_THU", "description": "Nghiệm thu hố đào tấm P-12 trước đổ BT", "due": "2026-11-25", "status": "Không Đạt", "remark": "" } }
+        {
+          "id": "r1",
+          "cells": {
+            "eventId": "EVT-ST01-00001",
+            "type": "KIEM_TRA_ATLD",
+            "description": "3 lượt kiểm tra hiện trường (cẩu, hố đào, điện)",
+            "due": "2026-11-22",
+            "status": "Đạt",
+            "remark": ""
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "eventId": "EVT-ST01-00002",
+            "type": "NGHIEM_THU",
+            "description": "Nghiệm thu lồng thép tấm P-12",
+            "due": "2026-11-26",
+            "status": "Không Đạt",
+            "remark": ""
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "eventId": "EVT-ST01-00003",
+            "type": "CHI_THI_TVGS",
+            "description": "Bổ sung biên bản kiểm tra dung dịch bentonite tấm P-12",
+            "due": "2026-11-24",
+            "status": "Đạt",
+            "remark": ""
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "eventId": "EVT-ST01-00004",
+            "type": "NGHIEM_THU",
+            "description": "Nghiệm thu hố đào tấm P-12 trước đổ BT",
+            "due": "2026-11-25",
+            "status": "Không Đạt",
+            "remark": ""
+          }
+        }
       ]
     },
     {
       "id": "workQty",
-      "title": { "vi": "KHỐI LƯỢNG THỰC HIỆN", "en": "WORK QUANTITIES", "short": "Khối lượng" },
+      "title": {
+        "vi": "KHỐI LƯỢNG THỰC HIỆN",
+        "en": "WORK QUANTITIES",
+        "short": "Khối lượng"
+      },
       "summary": "",
       "columns": [
-        { "id": "activityId", "label": { "vi": "Activity ID (P6)", "en": "Activity ID" } },
-        { "id": "element", "label": { "vi": "Cấu kiện", "en": "Element" } },
-        { "id": "step", "label": { "vi": "Công việc", "en": "Step" } },
-        { "id": "unit", "label": { "vi": "ĐV", "en": "Unit" } },
-        { "id": "start", "label": { "vi": "Ngày bắt đầu", "en": "Start" } },
-        { "id": "finish", "label": { "vi": "Ngày kết thúc", "en": "Finish" } },
-        { "id": "daily", "label": { "vi": "Thực hiện hôm nay", "en": "Daily Actual" } },
-        { "id": "prevCum", "label": { "vi": "Luỹ kế hôm qua", "en": "Prev. Cum." } },
-        { "id": "planned", "label": { "vi": "Tổng phải làm", "en": "Planned Qty" } },
-        { "id": "progress", "label": { "vi": "Tiến độ", "en": "Progress (%)" } },
-        { "id": "remark", "label": { "vi": "Ghi chú", "en": "Remark" } }
+        {
+          "id": "activityId",
+          "label": {
+            "vi": "Activity ID (P6)",
+            "en": "Activity ID"
+          }
+        },
+        {
+          "id": "element",
+          "label": {
+            "vi": "Cấu kiện",
+            "en": "Element"
+          }
+        },
+        {
+          "id": "step",
+          "label": {
+            "vi": "Công việc",
+            "en": "Step"
+          }
+        },
+        {
+          "id": "unit",
+          "label": {
+            "vi": "ĐV",
+            "en": "Unit"
+          }
+        },
+        {
+          "id": "start",
+          "label": {
+            "vi": "Ngày bắt đầu",
+            "en": "Start"
+          }
+        },
+        {
+          "id": "finish",
+          "label": {
+            "vi": "Ngày kết thúc",
+            "en": "Finish"
+          }
+        },
+        {
+          "id": "daily",
+          "label": {
+            "vi": "Thực hiện hôm nay",
+            "en": "Daily Actual"
+          }
+        },
+        {
+          "id": "prevCum",
+          "label": {
+            "vi": "Luỹ kế hôm qua",
+            "en": "Prev. Cum."
+          }
+        },
+        {
+          "id": "planned",
+          "label": {
+            "vi": "Tổng phải làm",
+            "en": "Planned Qty"
+          }
+        },
+        {
+          "id": "progress",
+          "label": {
+            "vi": "Tiến độ",
+            "en": "Progress (%)"
+          }
+        },
+        {
+          "id": "remark",
+          "label": {
+            "vi": "Ghi chú",
+            "en": "Remark"
+          }
+        }
       ],
       "rows": [
-        { "id": "r1", "locked": true, "cells": { "activityId": "CV-ST01-00001", "element": "Tấm tường vây số 01", "step": "DWL-01 Đào", "unit": "m³", "start": "2026-11-22", "finish": "2026-11-25", "daily": 100, "prevCum": 500, "planned": 1000, "progress": 60, "remark": "" } },
-        { "id": "r2", "locked": true, "cells": { "activityId": "CV-ST01-00001", "element": "Tấm tường vây số 01", "step": "DWL-02 Hạ lồng thép", "unit": "tấn", "start": "2026-11-22", "finish": "2026-11-25", "daily": 100, "prevCum": 400, "planned": 2000, "progress": 25, "remark": "" } },
-        { "id": "r3", "locked": true, "cells": { "activityId": "CV-ST01-00001", "element": "Tấm tường vây số 02", "step": "DWL-03 Đổ bê tông", "unit": "m³", "start": "2026-11-12", "finish": "2026-11-25", "daily": 100, "prevCum": 500, "planned": 1000, "progress": 60, "remark": "6 tổ mẫu" } },
-        { "id": "r4", "locked": true, "cells": { "activityId": "---", "element": "Đường dẫn", "step": "GWL-01 Tường dẫn", "unit": "m", "start": "2026-11-12", "finish": "2026-11-25", "daily": 100, "prevCum": 400, "planned": 2000, "progress": 25, "remark": "Chờ ván khuôn" } }
+        {
+          "id": "r1",
+          "locked": true,
+          "cells": {
+            "activityId": "CV-ST01-00001",
+            "element": "Tấm tường vây số 01",
+            "step": "DWL-01 Đào",
+            "unit": "m³",
+            "start": "2026-11-22",
+            "finish": "2026-11-25",
+            "daily": 100,
+            "prevCum": 500,
+            "planned": 1000,
+            "progress": 60,
+            "remark": ""
+          }
+        },
+        {
+          "id": "r2",
+          "locked": true,
+          "cells": {
+            "activityId": "CV-ST01-00001",
+            "element": "Tấm tường vây số 01",
+            "step": "DWL-02 Hạ lồng thép",
+            "unit": "tấn",
+            "start": "2026-11-22",
+            "finish": "2026-11-25",
+            "daily": 100,
+            "prevCum": 400,
+            "planned": 2000,
+            "progress": 25,
+            "remark": ""
+          }
+        },
+        {
+          "id": "r3",
+          "locked": true,
+          "cells": {
+            "activityId": "CV-ST01-00001",
+            "element": "Tấm tường vây số 02",
+            "step": "DWL-03 Đổ bê tông",
+            "unit": "m³",
+            "start": "2026-11-12",
+            "finish": "2026-11-25",
+            "daily": 100,
+            "prevCum": 500,
+            "planned": 1000,
+            "progress": 60,
+            "remark": "6 tổ mẫu"
+          }
+        },
+        {
+          "id": "r4",
+          "locked": true,
+          "cells": {
+            "activityId": "---",
+            "element": "Đường dẫn",
+            "step": "GWL-01 Tường dẫn",
+            "unit": "m",
+            "start": "2026-11-12",
+            "finish": "2026-11-25",
+            "daily": 100,
+            "prevCum": 400,
+            "planned": 2000,
+            "progress": 25,
+            "remark": "Chờ ván khuôn"
+          }
+        }
       ]
     },
     {
       "id": "materials",
-      "title": { "vi": "VẬT TƯ", "en": "MATERIALS", "short": "Vật tư" },
+      "title": {
+        "vi": "VẬT TƯ",
+        "en": "MATERIALS",
+        "short": "Vật tư"
+      },
       "summary": "",
       "columns": [
-        { "id": "matId", "label": { "vi": "Mã vật tư", "en": "Mat. ID" } },
-        { "id": "material", "label": { "vi": "Vật tư", "en": "Material" } },
-        { "id": "unit", "label": { "vi": "ĐV", "en": "Unit" } },
-        { "id": "recv", "label": { "vi": "Nhập về trong ngày", "en": "Recv." } },
-        { "id": "supplier", "label": { "vi": "Nhà cung cấp", "en": "Supplier" } },
-        { "id": "remark", "label": { "vi": "Ghi chú", "en": "Remark" } }
+        {
+          "id": "matId",
+          "label": {
+            "vi": "Mã vật tư",
+            "en": "Mat. ID"
+          }
+        },
+        {
+          "id": "material",
+          "label": {
+            "vi": "Vật tư",
+            "en": "Material"
+          }
+        },
+        {
+          "id": "unit",
+          "label": {
+            "vi": "ĐV",
+            "en": "Unit"
+          }
+        },
+        {
+          "id": "recv",
+          "label": {
+            "vi": "Nhập về trong ngày",
+            "en": "Recv."
+          }
+        },
+        {
+          "id": "supplier",
+          "label": {
+            "vi": "Nhà cung cấp",
+            "en": "Supplier"
+          }
+        },
+        {
+          "id": "remark",
+          "label": {
+            "vi": "Ghi chú",
+            "en": "Remark"
+          }
+        }
       ],
       "rows": [
-        { "id": "r1", "cells": { "matId": "MAT-ST01-00001", "material": "Bê tông C35/45", "unit": "m³", "recv": 214, "supplier": "Thiên An", "remark": "" } },
-        { "id": "r2", "cells": { "matId": "MAT-ST01-00002", "material": "Thép D32", "unit": "tấn", "recv": 32, "supplier": "Hoà Phát", "remark": "" } },
-        { "id": "r3", "cells": { "matId": "---", "material": "Bentonite", "unit": "tấn", "recv": 4, "supplier": "Thaco", "remark": "MAS chờ PICC" } }
+        {
+          "id": "r1",
+          "cells": {
+            "matId": "MAT-ST01-00001",
+            "material": "Bê tông C35/45",
+            "unit": "m³",
+            "recv": 214,
+            "supplier": "Thiên An",
+            "remark": ""
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "matId": "MAT-ST01-00002",
+            "material": "Thép D32",
+            "unit": "tấn",
+            "recv": 32,
+            "supplier": "Hoà Phát",
+            "remark": ""
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "matId": "---",
+            "material": "Bentonite",
+            "unit": "tấn",
+            "recv": 4,
+            "supplier": "Thaco",
+            "remark": "MAS chờ PICC"
+          }
+        }
       ]
     },
     {
       "id": "manpower",
-      "title": { "vi": "NHÂN LỰC", "en": "MANPOWER", "short": "Nhân lực" },
+      "title": {
+        "vi": "NHÂN LỰC",
+        "en": "MANPOWER",
+        "short": "Nhân lực"
+      },
       "summary": "",
       "columns": [
-        { "id": "resId", "label": { "vi": "Mã Resource", "en": "Resource ID" } },
-        { "id": "category", "label": { "vi": "Loại", "en": "Category" } },
-        { "id": "daily", "label": { "vi": "Số người hôm nay", "en": "Daily Actual" } },
-        { "id": "prevCum", "label": { "vi": "Luỹ kế hôm qua", "en": "Prev. Cum." } },
-        { "id": "cumTotal", "label": { "vi": "Tổng hiện nay", "en": "Cum. Total" } },
-        { "id": "remark", "label": { "vi": "Ghi chú", "en": "Remark" } }
+        {
+          "id": "resId",
+          "label": {
+            "vi": "Mã Resource",
+            "en": "Resource ID"
+          }
+        },
+        {
+          "id": "category",
+          "label": {
+            "vi": "Loại",
+            "en": "Category"
+          }
+        },
+        {
+          "id": "daily",
+          "label": {
+            "vi": "Số người hôm nay",
+            "en": "Daily Actual"
+          }
+        },
+        {
+          "id": "prevCum",
+          "label": {
+            "vi": "Luỹ kế hôm qua",
+            "en": "Prev. Cum."
+          }
+        },
+        {
+          "id": "cumTotal",
+          "label": {
+            "vi": "Tổng hiện nay",
+            "en": "Cum. Total"
+          }
+        },
+        {
+          "id": "remark",
+          "label": {
+            "vi": "Ghi chú",
+            "en": "Remark"
+          }
+        }
       ],
       "rows": [
-        { "id": "r1", "cells": { "resId": "RES-HUM-00001", "category": "Chỉ huy trưởng", "daily": 8, "prevCum": 100, "cumTotal": 108, "remark": "" } },
-        { "id": "r2", "cells": { "resId": "RES-HUM-00002", "category": "Giám sát hiện trường", "daily": 14, "prevCum": 0, "cumTotal": 14, "remark": "" } },
-        { "id": "r3", "cells": { "resId": "RES-HUM-00003", "category": "Công nhân kỹ thuật", "daily": 52, "prevCum": 0, "cumTotal": 52, "remark": "" } },
-        { "id": "r4", "cells": { "resId": "RES-HUM-00004", "category": "Lao động phổ thông", "daily": 30, "prevCum": 0, "cumTotal": 30, "remark": "" } },
-        { "id": "r5", "cells": { "resId": "RES-HUM-00005", "category": "An toàn viên", "daily": 6, "prevCum": 0, "cumTotal": 6, "remark": "" } },
-        { "id": "r6", "cells": { "resId": "RES-HUM-00006", "category": "Vận hành máy", "daily": 4, "prevCum": 0, "cumTotal": 4, "remark": "" } }
+        {
+          "id": "r1",
+          "cells": {
+            "resId": "RES-HUM-00001",
+            "category": "Chỉ huy trưởng",
+            "daily": 8,
+            "prevCum": 100,
+            "cumTotal": 108,
+            "remark": ""
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "resId": "RES-HUM-00002",
+            "category": "Giám sát hiện trường",
+            "daily": 14,
+            "prevCum": 0,
+            "cumTotal": 14,
+            "remark": ""
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "resId": "RES-HUM-00003",
+            "category": "Công nhân kỹ thuật",
+            "daily": 52,
+            "prevCum": 0,
+            "cumTotal": 52,
+            "remark": ""
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "resId": "RES-HUM-00004",
+            "category": "Lao động phổ thông",
+            "daily": 30,
+            "prevCum": 0,
+            "cumTotal": 30,
+            "remark": ""
+          }
+        },
+        {
+          "id": "r5",
+          "cells": {
+            "resId": "RES-HUM-00005",
+            "category": "An toàn viên",
+            "daily": 6,
+            "prevCum": 0,
+            "cumTotal": 6,
+            "remark": ""
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {
+            "resId": "RES-HUM-00006",
+            "category": "Vận hành máy",
+            "daily": 4,
+            "prevCum": 0,
+            "cumTotal": 4,
+            "remark": ""
+          }
+        }
       ],
-      "totals": { "daily": 114, "prevCum": 100, "cumTotal": 214 }
+      "totals": {
+        "daily": 114,
+        "prevCum": 100,
+        "cumTotal": 214
+      }
     },
     {
       "id": "equipment",
-      "title": { "vi": "THIẾT BỊ", "en": "EQUIPMENT", "short": "Thiết bị" },
+      "title": {
+        "vi": "THIẾT BỊ",
+        "en": "EQUIPMENT",
+        "short": "Thiết bị"
+      },
       "summary": "",
       "columns": [
-        { "id": "resId", "label": { "vi": "Mã tài nguyên", "en": "Res ID" } },
-        { "id": "equipment", "label": { "vi": "Thiết bị / biển số", "en": "Equipment" } },
-        { "id": "qty", "label": { "vi": "Số lượng", "en": "Qty" } },
-        { "id": "status", "label": { "vi": "Tình trạng", "en": "Status" } },
-        { "id": "activityId", "label": { "vi": "Activity ID (P6)", "en": "Activity ID" } }
+        {
+          "id": "resId",
+          "label": {
+            "vi": "Mã tài nguyên",
+            "en": "Res ID"
+          }
+        },
+        {
+          "id": "equipment",
+          "label": {
+            "vi": "Thiết bị / biển số",
+            "en": "Equipment"
+          }
+        },
+        {
+          "id": "qty",
+          "label": {
+            "vi": "Số lượng",
+            "en": "Qty"
+          }
+        },
+        {
+          "id": "status",
+          "label": {
+            "vi": "Tình trạng",
+            "en": "Status"
+          }
+        },
+        {
+          "id": "activityId",
+          "label": {
+            "vi": "Activity ID (P6)",
+            "en": "Activity ID"
+          }
+        }
       ],
       "rows": [
-        { "id": "r1", "cells": { "resId": "RES-EQP-00001", "equipment": "Cẩu bánh xích 80T", "qty": 1, "status": "Active", "activityId": "CV-ST01-00001" } },
-        { "id": "r2", "cells": { "resId": "RES-EQP-00003", "equipment": "Gầu ngoạm tường vây", "qty": 1, "status": "Active", "activityId": "CV-ST01-00001" } },
-        { "id": "r3", "cells": { "resId": "RES-EQP-00004", "equipment": "Trạm trộn / tái sinh bentonite", "qty": 1, "status": "Active", "activityId": "CV-ST01-00002" } },
-        { "id": "r4", "cells": { "resId": "RES-EQP-00005", "equipment": "Máy đào 0,7 m³", "qty": 2, "status": "Active", "activityId": "CV-ST01-00002" } },
-        { "id": "r5", "cells": { "resId": "RES-EQP-00002", "equipment": "Xe bồn bê tông 7 m³", "qty": 6, "status": "Active", "activityId": "---" } },
-        { "id": "r6", "cells": { "resId": "RES-EQP-00006", "equipment": "Máy phát điện 250 kVA", "qty": 1, "status": "Pending", "activityId": "---" } }
+        {
+          "id": "r1",
+          "cells": {
+            "resId": "RES-EQP-00001",
+            "equipment": "Cẩu bánh xích 80T",
+            "qty": 1,
+            "status": "Active",
+            "activityId": "CV-ST01-00001"
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "resId": "RES-EQP-00003",
+            "equipment": "Gầu ngoạm tường vây",
+            "qty": 1,
+            "status": "Active",
+            "activityId": "CV-ST01-00001"
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "resId": "RES-EQP-00004",
+            "equipment": "Trạm trộn / tái sinh bentonite",
+            "qty": 1,
+            "status": "Active",
+            "activityId": "CV-ST01-00002"
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "resId": "RES-EQP-00005",
+            "equipment": "Máy đào 0,7 m³",
+            "qty": 2,
+            "status": "Active",
+            "activityId": "CV-ST01-00002"
+          }
+        },
+        {
+          "id": "r5",
+          "cells": {
+            "resId": "RES-EQP-00002",
+            "equipment": "Xe bồn bê tông 7 m³",
+            "qty": 6,
+            "status": "Active",
+            "activityId": "---"
+          }
+        },
+        {
+          "id": "r6",
+          "cells": {
+            "resId": "RES-EQP-00006",
+            "equipment": "Máy phát điện 250 kVA",
+            "qty": 1,
+            "status": "Pending",
+            "activityId": "---"
+          }
+        }
       ]
     },
     {
       "id": "issues",
-      "title": { "vi": "VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ", "en": "OPEN ISSUES & CONSTRAINTS", "short": "Vướng mắc" },
+      "title": {
+        "vi": "VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ",
+        "en": "OPEN ISSUES & CONSTRAINTS",
+        "short": "Vướng mắc"
+      },
       "summary": "",
       "columns": [
-        { "id": "activityId", "label": { "vi": "Activity ID (P6)", "en": "Activity ID" } },
-        { "id": "issueId", "label": { "vi": "Mã vướng mắc", "en": "Issue ID" } },
-        { "id": "description", "label": { "vi": "Nội dung", "en": "Description" } },
-        { "id": "severity", "label": { "vi": "Mức độ", "en": "Severity" } },
-        { "id": "owner", "label": { "vi": "Bên xử lý", "en": "Owner" } },
-        { "id": "raised", "label": { "vi": "Phát sinh", "en": "Raised" } },
-        { "id": "due", "label": { "vi": "Hạn", "en": "Due" } },
-        { "id": "status", "label": { "vi": "Trạng thái", "en": "Status" } },
-        { "id": "todayUpdate", "label": { "vi": "Cập nhật hôm nay", "en": "Today update" } }
+        {
+          "id": "activityId",
+          "label": {
+            "vi": "Activity ID (P6)",
+            "en": "Activity ID"
+          }
+        },
+        {
+          "id": "issueId",
+          "label": {
+            "vi": "Mã vướng mắc",
+            "en": "Issue ID"
+          }
+        },
+        {
+          "id": "description",
+          "label": {
+            "vi": "Nội dung",
+            "en": "Description"
+          }
+        },
+        {
+          "id": "severity",
+          "label": {
+            "vi": "Mức độ",
+            "en": "Severity"
+          }
+        },
+        {
+          "id": "owner",
+          "label": {
+            "vi": "Bên xử lý",
+            "en": "Owner"
+          }
+        },
+        {
+          "id": "raised",
+          "label": {
+            "vi": "Phát sinh",
+            "en": "Raised"
+          }
+        },
+        {
+          "id": "due",
+          "label": {
+            "vi": "Hạn",
+            "en": "Due"
+          }
+        },
+        {
+          "id": "status",
+          "label": {
+            "vi": "Trạng thái",
+            "en": "Status"
+          }
+        },
+        {
+          "id": "todayUpdate",
+          "label": {
+            "vi": "Cập nhật hôm nay",
+            "en": "Today update"
+          }
+        }
       ],
       "rows": [
-        { "id": "r1", "cells": { "activityId": "CV-ST01-00001", "issueId": "ISS-ST01-00001", "description": "Cọc secant lấn ranh 300–450 mm cạnh Đông – chờ phương án thiết kế", "severity": "Cao", "owner": "THAC_DDEM", "raised": "2026-10-15", "due": "2026-10-28", "status": "Đang xử lý", "todayUpdate": "TK đã gửi phương án sơ bộ, chờ CICE" } },
-        { "id": "r2", "cells": { "activityId": "CV-ST01-00002", "issueId": "ISS-ST01-00002", "description": "Phê duyệt NCC bentonite mới – tồn 4 ngày", "severity": "Cao", "owner": "THAC_DPRC", "raised": "2026-10-20", "due": "2026-10-27", "status": "Mở", "todayUpdate": "---" } },
-        { "id": "r3", "cells": { "activityId": "CV-ST01-00001", "issueId": "ISS-ST01-00003", "description": "Cáp ngầm chưa xác định tại trục 9 – dò tìm trước khi đào tường dẫn", "severity": "Thấp", "owner": "Site + EVNHCMC", "raised": "2026-10-22", "due": "2026-10-30", "status": "Mở", "todayUpdate": "---" } },
-        { "id": "r4", "cells": { "activityId": "---", "issueId": "ISS-ST01-00004", "description": "Thiếu mặt bằng tập kết lồng thép do phân luồng GĐ2", "severity": "Trung bình", "owner": "MAUR_PMU2", "raised": "2026-10-18", "due": "2026-11-05", "status": "Đóng", "todayUpdate": "---" } }
+        {
+          "id": "r1",
+          "cells": {
+            "activityId": "CV-ST01-00001",
+            "issueId": "ISS-ST01-00001",
+            "description": "Cọc secant lấn ranh 300–450 mm cạnh Đông – chờ phương án thiết kế",
+            "severity": "Cao",
+            "owner": "THAC_DDEM",
+            "raised": "2026-10-15",
+            "due": "2026-10-28",
+            "status": "Đang xử lý",
+            "todayUpdate": "TK đã gửi phương án sơ bộ, chờ CICE"
+          }
+        },
+        {
+          "id": "r2",
+          "cells": {
+            "activityId": "CV-ST01-00002",
+            "issueId": "ISS-ST01-00002",
+            "description": "Phê duyệt NCC bentonite mới – tồn 4 ngày",
+            "severity": "Cao",
+            "owner": "THAC_DPRC",
+            "raised": "2026-10-20",
+            "due": "2026-10-27",
+            "status": "Mở",
+            "todayUpdate": "---"
+          }
+        },
+        {
+          "id": "r3",
+          "cells": {
+            "activityId": "CV-ST01-00001",
+            "issueId": "ISS-ST01-00003",
+            "description": "Cáp ngầm chưa xác định tại trục 9 – dò tìm trước khi đào tường dẫn",
+            "severity": "Thấp",
+            "owner": "Site + EVNHCMC",
+            "raised": "2026-10-22",
+            "due": "2026-10-30",
+            "status": "Mở",
+            "todayUpdate": "---"
+          }
+        },
+        {
+          "id": "r4",
+          "cells": {
+            "activityId": "---",
+            "issueId": "ISS-ST01-00004",
+            "description": "Thiếu mặt bằng tập kết lồng thép do phân luồng GĐ2",
+            "severity": "Trung bình",
+            "owner": "MAUR_PMU2",
+            "raised": "2026-10-18",
+            "due": "2026-11-05",
+            "status": "Đóng",
+            "todayUpdate": "---"
+          }
+        }
       ]
     },
     {
       "id": "photos",
-      "title": { "vi": "ẢNH HIỆN TRƯỜNG", "en": "SITE PHOTOS", "short": "Ảnh" },
+      "title": {
+        "vi": "ẢNH HIỆN TRƯỜNG",
+        "en": "SITE PHOTOS",
+        "short": "Ảnh"
+      },
       "type": "photo",
       "summary": "",
       "rows": [
-        { "id": "g1", "department": "DCEM", "summary": "Hố đào tấm P-12", "files": ["img1.jpeg", "img2.jpeg", "img3.jpeg"] },
-        { "id": "g2", "department": "HSE", "summary": "Kiểm tra an toàn hiện trường", "files": ["img4.jpeg", "img5.jpeg", "img6.jpeg"] }
+        {
+          "id": "g1",
+          "department": "DCEM",
+          "summary": "Hố đào tấm P-12",
+          "files": [
+            "img1.jpeg",
+            "img2.jpeg",
+            "img3.jpeg"
+          ]
+        },
+        {
+          "id": "g2",
+          "department": "HSE",
+          "summary": "Kiểm tra an toàn hiện trường",
+          "files": [
+            "img4.jpeg",
+            "img5.jpeg",
+            "img6.jpeg"
+          ]
+        }
       ]
     },
     {
       "id": "signOff",
-      "title": { "vi": "THÔNG TIN KÝ DUYỆT", "en": "SIGN-OFF", "short": "Ký duyệt" },
+      "title": {
+        "vi": "THÔNG TIN KÝ DUYỆT",
+        "en": "SIGN-OFF",
+        "short": "Ký duyệt"
+      },
       "summary": "",
       "fields": [
-        { "id": "preparedBy", "label": { "vi": "Người lập", "en": "Prepared by" }, "value": "user@example.com" },
-        { "id": "siteManager", "label": { "vi": "Trưởng ga / CHT", "en": "Site manager" }, "value": "" }
+        {
+          "id": "preparedBy",
+          "label": {
+            "vi": "Người lập",
+            "en": "Prepared by"
+          },
+          "value": "user@example.com"
+        },
+        {
+          "id": "siteManager",
+          "label": {
+            "vi": "Trưởng ga / CHT",
+            "en": "Site manager"
+          },
+          "value": "Trương Quốc Toàn - Minhtek"
+        }
       ]
     },
     {
       "id": "directives",
-      "title": { "vi": "CHỈ ĐẠO CỦA BAN ĐIỀU HÀNH", "en": "MANAGEMENT DIRECTIVES", "short": "Chỉ đạo" },
+      "title": {
+        "vi": "CHỈ ĐẠO CỦA BAN ĐIỀU HÀNH",
+        "en": "MANAGEMENT DIRECTIVES",
+        "short": "Chỉ đạo"
+      },
       "summary": "",
       "fields": [
-        { "id": "directives", "label": { "vi": "Nội dung chỉ đạo", "en": "Directives" }, "value": "" }
+        {
+          "id": "directives",
+          "label": {
+            "vi": "Nội dung chỉ đạo",
+            "en": "Directives"
+          },
+          "value": ""
+        }
       ]
     }
   ]

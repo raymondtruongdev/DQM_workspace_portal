@@ -9,7 +9,6 @@ export interface UserSession {
 }
 
 export interface UserProfileRecord {
-  id: number | string;
   email: string;
   username: string;
   displayName?: string;

@@ -4,17 +4,13 @@ import { ReportPhotoSection } from '../types/report.types';
 export interface IReportPrintPhotoProps {
   section: ReportPhotoSection;
   roman: string;
-  /** Thư mục ảnh của báo cáo (server-relative). */
-  photosFolder: string;
+  /** Địa chỉ ảnh của một bộ phận (URL tuyệt đối hoặc data URI). */
+  photoSrc: (groupId: string, name: string) => string;
 }
 
 /** Mục ảnh hiện trường trong bản in A4: mỗi bộ phận một dải tiêu đề, ảnh theo hàng, rồi dòng Tóm tắt. */
-export const ReportPrintPhoto: React.FC<IReportPrintPhotoProps> = ({ section, roman, photosFolder }) => {
+export const ReportPrintPhoto: React.FC<IReportPrintPhotoProps> = ({ section, roman, photoSrc }) => {
   const cols = section.columns;
-  // URL tuyệt đối để iframe in tải được ảnh (cùng phiên đăng nhập SharePoint)
-  const urlOf = (groupId: string, name: string): string =>
-    new URL(`${photosFolder}/${groupId}/${name}`, window.location.href).href;
-
   const chunk = <T,>(arr: T[], n: number): T[][] => {
     const out: T[][] = [];
     for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
@@ -45,7 +41,7 @@ export const ReportPrintPhoto: React.FC<IReportPrintPhotoProps> = ({ section, ro
                   {row.map((name) => (
                     <td key={name} className="bcn-photo-cell" style={{ width: `${100 / cols}%` }}>
                       <figure className="bcn-photo-item">
-                        <img src={urlOf(g.id, name)} alt={name} />
+                        <img src={photoSrc(g.id, name)} alt={name} />
                         <figcaption className="bcn-photo-cap">{name}</figcaption>
                       </figure>
                     </td>

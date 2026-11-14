@@ -16,7 +16,7 @@ export const NoAccessState: React.FC<INoAccessStateProps> = ({ userEmail, onRefr
     title="Chưa được phân quyền quản lý báo cáo"
     message={
       <>
-        Tài khoản <strong>{userEmail || 'của bạn'}</strong> chưa được phân công báo cáo (DailyReport / WeeklyReport) trong <code>Report_Role</code> hoặc (Status = FALSE).
+        Tài khoản <strong>{userEmail || 'của bạn'}</strong> chưa được phân công báo cáo (DailyReport / WeeklyReport) trong list <code>Report_Role</code>, hoặc dòng phân công đang để Active = No.
       </>
     }
     hint="Vui lòng liên hệ Quản trị viên để phân quyền trong SharePoint"

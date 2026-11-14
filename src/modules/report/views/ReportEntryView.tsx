@@ -11,7 +11,7 @@ import { getMissingRequiredFields, getFieldLabel, getMissingFormFields } from '.
 import { ReportMetaForm } from '../components/ReportMetaForm';
 import { ReportTaskTable } from '../components/ReportTaskTable';
 import { AskCatalogLink, CatalogAddResult } from '../components/ReportDynamicTable';
-import { ReportCatalog, canAddToTable, catalogWithRow, findDuplicate } from '../utils/reportCatalog';
+import { ReportCatalog, canAddToTable, catalogOptions, catalogWithRow, findDuplicate } from '../utils/reportCatalog';
 import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
 import { ReportSignedDocument } from '../components/ReportSignedDocument';
 import { getReportFolderName } from '../utils/reportFileNaming';
@@ -47,7 +47,6 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
 }) => {
   const [dateStr, setDateStr] = React.useState<string>(() => initialDate || formatDateToYYYYMMDD(new Date()));
   const [doc, setDoc] = React.useState<ReportDoc | null>(null);
-  const [templateBuffer, setTemplateBuffer] = React.useState<ArrayBuffer | undefined>(undefined);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [isSaving, setIsSaving] = React.useState<boolean>(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = React.useState<boolean>(false);
@@ -68,7 +67,6 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
         const result = await dataService.loadReport(role.docId, role.unit, targetDate, currentUserEmail, role.siteManager);
         setDoc(result.doc);
         setShowRequiredErrors(false);
-        setTemplateBuffer(result.templateBuffer);
         setHasUnsavedChanges(false);
       } catch (err: unknown) {
         console.error('Error loading report:', err);
@@ -180,6 +178,12 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     }
   };
 
+  /** Thêm đơn vị thi công mới vào danh mục dùng chung `subcontractor`; trả về giá trị để chọn. */
+  const handleAddSubcontractor = async (value: string): Promise<string | undefined> => {
+    const res = await handleAddCatalogItem('subcontractor', value, false);
+    return res && !res.cancelled ? res.value : undefined;
+  };
+
   const handleSectionChange = (section: ReportSection): void => {
     if (!doc) return;
     setDoc({ ...doc, sections: doc.sections.map((x) => (x.key === section.key ? section : x)) });
@@ -240,7 +244,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     };
   }, [dataService, role.unit, role.docId, dateStr, isReportSaved, isWeekly]);
 
-  // Upload file PDF đã ký vào thư mục báo cáo của ngày (cùng thư mục với file .xlsx)
+  // Upload file PDF đã ký vào thư mục báo cáo của ngày (cùng thư mục với file .data.json)
   const handleUploadSigned = async (file: File): Promise<void> => {
     if (!doc || !doc.isExisting || hasUnsavedChanges) return;
     if (await onCheckMaintenance()) return;
@@ -379,21 +383,13 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     if (await onCheckMaintenance()) return;
     setIsLoading(true);
     try {
-      const result = await dataService.loadLatestTemplateForReport(
-        role.docId,
-        role.unit,
-        dateStr,
-        currentUserEmail,
-        role.siteManager,
-        doc
-      );
-      setDoc(result.doc);
-      setTemplateBuffer(result.templateBuffer);
+      const next = await dataService.applyLatestTemplate(doc, currentUserEmail, role.siteManager);
+      setDoc(next);
       setHasUnsavedChanges(true);
       setToast({
         type: 'success',
         text: `Đã nạp biểu mẫu mới nhất (${formatTemplateVersionDisplay(
-          result.doc.metadata.templateVersion
+          next.metadata.templateVersion
         )}). Bạn có thể tiếp tục nhập thông tin báo cáo!`
       });
     } catch (err: unknown) {
@@ -439,19 +435,20 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     if (ensureRequiredFilled('xuất báo cáo')) setShowPrintPreview(true);
   };
 
-  // Save report (6-sheet workbook)
+  // Lưu báo cáo: ghi .data.json + .html độc lập
   const handleSave = async (): Promise<void> => {
     if (!doc || !ensureRequiredFilled('lưu báo cáo')) return;
     if (await onCheckMaintenance()) return;
     setIsSaving(true);
     try {
-      const res = await dataService.saveReport(doc, templateBuffer);
+      const res = await dataService.saveReport(doc, currentUserEmail);
       // Số báo cáo/mã tài liệu có thể đã được cấp lại theo sổ ReportRegistry lúc lưu
       setDoc((prev) => (prev ? { ...prev, isExisting: true, eTag: res.eTag, metadata: res.metadata } : null));
       setHasUnsavedChanges(false);
+      const warning = res.registryWarning || res.htmlWarning;
       setToast(
-        res.registryWarning
-          ? { type: 'error', text: res.registryWarning }
+        warning
+          ? { type: 'error', text: warning }
           : {
               type: 'success',
               text: `Đã lưu báo cáo số ${res.metadata.reportNo} vào thư viện SharePoint (${role.unit} - ${dateStr})!`
@@ -506,7 +503,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
                 <Icon name="info" size={16} />
                 {doc?.copiedFromDate
                   ? `Kế thừa từ ngày ${doc.copiedFromDate.split('-').reverse().join('/')}`
-                  : 'Tạo mới từ template (6 sheets)'}
+                  : 'Tạo mới từ template'}
               </span>
             )}
             {!isWeekly && doc?.isExisting && !isSignedLoading && (
@@ -538,7 +535,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
               className="btn btn--secondary"
               onClick={handleOpenPrint}
               disabled={isLoading || !doc || Boolean(doc.templateUpdateRequired)}
-              title="Xem bản in 2 trang A4 và xuất PDF"
+              title="Xem bản in A4 và xuất PDF"
             >
               <Icon name="print" />
               <span>Xem bản in / Xuất PDF</span>
@@ -626,8 +623,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
                   : ' để tiếp tục cập nhật báo cáo.'}
               </p>
               <p>
-                <strong>Lưu ý:</strong> khi áp dụng template mới, bạn sẽ phải nhập lại một số thông tin của
-                {doc.outdatedSourceType === 'previous_day' ? ' ngày hôm trước.' : ' báo cáo này.'}
+                <strong>Lưu ý:</strong> dữ liệu đã nhập được giữ lại; mục, cột hoặc trường mới của template sẽ để trống
+                hoặc điền giá trị mặc định, mục/cột đã bị bỏ khỏi template sẽ không còn trong báo cáo.
               </p>
             </div>
           </div>
@@ -638,7 +635,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
                 Hiện tại{tplVerDM(doc.outdatedTemplateVersion || doc.metadata.templateVersion)}
               </span>
               <strong className="report-tpl-ver__value">
-                {(doc.outdatedTemplateVersion || doc.metadata.templateVersion || 'Chưa gắn phiên bản').replace(/\.xlsx$/i, '')}
+                {(doc.outdatedTemplateVersion || doc.metadata.templateVersion || 'Chưa gắn phiên bản').replace(/\.json$/i, '')}
               </strong>
             </div>
             <span className="report-tpl-notice__arrow" aria-hidden="true">
@@ -674,6 +671,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             onDateChange={handleDateChange}
             onMetadataChange={handleMetadataChange}
             isExisting={!!doc.isExisting}
+            subcontractorOptions={catalogOptions(catalog, 'subcontractor', false, true)}
+            onAddSubcontractor={handleAddSubcontractor}
             disabled={isSaving}
             showErrors={showRequiredErrors}
           />

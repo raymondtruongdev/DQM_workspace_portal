@@ -30,8 +30,8 @@ export function checkIsAdmin(role?: string): boolean {
 /**
  * Maps raw SharePoint UserProfiles list items (or imported Excel table) to clean UserProfileRecord
  *
- * Supported column mappings from Excel / SharePoint list:
- * - Col 0: field_0 / ID / Id / STT
+ * Cột đọc theo tên hiển thị (Email, DisplayName, Department, DepartmentName, Role); các tên field_N chỉ là dự phòng cho list
+ * cũ từng có thêm cột số thứ tự ở đầu (nay đã bỏ):
  * - Col 1: Email / field_1 / Title / Mail / UserEmail / UserPrincipalName
  * - Col 2: Username / field_2 / Name / DisplayName / Title
  * - Col 3: DepartmentCode / Department / field_3
@@ -39,8 +39,6 @@ export function checkIsAdmin(role?: string): boolean {
  * - Col 5: Role / field_5
  */
 export function mapSharePointUserProfile(raw: Record<string, unknown>): UserProfileRecord {
-  const rawId = (raw.field_0 as number | string) ?? (raw.ID as number | string) ?? (raw.Id as number | string) ?? '';
-
   // Extract email candidate
   const rawEmail = String(
     raw.Email ?? raw.email ?? raw.Mail ?? raw.UserEmail ?? raw.UserPrincipalName ?? raw.field_1 ?? raw.Title ?? ''
@@ -65,7 +63,6 @@ export function mapSharePointUserProfile(raw: Record<string, unknown>): UserProf
   const role = String(raw.Role ?? raw.role ?? raw.field_5 ?? 'user').trim().toLowerCase();
 
   return {
-    id: rawId,
     email: cleanEmail,
     username: rawUsername || cleanEmail.split('@')[0],
     displayName: rawDisplayName || rawUsername || cleanEmail.split('@')[0],

@@ -2,20 +2,18 @@ import type * as XLSXTypes from 'xlsx';
 import { TableColumn, CellValue } from '../types/report.types';
 
 /**
- * Danh mục dùng chung của một đơn vị, đọc từ file ActivityP6.xlsx (xem AGENTS.md mục 5.3).
- *
- * File có một sheet cho mỗi đơn vị (tên sheet = mã đơn vị, ví dụ ST01). Trong sheet, các bảng danh mục xếp NGANG
- * (cách nhau ít nhất một cột trống), dòng 1 là tiêu đề, dữ liệu từ dòng 2 trở xuống đến ô mã đầu tiên bị trống:
- *   - cột 1 = MÃ (ID); tên tiêu đề cột 1 chính là tên bảng, template tham chiếu bằng `select:@<tên bảng>`;
- *   - cột 2 (không bắt buộc) = giá trị RÀNG BUỘC của mã đó (Element_ID → ActivityP6_ID, ResHuman_ID → Category…).
- *     Cột ở template khai báo `from=<cột mã>` sẽ tự điền giá trị này khi người dùng chọn mã.
- * Không có mô tả hay trạng thái: muốn bỏ một mã thì xoá dòng; báo cáo cũ vẫn giữ nguyên giá trị đã lưu.
- * File này CHỈ do admin ghi (bảng `ActivityP6_ID`). Các bảng người dùng được tự thêm (Element, Resource, Vật tư…) nằm trong
- * SharePoint List `CatalogItems` (xem ReportCatalogService) và được gộp vào cùng một `ReportCatalog`.
- * Mã "---" luôn có sẵn trong dropdown làm giá trị "chưa chọn"; mã không có ràng buộc để trống ô cột 2.
+ * Danh mục dùng chung cho các dropdown, gộp từ hai nguồn (xem AGENTS.md mục 5.3):
+ *  - File `ActivityP6.xlsx` (chỉ admin ghi, người dùng chỉ đọc): MỘT sheet, mỗi dòng một Activity với các cột
+ *    `ActivityID` (mã), `Unit` (đơn vị, vd ST01; `ALL` = dùng chung mọi đơn vị) và `Description` (mô tả, không bắt buộc, hiện kèm mã
+ *    trong dropdown). Web lọc theo đơn vị đang mở. Muốn bỏ một mã thì xoá dòng; báo cáo cũ vẫn giữ giá trị đã lưu.
+ *  - SharePoint List `CatalogItems` (người dùng được tự thêm bằng "Khác…", xem ReportCatalogService): Element, Resource, Vật tư,
+ *    và các danh sách chọn dùng chung (thời tiết, trạng thái…).
+ * Mã "---" luôn có sẵn trong dropdown làm giá trị "chưa chọn".
  */
 
 export interface CatalogItem {
+  /** Mô tả (không bắt buộc), hiện kèm mã trong dropdown. */
+  description?: string;
   /** Mã; '' khi mục chỉ có giá trị ràng buộc (vd vật tư người dùng thêm theo tên, chưa được cấp mã). */
   id: string;
   /** Giá trị ràng buộc theo mã ('' nếu để trống hoặc "---"). */
@@ -25,9 +23,7 @@ export interface CatalogItem {
 export interface CatalogTable {
   /** Tên bảng = tiêu đề cột mã, ví dụ "Element_ID". */
   name: string;
-  /** Tiêu đề cột ràng buộc (vd "ActivityP6_ID"); undefined nếu bảng chỉ có cột mã. */
-  linkName?: string;
-  /** 'file' = từ ActivityP6.xlsx (chỉ admin sửa, người dùng không thêm được); 'list' = từ list CatalogItems (người dùng được thêm). */
+  /** 'file' = từ ActivityP6.xlsx (chỉ admin sửa, người dùng không thêm được); 'list' = từ list CatalogItems hoặc danh mục cục bộ (người dùng được thêm). */
   source: 'file' | 'list';
   items: CatalogItem[];
 }
@@ -37,6 +33,7 @@ export interface CatalogRow {
   table: string;
   code: string;
   link: string;
+  description?: string;
 }
 
 export interface ReportCatalog {
@@ -68,48 +65,58 @@ function norm(v: unknown): string {
   return v === undefined || v === null ? '' : String(v).trim();
 }
 
-/** Đọc danh mục của `unit` từ nội dung file ActivityP6.xlsx; không có sheet của đơn vị thì trả danh mục rỗng kèm cảnh báo. */
+/** Tên bảng Activity (chữ thường dùng làm khoá, khớp `catalog` của cột trong template). */
+export const ACTIVITY_TABLE = 'ActivityP6_ID';
+
+const HEADER_ALIASES = {
+  code: ['activityid', 'activity id', 'activityp6_id', 'activityp6id', 'id', 'code', 'ma'],
+  unit: ['unit', 'don vi', 'donvi'],
+  description: ['description', 'mo ta', 'ghi chu']
+};
+
+function headerIndex(header: unknown[], aliases: string[]): number {
+  for (let c = 0; c < header.length; c++) if (aliases.indexOf(normKey(norm(header[c]))) !== -1) return c;
+  return -1;
+}
+
+/**
+ * Đọc các Activity của `unit` từ file ActivityP6.xlsx: sheet đầu tiên (hoặc sheet tên "ActivityP6"), dòng 1 là tiêu đề với cột
+ * `ActivityID`, `Unit`, `Description` (tìm theo tên cột, thứ tự cột tuỳ ý; `Description` không bắt buộc). Chỉ lấy dòng có `Unit` trùng
+ * đơn vị (không phân biệt hoa thường) hoặc `ALL`. Thiếu cột/không có Activity cho đơn vị thì trả bảng rỗng kèm cảnh báo.
+ */
 export function parseCatalogFromWorkbook(XLSX: typeof XLSXTypes, wb: XLSXTypes.WorkBook, unit: string): ReportCatalog {
-  const sheetName = wb.SheetNames.filter((n) => n.trim().toLowerCase() === unit.trim().toLowerCase())[0];
-  if (!sheetName) return emptyCatalog(unit, `Chưa có sheet "${unit}" trong file danh mục.`);
   const catalog: ReportCatalog = { unit, tables: {}, warnings: [] };
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], { header: 1, defval: '', blankrows: true });
-  const header = rows[0] || [];
-
-  // Bảng bắt đầu ở ô tiêu đề không trống có ô bên trái trống; rộng tối đa 2 cột (mã + ràng buộc)
-  for (let c = 0; c < header.length; c++) {
-    const name = norm(header[c]);
-    if (!name || (c > 0 && norm(header[c - 1]) !== '')) continue;
-    const linkName = norm(header[c + 1]) || undefined;
-    const table: CatalogTable = { name, linkName, source: 'file', items: [] };
-    const seen = new Set<string>();
-    for (let r = 1; r < rows.length; r++) {
-      const id = norm(rows[r][c]);
-      if (!id) break; // ô mã trống = hết bảng
-      if (id === CATALOG_NONE) continue;
-      const raw = linkName ? norm(rows[r][c + 1]) : '';
-      if (seen.has(id.toLowerCase())) catalog.warnings.push(`Trùng mã ${id} trong bảng ${name}.`);
-      seen.add(id.toLowerCase());
-      table.items.push({ id, link: raw === CATALOG_NONE ? '' : raw });
-    }
-    catalog.tables[name.toLowerCase()] = table;
+  const sheetName = wb.SheetNames.filter((n) => n.trim().toLowerCase() === 'activityp6')[0] || wb.SheetNames[0];
+  const table: CatalogTable = { name: ACTIVITY_TABLE, source: 'file', items: [] };
+  catalog.tables[ACTIVITY_TABLE.toLowerCase()] = table;
+  if (!sheetName) {
+    catalog.warnings.push('File ActivityP6.xlsx không có sheet nào.');
+    return catalog;
   }
-
-  const tableNames = Object.keys(catalog.tables);
-  if (tableNames.length === 0) catalog.warnings.push(`Sheet "${sheetName}" chưa có bảng danh mục nào (tiêu đề ở dòng 1).`);
-
-  // Ràng buộc trỏ tới bảng khác (tên cột ràng buộc trùng tên một bảng) thì mã phải có trong bảng đó
-  tableNames.forEach((key) => {
-    const t = catalog.tables[key];
-    const target = t.linkName ? catalog.tables[t.linkName.toLowerCase()] : undefined;
-    if (!target) return;
-    const ids = new Set(target.items.map((i) => i.id.toLowerCase()));
-    t.items.forEach((i) => {
-      if (i.link && !ids.has(i.link.toLowerCase())) {
-        catalog.warnings.push(`${i.id} (${t.name}) trỏ tới ${i.link} không có trong bảng ${target.name}.`);
-      }
-    });
-  });
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], { header: 1, defval: '', blankrows: false });
+  const header = rows[0] || [];
+  const codeCol = headerIndex(header, HEADER_ALIASES.code);
+  const unitCol = headerIndex(header, HEADER_ALIASES.unit);
+  const descCol = headerIndex(header, HEADER_ALIASES.description);
+  if (codeCol < 0 || unitCol < 0) {
+    catalog.warnings.push(`Sheet "${sheetName}" cần có cột ActivityID và Unit ở dòng 1.`);
+    return catalog;
+  }
+  const target = unit.trim().toLowerCase();
+  const seen = new Set<string>();
+  for (let r = 1; r < rows.length; r++) {
+    const id = norm(rows[r][codeCol]);
+    const rowUnit = norm(rows[r][unitCol]).toLowerCase();
+    if (!id || id === CATALOG_NONE || (rowUnit !== target && rowUnit !== 'all')) continue;
+    if (seen.has(id.toLowerCase())) {
+      catalog.warnings.push(`Trùng mã ${id} của đơn vị ${unit} trong ActivityP6.xlsx.`);
+      continue;
+    }
+    seen.add(id.toLowerCase());
+    const description = descCol >= 0 ? norm(rows[r][descCol]) : '';
+    table.items.push(description ? { id, link: '', description } : { id, link: '' });
+  }
+  if (table.items.length === 0) catalog.warnings.push(`Chưa có Activity nào của đơn vị ${unit} trong ActivityP6.xlsx.`);
   return catalog;
 }
 
@@ -129,8 +136,8 @@ export function findCatalogItemByLink(catalog: ReportCatalog | undefined, ref: s
   return table ? table.items.filter((i) => i.link && i.link.toLowerCase() === k)[0] : undefined;
 }
 
-/** Danh sách chọn của cột tham chiếu: "---" + mọi mã của bảng (hoặc, với `byLink`, các giá trị ràng buộc không trùng nhau). */
-export function catalogOptions(catalog: ReportCatalog | undefined, ref: string, byLink = false): string[] {
+/** Danh sách chọn của cột tham chiếu: "---" (trừ `noNone`) + mọi mã của bảng (hoặc, với `byLink`, các giá trị ràng buộc không trùng nhau). */
+export function catalogOptions(catalog: ReportCatalog | undefined, ref: string, byLink = false, noNone = false): string[] {
   const table = catalog ? catalog.tables[ref.toLowerCase()] : undefined;
   if (byLink) {
     const out: string[] = [];
@@ -139,7 +146,23 @@ export function catalogOptions(catalog: ReportCatalog | undefined, ref: string, 
     });
     return out;
   }
-  return [CATALOG_NONE].concat(table ? table.items.filter((i) => i.id !== '').map((i) => i.id) : []);
+  const ids = table ? table.items.filter((i) => i.id !== '').map((i) => i.id) : [];
+  return noNone ? ids : [CATALOG_NONE].concat(ids);
+}
+
+/** Nhãn hiển thị của các mã trong dropdown: "mã – mô tả" cho mục có mô tả (mục không có mô tả giữ nguyên mã). */
+export function catalogOptionLabels(catalog: ReportCatalog | undefined, ref: string): Record<string, string> | undefined {
+  const table = catalog ? catalog.tables[ref.toLowerCase()] : undefined;
+  if (!table) return undefined;
+  const out: Record<string, string> = {};
+  let any = false;
+  table.items.forEach((i) => {
+    if (i.id && i.description) {
+      out[i.id] = `${i.id} – ${i.description}`;
+      any = true;
+    }
+  });
+  return any ? out : undefined;
 }
 
 function columnByCode(columns: TableColumn[], code: string): TableColumn | undefined {
@@ -218,7 +241,7 @@ export function mergeCatalogRows(catalog: ReportCatalog, rows: CatalogRow[]): Re
     const key = r.table.toLowerCase();
     const t = tables[key] || (tables[key] = { name: r.table, source: 'list', items: [] });
     const dup = t.items.some((i) => (r.code ? normKey(i.id) === normKey(r.code) : false) || (!r.code && normKey(i.link) === normKey(r.link)));
-    if (!dup) t.items.push({ id: r.code, link: r.link });
+    if (!dup) t.items.push(r.description ? { id: r.code, link: r.link, description: r.description } : { id: r.code, link: r.link });
   });
   return { ...catalog, tables };
 }

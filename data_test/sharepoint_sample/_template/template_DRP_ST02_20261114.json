@@ -1,0 +1,786 @@
+{
+  "schema": 1,
+  "docId": "DailyReport",
+  "title": {
+    "vi": "BÁO CÁO NGÀY",
+    "en": "DAILY REPORT",
+    "sub": "Dự án xây dựng tuyến tàu điện ngầm số 2 TP.HCM - Tuyến Bến Thành - Tham Lương"
+  },
+  "docCodePattern": "HCM2_1-23_CS-THAC_DCEM-CPZZ-{unit}-CWS-DRP-{reportNo}",
+  "sections": [
+    {
+      "id": "weather",
+      "title": {
+        "vi": "THÔNG TIN CHUNG & THỜI TIẾT",
+        "en": "GENERAL & WEATHER",
+        "short": "Thời tiết"
+      },
+      "single": true,
+      "showSummary": false,
+      "columns": [
+        {
+          "id": "am",
+          "label": {
+            "vi": "Sáng 08h-16h",
+            "en": "Morning"
+          },
+          "type": "select",
+          "catalog": "weather",
+          "noNone": true,
+          "reset": true,
+          "default": "Nắng",
+          "align": "center",
+          "width": 13
+        },
+        {
+          "id": "pm",
+          "label": {
+            "vi": "Chiều 16h-24h",
+            "en": "Afternoon"
+          },
+          "type": "select",
+          "catalog": "weather",
+          "noNone": true,
+          "reset": true,
+          "default": "Nắng",
+          "align": "center",
+          "width": 13
+        },
+        {
+          "id": "night",
+          "label": {
+            "vi": "Tối 00h-08h",
+            "en": "Night"
+          },
+          "type": "select",
+          "catalog": "weather",
+          "noNone": true,
+          "reset": true,
+          "default": "Nắng",
+          "align": "center",
+          "width": 13
+        },
+        {
+          "id": "hrsLost",
+          "label": {
+            "vi": "Giờ ngừng do thời tiết",
+            "en": "Hrs lost"
+          },
+          "type": "number",
+          "reset": true,
+          "default": 0,
+          "align": "center",
+          "width": 15
+        },
+        {
+          "id": "value",
+          "label": {
+            "vi": "Chỉ số đánh giá",
+            "en": "Value"
+          },
+          "reset": true,
+          "default": "SV | EV | AC",
+          "align": "center",
+          "width": 30
+        }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "am": "Nắng",
+            "pm": "Nắng",
+            "night": "Nắng",
+            "hrsLost": 0,
+            "value": "SV | EV | AC"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hse",
+      "title": {
+        "vi": "AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS",
+        "en": "HSE – QUALITY – ENGINEER'S INSTRUCTIONS",
+        "short": "HSE"
+      },
+      "showSummary": false,
+      "single": true,
+      "columns": [
+        {
+          "id": "hseIncidents",
+          "label": {
+            "vi": "Sự cố HSE",
+            "en": "HSE incidents"
+          },
+          "type": "number",
+          "align": "center"
+        },
+        {
+          "id": "envIncidents",
+          "label": {
+            "vi": "Sự cố môi trường",
+            "en": "Environmental incidents"
+          },
+          "type": "number",
+          "align": "center"
+        },
+        {
+          "id": "hseInspections",
+          "label": {
+            "vi": "Kiểm tra ATLĐ",
+            "en": "HSE inspections"
+          },
+          "type": "number",
+          "align": "center"
+        },
+        {
+          "id": "inspectionRequests",
+          "label": {
+            "vi": "Nghiệm thu (IR)",
+            "en": "Inspection request"
+          },
+          "type": "number",
+          "align": "center"
+        },
+        {
+          "id": "newNcr",
+          "label": {
+            "vi": "NCR mới",
+            "en": "New NCR"
+          },
+          "type": "number",
+          "align": "center"
+        }
+      ],
+      "rows": [
+        {
+          "id": "r1",
+          "cells": {
+            "hseIncidents": 0,
+            "envIncidents": 0,
+            "hseInspections": 0,
+            "inspectionRequests": 0,
+            "newNcr": 0
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "incidentDetails",
+          "label": {
+            "vi": "Mô tả sự cố",
+            "en": "Incident details"
+          },
+          "full": true
+        },
+        {
+          "id": "engineerInstructions",
+          "label": {
+            "vi": "Chỉ thị / ý kiến TVGS",
+            "en": "Engineer's instructions"
+          },
+          "type": "textarea",
+          "full": true,
+          "rows": 2
+        }
+      ],
+      "layout": {
+        "columns": 1
+      }
+    },
+    {
+      "id": "events",
+      "title": {
+        "vi": "SỰ KIỆN TRONG NGÀY",
+        "en": "EVENT LOGS",
+        "short": "Sự kiện"
+      },
+      "columns": [
+        {
+          "id": "eventId",
+          "label": {
+            "vi": "Mã sự kiện",
+            "en": "Event ID"
+          },
+          "readonly": true,
+          "default": "EVT-{unit}-{n5}",
+          "align": "center",
+          "width": 20
+        },
+        {
+          "id": "type",
+          "label": {
+            "vi": "Loại sự kiện",
+            "en": "Type"
+          },
+          "type": "select",
+          "catalog": "event_type",
+          "noNone": true,
+          "width": 18,
+          "default": "KIEM_TRA_ATLD"
+        },
+        {
+          "id": "description",
+          "label": {
+            "vi": "Nội dung",
+            "en": "Description"
+          },
+          "width": 40
+        },
+        {
+          "id": "due",
+          "label": {
+            "vi": "Hạn xử lý",
+            "en": "Due"
+          },
+          "type": "date",
+          "width": 10
+        },
+        {
+          "id": "status",
+          "label": {
+            "vi": "Trạng thái",
+            "en": "Status"
+          },
+          "type": "select",
+          "catalog": "event_status",
+          "noNone": true,
+          "default": "Không Đạt",
+          "align": "center",
+          "width": 10
+        },
+        {
+          "id": "remark",
+          "label": {
+            "vi": "Ghi chú",
+            "en": "Remarks"
+          },
+          "width": 20
+        }
+      ],
+      "rows": []
+    },
+    {
+      "id": "workQty",
+      "title": {
+        "vi": "KHỐI LƯỢNG THỰC HIỆN",
+        "en": "WORK QUANTITIES",
+        "short": "Khối lượng"
+      },
+      "columns": [
+        {
+          "id": "activityId",
+          "label": {
+            "vi": "Activity ID (P6)",
+            "en": "Activity ID"
+          },
+          "type": "select",
+          "catalog": "ActivityP6_ID",
+          "from": "element",
+          "default": "---",
+          "align": "center",
+          "width": 14
+        },
+        {
+          "id": "element",
+          "label": {
+            "vi": "Cấu kiện",
+            "en": "Element"
+          },
+          "type": "select",
+          "catalog": "Element_ID",
+          "default": "---",
+          "align": "center",
+          "width": 18
+        },
+        {
+          "id": "step",
+          "label": {
+            "vi": "Công việc",
+            "en": "Step"
+          },
+          "width": 22
+        },
+        {
+          "id": "unit",
+          "label": {
+            "vi": "ĐV",
+            "en": "Unit"
+          },
+          "default": "m³",
+          "align": "center",
+          "width": 6
+        },
+        {
+          "id": "start",
+          "label": {
+            "vi": "Ngày bắt đầu",
+            "en": "Start"
+          },
+          "type": "date",
+          "width": 10
+        },
+        {
+          "id": "finish",
+          "label": {
+            "vi": "Ngày kết thúc",
+            "en": "Finish"
+          },
+          "type": "date",
+          "width": 10
+        },
+        {
+          "id": "daily",
+          "label": {
+            "vi": "Thực hiện hôm nay",
+            "en": "Daily Actual"
+          },
+          "type": "number",
+          "reset": true,
+          "default": 0,
+          "width": 9
+        },
+        {
+          "id": "prevCum",
+          "label": {
+            "vi": "Luỹ kế hôm qua",
+            "en": "Prev. Cum."
+          },
+          "type": "number",
+          "key": true,
+          "default": 0,
+          "carry": "daily+prevCum",
+          "width": 9
+        },
+        {
+          "id": "planned",
+          "label": {
+            "vi": "Tổng phải làm",
+            "en": "Planned Qty"
+          },
+          "type": "number",
+          "key": true,
+          "default": 0,
+          "width": 9
+        },
+        {
+          "id": "progress",
+          "label": {
+            "vi": "Tiến độ",
+            "en": "Progress (%)"
+          },
+          "type": "calc",
+          "formula": "round((daily+prevCum)/planned*100)",
+          "width": 8
+        },
+        {
+          "id": "remark",
+          "label": {
+            "vi": "Ghi chú",
+            "en": "Remark"
+          },
+          "width": 16
+        }
+      ],
+      "rows": []
+    },
+    {
+      "id": "materials",
+      "title": {
+        "vi": "VẬT TƯ",
+        "en": "MATERIALS",
+        "short": "Vật tư"
+      },
+      "columns": [
+        {
+          "id": "matId",
+          "label": {
+            "vi": "Mã vật tư",
+            "en": "Mat. ID"
+          },
+          "type": "select",
+          "catalog": "Material_ID",
+          "readonly": true,
+          "from": "material",
+          "default": "---",
+          "align": "center",
+          "width": 16
+        },
+        {
+          "id": "material",
+          "label": {
+            "vi": "Vật tư",
+            "en": "Material"
+          },
+          "type": "select",
+          "catalog": "Material_ID",
+          "catalogBy": "link",
+          "width": 30
+        },
+        {
+          "id": "unit",
+          "label": {
+            "vi": "ĐV",
+            "en": "Unit"
+          },
+          "default": "m³",
+          "align": "center",
+          "width": 8
+        },
+        {
+          "id": "recv",
+          "label": {
+            "vi": "Nhập về trong ngày",
+            "en": "Recv."
+          },
+          "type": "number",
+          "default": 0,
+          "width": 14
+        },
+        {
+          "id": "supplier",
+          "label": {
+            "vi": "Nhà cung cấp",
+            "en": "Supplier"
+          },
+          "type": "select",
+          "catalog": "supplier",
+          "noNone": true,
+          "width": 20,
+          "default": "Thiên An"
+        },
+        {
+          "id": "remark",
+          "label": {
+            "vi": "Ghi chú",
+            "en": "Remark"
+          },
+          "width": 20
+        }
+      ],
+      "rows": []
+    },
+    {
+      "id": "manpower",
+      "title": {
+        "vi": "NHÂN LỰC",
+        "en": "MANPOWER",
+        "short": "Nhân lực"
+      },
+      "columns": [
+        {
+          "id": "resId",
+          "label": {
+            "vi": "Mã Resource",
+            "en": "Resource ID"
+          },
+          "type": "select",
+          "catalog": "ResHuman_ID",
+          "readonly": true,
+          "from": "category",
+          "default": "---",
+          "align": "center",
+          "width": 16
+        },
+        {
+          "id": "category",
+          "label": {
+            "vi": "Loại",
+            "en": "Category"
+          },
+          "type": "select",
+          "catalog": "ResHuman_ID",
+          "catalogBy": "link",
+          "width": 28
+        },
+        {
+          "id": "daily",
+          "label": {
+            "vi": "Số người hôm nay",
+            "en": "Daily Actual"
+          },
+          "type": "number",
+          "reset": true,
+          "total": true,
+          "default": 0,
+          "width": 13
+        },
+        {
+          "id": "prevCum",
+          "label": {
+            "vi": "Luỹ kế hôm qua",
+            "en": "Prev. Cum."
+          },
+          "type": "number",
+          "total": true,
+          "default": 0,
+          "carry": "daily+prevCum",
+          "width": 13
+        },
+        {
+          "id": "cumTotal",
+          "label": {
+            "vi": "Tổng hiện nay",
+            "en": "Cum. Total"
+          },
+          "type": "calc",
+          "formula": "daily+prevCum",
+          "total": true,
+          "width": 13
+        },
+        {
+          "id": "remark",
+          "label": {
+            "vi": "Ghi chú",
+            "en": "Remark"
+          },
+          "width": 20
+        }
+      ],
+      "rows": []
+    },
+    {
+      "id": "equipment",
+      "title": {
+        "vi": "THIẾT BỊ",
+        "en": "EQUIPMENT",
+        "short": "Thiết bị"
+      },
+      "columns": [
+        {
+          "id": "resId",
+          "label": {
+            "vi": "Mã tài nguyên",
+            "en": "Res ID"
+          },
+          "type": "select",
+          "catalog": "ResEquip_ID",
+          "readonly": true,
+          "from": "equipment",
+          "default": "---",
+          "align": "center",
+          "width": 16
+        },
+        {
+          "id": "equipment",
+          "label": {
+            "vi": "Thiết bị / biển số",
+            "en": "Equipment"
+          },
+          "type": "select",
+          "catalog": "ResEquip_ID",
+          "catalogBy": "link",
+          "width": 34
+        },
+        {
+          "id": "qty",
+          "label": {
+            "vi": "Số lượng",
+            "en": "Qty"
+          },
+          "type": "number",
+          "default": 1,
+          "width": 10
+        },
+        {
+          "id": "status",
+          "label": {
+            "vi": "Tình trạng",
+            "en": "Status"
+          },
+          "type": "select",
+          "catalog": "equipment_status",
+          "noNone": true,
+          "default": "Active",
+          "align": "center",
+          "width": 14
+        },
+        {
+          "id": "activityId",
+          "label": {
+            "vi": "Activity ID (P6)",
+            "en": "Activity ID"
+          },
+          "type": "select",
+          "catalog": "ActivityP6_ID",
+          "default": "---",
+          "align": "center",
+          "width": 16
+        }
+      ],
+      "rows": []
+    },
+    {
+      "id": "issues",
+      "title": {
+        "vi": "VƯỚNG MẮC / RÀNG BUỘC ĐANG MỞ",
+        "en": "OPEN ISSUES & CONSTRAINTS",
+        "short": "Vướng mắc"
+      },
+      "columns": [
+        {
+          "id": "activityId",
+          "label": {
+            "vi": "Activity ID (P6)",
+            "en": "Activity ID"
+          },
+          "type": "select",
+          "catalog": "ActivityP6_ID",
+          "default": "---",
+          "align": "center",
+          "width": 14
+        },
+        {
+          "id": "issueId",
+          "label": {
+            "vi": "Mã vướng mắc",
+            "en": "Issue ID"
+          },
+          "readonly": true,
+          "default": "ISS-{unit}-{n5}",
+          "align": "center",
+          "width": 20
+        },
+        {
+          "id": "description",
+          "label": {
+            "vi": "Nội dung",
+            "en": "Description"
+          },
+          "width": 34
+        },
+        {
+          "id": "severity",
+          "label": {
+            "vi": "Mức độ",
+            "en": "Severity"
+          },
+          "type": "select",
+          "catalog": "issue_severity",
+          "noNone": true,
+          "default": "Trung bình",
+          "align": "center",
+          "width": 9
+        },
+        {
+          "id": "owner",
+          "label": {
+            "vi": "Bên xử lý",
+            "en": "Owner"
+          },
+          "width": 13
+        },
+        {
+          "id": "raised",
+          "label": {
+            "vi": "Phát sinh",
+            "en": "Raised"
+          },
+          "type": "date",
+          "width": 10
+        },
+        {
+          "id": "due",
+          "label": {
+            "vi": "Hạn",
+            "en": "Due"
+          },
+          "type": "date",
+          "width": 10
+        },
+        {
+          "id": "status",
+          "label": {
+            "vi": "Trạng thái",
+            "en": "Status"
+          },
+          "type": "select",
+          "catalog": "issue_status",
+          "noNone": true,
+          "default": "Mở",
+          "align": "center",
+          "width": 10
+        },
+        {
+          "id": "todayUpdate",
+          "label": {
+            "vi": "Cập nhật hôm nay",
+            "en": "Today update"
+          },
+          "default": "---",
+          "width": 22
+        }
+      ],
+      "rows": []
+    },
+    {
+      "id": "photos",
+      "title": {
+        "vi": "ẢNH HIỆN TRƯỜNG",
+        "en": "SITE PHOTOS",
+        "short": "Ảnh"
+      },
+      "kind": "photo",
+      "showSummary": false,
+      "perRow": 2
+    },
+    {
+      "id": "signOff",
+      "title": {
+        "vi": "THÔNG TIN KÝ DUYỆT",
+        "en": "SIGN-OFF",
+        "short": "Ký duyệt"
+      },
+      "showSummary": false,
+      "layout": {
+        "columns": 2,
+        "sign": true
+      },
+      "fields": [
+        {
+          "id": "preparedBy",
+          "label": {
+            "vi": "Người lập",
+            "en": "Prepared by"
+          },
+          "default": "{user}"
+        },
+        {
+          "id": "siteManager",
+          "label": {
+            "vi": "Trưởng ga / CHT",
+            "en": "Site manager"
+          },
+          "default": "{siteManager}"
+        }
+      ]
+    },
+    {
+      "id": "directives",
+      "title": {
+        "vi": "CHỈ ĐẠO CỦA BAN ĐIỀU HÀNH",
+        "en": "MANAGEMENT DIRECTIVES",
+        "short": "Chỉ đạo"
+      },
+      "showSummary": false,
+      "layout": {
+        "columns": 1
+      },
+      "fields": [
+        {
+          "id": "directives",
+          "label": {
+            "vi": "Nội dung chỉ đạo",
+            "en": "Directives"
+          },
+          "type": "textarea",
+          "full": true,
+          "rows": 3,
+          "lines": 15,
+          "placeholder": "Cấp trên nhập chỉ đạo (bản in kẻ 15 dòng)"
+        }
+      ]
+    }
+  ]
+}

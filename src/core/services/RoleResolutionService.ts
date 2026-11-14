@@ -1,6 +1,5 @@
 import { extractCleanEmail } from '../auth';
 import { RoleEntry, UserRoleResolution } from '../types/role.types';
-import { parseRoleBuffer } from '../utils/roleCodec';
 
 export class RoleResolutionService {
   /**
@@ -31,27 +30,4 @@ export class RoleResolutionService {
       allRoles
     };
   }
-
-  /**
-   * Helper to parse buffer and resolve user roles in one call.
-   */
-  public static async resolveRolesFromBuffer(
-    buffer: ArrayBuffer | undefined,
-    rawUserEmail: string,
-    isAdmin: boolean
-  ): Promise<UserRoleResolution> {
-    const cleanEmail = extractCleanEmail(rawUserEmail).toLowerCase();
-    if (!buffer) {
-      return {
-        userEmail: cleanEmail,
-        isAdmin,
-        assignedRoles: [],
-        allRoles: []
-      };
-    }
-
-    const allRoles = await parseRoleBuffer(buffer);
-    return this.resolveRoles(allRoles, rawUserEmail, isAdmin);
-  }
 }
-

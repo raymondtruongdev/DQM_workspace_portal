@@ -1,13 +1,13 @@
-import { ISharePointFileInfo, SharePointClient } from '../../../core/services';
+import { ISharePointClient, ISharePointFileInfo } from '../../../core/services';
 import { sanitizeSharePointPath } from '../../../core/utils';
 import { REPORT_CONFIG } from '../constants/reportConfig';
 import { TemplateVersionInfo, ReportDayInfo, SignedDocInfo } from '../types/report.types';
 import {
   getReportFileName,
+  getReportHtmlFileName,
   getReportFolderRelativePath,
   getReportFileRelativePath,
   getReportPhotosFolderRelativePath,
-  getTemplateFileRelativePath,
   getUnitFolderRelativePath,
   matchUnitTemplateFileName,
   getReportFolderName,
@@ -34,11 +34,11 @@ function getPreviousCalendarDateStr(dateStr: string): string {
 }
 
 export class ReportFileService {
-  private _client: SharePointClient;
+  private _client: ISharePointClient;
   private _siteUrl: string;
   private _libraryName: string;
 
-  constructor(client: SharePointClient, siteUrl: string, libraryName = REPORT_CONFIG.LIBRARY_NAME) {
+  constructor(client: ISharePointClient, siteUrl: string, libraryName = REPORT_CONFIG.LIBRARY_NAME) {
     this._client = client;
     this._siteUrl = siteUrl.replace(/\/+$/, '');
     this._libraryName = libraryName;
@@ -63,20 +63,6 @@ export class ReportFileService {
   }
 
   /**
-   * Path to Report_Role.xlsx
-   */
-  public getRoleFilePath(): string {
-    return `${this.getLibraryPath()}/${REPORT_CONFIG.ROLE_FILE_NAME}`;
-  }
-
-  /**
-   * Fetch Report_Role.xlsx buffer from the library root
-   */
-  public async getRoleFileBuffer(): Promise<ArrayBuffer | undefined> {
-    return await this._client.getFileBuffer(this._siteUrl, this.getRoleFilePath());
-  }
-
-  /**
    * Fetch ActivityP6.xlsx (danh mục Activity P6 + cấu kiện) from the library root; undefined if missing
    */
   public async getActivityFileBuffer(): Promise<ArrayBuffer | undefined> {
@@ -93,35 +79,26 @@ export class ReportFileService {
     return `${this.getLibraryPath()}/${REPORT_CONFIG.TEMPLATE_FOLDER}`;
   }
 
-  /**
-   * Path to template file for DocID (e.g. DailyReport_template.xlsx)
-   */
-  public getTemplateFilePath(docId: string): string {
-    return getTemplateFileRelativePath(this.getLibraryPath(), docId);
-  }
 
   /**
-   * Find the latest template file for a specific Unit inside _template/
-   * e.g. _template/template_DRP_ST01_20261109.xlsx
-   * Falls back to _template/<DocID>_template.xlsx (WeeklyReport placeholder) if no unit-specific template is found.
+   * Template mới nhất của đơn vị trong _template/ (template_<DRP|WRP>_<Unit>_<yyyyMMdd>.json): ngày trong tên file lớn nhất thắng.
+   * Không có thì trả {}.
    */
   public async findLatestTemplateForUnit(
     unit: string,
     docId: string
-  ): Promise<{ info?: TemplateVersionInfo; buffer?: ArrayBuffer }> {
+  ): Promise<{ info?: TemplateVersionInfo; text?: string }> {
     let files: ISharePointFileInfo[] = [];
     try {
       files = await this._client.getFolderFiles(this._siteUrl, this.getTemplateFolderPath());
     } catch {
       files = [];
     }
-
-    const matchedCandidates: TemplateVersionInfo[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
+    const candidates: TemplateVersionInfo[] = [];
+    files.forEach((f) => {
       const match = matchUnitTemplateFileName(f.name, unit, docId);
       if (match) {
-        matchedCandidates.push({
+        candidates.push({
           fileName: match.fileName,
           version: match.version,
           versionDate: match.versionDate,
@@ -129,130 +106,73 @@ export class ReportFileService {
           timeLastModified: f.timeLastModified
         });
       }
-    }
-
-    if (matchedCandidates.length > 0) {
-      matchedCandidates.sort((a, b) => {
-        if (a.versionDate !== b.versionDate) {
-          return b.versionDate.localeCompare(a.versionDate);
-        }
-        return (b.timeLastModified || '').localeCompare(a.timeLastModified || '');
-      });
-
-      const best = matchedCandidates[0];
-      try {
-        const buffer = await this._client.getFileBuffer(this._siteUrl, best.serverRelativeUrl);
-        if (buffer) {
-          return { info: best, buffer };
-        }
-      } catch {
-        // Fallback below
-      }
-    }
-
-    // Fallback to generic <DocID>_template.xlsx if no unit-specific template exists
-    try {
-      const genericBuffer = await this.getTemplateBuffer(docId);
-      if (genericBuffer) {
-        const genericFileName = `${sanitizeSharePointPath(docId)}_template.xlsx`;
-        return {
-          info: {
-            fileName: genericFileName,
-            version: `${sanitizeSharePointPath(docId)}_template`,
-            versionDate: '',
-            serverRelativeUrl: this.getTemplateFilePath(docId)
-          },
-          buffer: genericBuffer
-        };
-      }
-    } catch {
-      // Ignore
-    }
-
-    return {};
+    });
+    candidates.sort((a, b) =>
+      a.versionDate !== b.versionDate
+        ? b.versionDate.localeCompare(a.versionDate)
+        : (b.timeLastModified || '').localeCompare(a.timeLastModified || '')
+    );
+    const best = candidates[0];
+    if (!best) return {};
+    const buffer = await this._client.getFileBuffer(this._siteUrl, best.serverRelativeUrl);
+    return buffer ? { info: best, text: new TextDecoder('utf-8').decode(buffer) } : {};
   }
 
   /**
-   * Fetch template buffer for DocID
+   * File dữ liệu của một ngày (.data.json) kèm ETag; undefined nếu chưa có.
    */
-  public async getTemplateBuffer(docId: string): Promise<ArrayBuffer | undefined> {
-    const path = this.getTemplateFilePath(docId);
-    return await this._client.getFileBuffer(this._siteUrl, path);
-  }
-
-  /**
-   * Fetch existing report file with meta & ETag
-   */
-  public async getReportFileWithMeta(
+  public async getReportJsonWithMeta(
     unit: string,
     docId: string,
     dateStr: string
-  ): Promise<{ buffer: ArrayBuffer; eTag: string } | undefined> {
+  ): Promise<{ text: string; eTag: string } | undefined> {
     const path = getReportFileRelativePath(this.getLibraryPath(), unit, docId, dateStr);
-    return await this._client.getFileWithMeta(this._siteUrl, path);
+    const file = await this._client.getFileWithMeta(this._siteUrl, path);
+    return file && file.buffer ? { text: new TextDecoder('utf-8').decode(file.buffer), eTag: file.eTag } : undefined;
   }
 
   /**
-   * Find and load the closest previous report file before dateStr
-   * (Checks immediate previous day first, then scans unit subfolders for the closest prior date)
+   * Báo cáo gần nhất trước `dateStr` (ngày liền trước, rồi quét thư mục data/<Unit> lấy ngày trước gần nhất).
    */
-  public async getPreviousReportFile(
+  public async getPreviousReportJson(
     unit: string,
     docId: string,
     dateStr: string
-  ): Promise<{ buffer: ArrayBuffer; sourceDateStr: string } | undefined> {
-    // 1. Try the immediate adjacent previous calendar day (dateStr - 1 day)
+  ): Promise<{ text: string; sourceDateStr: string } | undefined> {
+    // 1. Ngày liền trước (dateStr - 1)
     const prevDateStr = getPreviousCalendarDateStr(dateStr);
     if (prevDateStr) {
       try {
-        const adjFile = await this.getReportFileWithMeta(unit, docId, prevDateStr);
-        if (adjFile && adjFile.buffer) {
-          return { buffer: adjFile.buffer, sourceDateStr: prevDateStr };
-        }
+        const adj = await this.getReportJsonWithMeta(unit, docId, prevDateStr);
+        if (adj) return { text: adj.text, sourceDateStr: prevDateStr };
       } catch {
-        // Ignore and fallback to folder scan
+        // thử quét thư mục
       }
     }
 
-    // 2. Scan subfolders in data/<Unit> for the most recent <DocID>_<yyyyMMdd> prior to dateStr
+    // 2. Quét các thư mục con của data/<Unit> tìm <DocID>_<yyyyMMdd> gần nhất trước dateStr
     try {
-      const unitFolder = this.getUnitFolderPath(unit);
-      const subfolders = await this._client.getFolderSubfolderNames(this._siteUrl, unitFolder);
+      const subfolders = await this._client.getFolderSubfolderNames(this._siteUrl, this.getUnitFolderPath(unit));
       if (!subfolders || subfolders.length === 0) return undefined;
-
-      const cleanDocId = sanitizeSharePointPath(docId).toLowerCase();
+      const prefix = `${sanitizeSharePointPath(docId).toLowerCase()}_`;
       const targetCompact = dateStr.replace(/-/g, '');
-      const prefix = `${cleanDocId}_`;
-
       const priorDates: string[] = [];
-      for (let i = 0; i < subfolders.length; i++) {
-        const name = subfolders[i];
-        const lower = name.toLowerCase();
-        if (lower.indexOf(prefix) === 0) {
-          const compactDate = name.slice(prefix.length).trim();
-          if (/^\d{8}$/.test(compactDate) && compactDate < targetCompact) {
-            const isoDate = `${compactDate.slice(0, 4)}-${compactDate.slice(4, 6)}-${compactDate.slice(6, 8)}`;
-            if (isoDate !== prevDateStr) {
-              priorDates.push(isoDate);
-            }
-          }
+      subfolders.forEach((name) => {
+        if (name.toLowerCase().indexOf(prefix) !== 0) return;
+        const compact = name.slice(prefix.length).trim();
+        if (/^\d{8}$/.test(compact) && compact < targetCompact) {
+          const iso = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
+          if (iso !== prevDateStr) priorDates.push(iso);
         }
-      }
-
-      // Sort descending so closest date comes first
+      });
       priorDates.sort((a, b) => b.localeCompare(a));
-
       for (let i = 0; i < Math.min(priorDates.length, 3); i++) {
-        const candidateDate = priorDates[i];
-        const found = await this.getReportFileWithMeta(unit, docId, candidateDate);
-        if (found && found.buffer) {
-          return { buffer: found.buffer, sourceDateStr: candidateDate };
-        }
+        const found = await this.getReportJsonWithMeta(unit, docId, priorDates[i]);
+        if (found) return { text: found.text, sourceDateStr: priorDates[i] };
       }
     } catch {
-      // Ignore folder scan errors
+      // bỏ qua lỗi quét thư mục
     }
-
     return undefined;
   }
 
@@ -273,26 +193,47 @@ export class ReportFileService {
     return unitFolderPath;
   }
 
+  /** Đảm bảo data/<Unit> và data/<Unit>/<DocID>_<yyyyMMdd> tồn tại; trả đường dẫn thư mục báo cáo. */
+  private async ensureReportFolder(unit: string, docId: string, dateStr: string): Promise<string> {
+    await this.ensureUnitFolder(unit);
+    const folderPath = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
+    await this._client.ensureFolder(this._siteUrl, folderPath);
+    return folderPath;
+  }
+
+  private static encode(text: string): ArrayBuffer {
+    const bytes = new TextEncoder().encode(text);
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  }
+
   /**
-   * Save report file to SharePoint: ensures folder data/<Unit> and data/<Unit>/<DocID>_<yyyyMMdd> exist, then uploads file
+   * Ghi file dữ liệu báo cáo (.data.json) vào data/<Unit>/<DocID>_<yyyyMMdd>/ (tự tạo thư mục), có kiểm tra ETag khi ghi đè.
    */
-  public async saveReportFile(
+  public async saveReportJson(
     unit: string,
     docId: string,
     dateStr: string,
-    buffer: ArrayBuffer,
+    text: string,
     eTag?: string
   ): Promise<{ serverRelativeUrl: string; eTag?: string }> {
-    // 1. Explicitly check and ensure the Unit folder (e.g. data/ST01) exists
-    await this.ensureUnitFolder(unit);
+    const folderPath = await this.ensureReportFolder(unit, docId, dateStr);
+    return await this._client.uploadFile(this._siteUrl, folderPath, getReportFileName(docId, dateStr), ReportFileService.encode(text), true, eTag);
+  }
 
-    // 2. Ensure the specific report folder exists (e.g. data/ST01/DailyReport_20261110)
-    const folderPath = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
-    await this._client.ensureFolder(this._siteUrl, folderPath);
+  /** Ghi bản xem/in độc lập (.html) cạnh file dữ liệu; luôn ghi đè. */
+  public async saveReportHtml(unit: string, docId: string, dateStr: string, html: string): Promise<void> {
+    const folderPath = await this.ensureReportFolder(unit, docId, dateStr);
+    await this._client.uploadFile(this._siteUrl, folderPath, getReportHtmlFileName(docId, dateStr), ReportFileService.encode(html), true);
+  }
 
-    // 3. Upload file
-    const fileName = getReportFileName(docId, dateStr);
-    return await this._client.uploadFile(this._siteUrl, folderPath, fileName, buffer, true, eTag);
+  /** Nội dung một ảnh hiện trường (để nhúng vào bản HTML độc lập). */
+  public async getReportPhotoBuffer(unit: string, docId: string, dateStr: string, groupId: string, name: string): Promise<ArrayBuffer | undefined> {
+    return await this._client.getFileBuffer(this._siteUrl, `${this.getReportPhotosFolderPath(unit, docId, dateStr)}/${groupId}/${name}`);
+  }
+
+  /** Nội dung một file trong thư mục resource (logo bản in). */
+  public async getResourceFileBuffer(name: string): Promise<ArrayBuffer | undefined> {
+    return await this._client.getFileBuffer(this._siteUrl, `${this.getLibraryPath()}/resource/${name}`);
   }
 
   /**
@@ -346,7 +287,7 @@ export class ReportFileService {
 
   /**
    * Trạng thái báo cáo của các ngày (dateStrs: YYYY-MM-DD) trong data/<Unit>:
-   * - missing: chưa có file báo cáo (.xlsx) của ngày đó
+   * - missing: chưa có file báo cáo (.data.json) của ngày đó
    * - unsigned: có file báo cáo nhưng thư mục chưa có file PDF
    * - done: có file báo cáo và có file PDF đã ký
    */

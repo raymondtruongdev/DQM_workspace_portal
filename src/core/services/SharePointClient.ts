@@ -9,10 +9,37 @@ export interface ISharePointFileInfo {
 }
 
 /**
+ * Các thao tác SharePoint mà module dùng (list + thư viện tài liệu). Tách thành interface để có thể thay bằng bản giả lập
+ * trong bộ nhớ khi chạy thử cục bộ (xem dev/ ở gốc dự án).
+ */
+export interface ISharePointClient {
+  getItems<T>(siteUrl: string, listTitle: string, top?: number): Promise<T[]>;
+  queryItems<T>(siteUrl: string, listTitle: string, query: string): Promise<T[]>;
+  getListFieldMap(siteUrl: string, listTitle: string): Promise<Record<string, string>>;
+  createItem<T>(siteUrl: string, listTitle: string, data: Partial<T>): Promise<void>;
+  updateItem<T>(siteUrl: string, listTitle: string, id: number, data: Partial<T>): Promise<void>;
+  getFileWithMeta(siteUrl: string, serverRelativeUrl: string): Promise<{ buffer: ArrayBuffer; eTag: string } | undefined>;
+  getFileBuffer(siteUrl: string, serverRelativeUrl: string): Promise<ArrayBuffer | undefined>;
+  uploadFile(
+    siteUrl: string,
+    folderServerRelativeUrl: string,
+    fileName: string,
+    buffer: ArrayBuffer,
+    overwrite?: boolean,
+    eTag?: string
+  ): Promise<{ serverRelativeUrl: string; eTag?: string }>;
+  deleteFile(siteUrl: string, serverRelativeUrl: string): Promise<void>;
+  folderExists(siteUrl: string, folderServerRelativeUrl: string): Promise<boolean>;
+  ensureFolder(siteUrl: string, folderServerRelativeUrl: string): Promise<void>;
+  getFolderFiles(siteUrl: string, folderServerRelativeUrl: string): Promise<ISharePointFileInfo[]>;
+  getFolderSubfolderNames(siteUrl: string, folderServerRelativeUrl: string): Promise<string[]>;
+}
+
+/**
  * Generic SharePoint client (REST via SPHttpClient v1).
  * Module-specific services (ProgressService, UserProfileService...) are built on top of it.
  */
-export class SharePointClient {
+export class SharePointClient implements ISharePointClient {
   private _spHttpClient: SPHttpClient;
 
   constructor(spHttpClient: SPHttpClient) {

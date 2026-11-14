@@ -3,7 +3,7 @@ import { ReportMetadata, RequirableField } from '../types/report.types';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
 import { Icon } from '../../../core/components/Icon';
 import { sanitizeOption } from '../utils/reportTable';
-import { getRequiredFields, getMissingRequiredFields } from '../utils/reportValidation';
+import { REQUIRED_FIELDS, getMissingRequiredFields } from '../utils/reportValidation';
 
 export interface IReportMetaFormProps {
   metadata: ReportMetadata;
@@ -11,6 +11,10 @@ export interface IReportMetaFormProps {
   onDateChange: (newDate: string) => void;
   onMetadataChange: <K extends keyof ReportMetadata>(field: K, value: ReportMetadata[K]) => void;
   isExisting: boolean;
+  /** Danh sách đơn vị thi công để chọn (danh mục dùng chung `subcontractor`). */
+  subcontractorOptions: string[];
+  /** Thêm đơn vị thi công mới vào danh mục dùng chung; trả về giá trị đã lưu (hoặc chọn sẵn nếu đã có), undefined nếu không ghi được. */
+  onAddSubcontractor?: (value: string) => Promise<string | undefined>;
   disabled?: boolean;
   /** When true, blank required fields are highlighted with an error message. */
   showErrors?: boolean;
@@ -21,10 +25,12 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
   dateStr,
   onDateChange,
   onMetadataChange,
+  subcontractorOptions,
+  onAddSubcontractor,
   disabled = false,
   showErrors = false
 }) => {
-  const required = getRequiredFields(metadata);
+  const required = REQUIRED_FIELDS;
   const missing = showErrors ? getMissingRequiredFields(metadata) : [];
   const isReq = (f: RequirableField): boolean => required.indexOf(f) !== -1;
   const isBad = (f: RequirableField): boolean => missing.indexOf(f) !== -1;
@@ -32,10 +38,9 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
     isReq(f) ? <span className="report-required-mark" aria-hidden="true"> *</span> : null;
   const err = (f: RequirableField): React.ReactNode =>
     isBad(f) ? <span className="report-field-error" role="alert">Bắt buộc nhập, không được để trống</span> : null;
-  const subOptions = metadata.subcontractorOptions || [];
-  const selectedSubs = (metadata.subcontractor || '').split(',').map((x) => x.trim()).filter(Boolean);
-  const availableSubs = subOptions.filter((o) => selectedSubs.indexOf(o) === -1);
-  const setSubs = (next: string[]): void => onMetadataChange('subcontractor', next.join(', '));
+  const selectedSubs = metadata.subcontractors;
+  const availableSubs = subcontractorOptions.filter((o) => selectedSubs.indexOf(o) === -1);
+  const setSubs = (next: string[]): void => onMetadataChange('subcontractors', next);
   const cls = (f: RequirableField): string => `input${isBad(f) ? ' input--danger' : ''}`;
 
   return (
@@ -144,8 +149,13 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
                 onChange={(v, isNew) => {
                   const clean = sanitizeOption(v);
                   if (!clean) return;
-                  if (isNew) onMetadataChange('subcontractorOptions', subOptions.concat(clean));
-                  setSubs(selectedSubs.concat(clean));
+                  const add = (value: string): void => {
+                    if (selectedSubs.indexOf(value) === -1) setSubs(selectedSubs.concat(value));
+                  };
+                  // Đơn vị mới: ghi vào danh mục dùng chung (để mọi báo cáo sau thấy) rồi chọn luôn
+                  if (isNew && onAddSubcontractor) {
+                    onAddSubcontractor(clean).then((saved) => add(saved || clean)).catch(() => add(clean));
+                  } else add(clean);
                 }}
               />
             </div>

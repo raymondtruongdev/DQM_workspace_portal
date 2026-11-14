@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ModuleProps, RoleEntry } from '../../core/types';
 import { SharePointClient } from '../../core/services';
+import { EmptyState, Icon, PageHeader } from '../../core/components';
 import { REPORT_STORAGE_KEYS } from './constants/reportStorageKeys';
 import {
   ReportDataService,
@@ -33,7 +34,7 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
   // Initialize services
   const sharePointClient = React.useMemo(() => new SharePointClient(spHttpClient), [spHttpClient]);
   const fileService = React.useMemo(() => new ReportFileService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
-  const roleService = React.useMemo(() => new ReportRoleService(fileService), [fileService]);
+  const roleService = React.useMemo(() => new ReportRoleService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
   const templateService = React.useMemo(() => new ReportTemplateService(fileService), [fileService]);
   const registryService = React.useMemo(
     () => new ReportRegistryService(sharePointClient, siteUrl, () => fileService.getLibraryPath()),
@@ -66,6 +67,8 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
   const [isLoadingRoles, setIsLoadingRoles] = React.useState<boolean>(true);
   const [assignedRoles, setAssignedRoles] = React.useState<RoleEntry[]>([]);
   const [allRoles, setAllRoles] = React.useState<RoleEntry[]>([]);
+  // Lỗi đọc list phân quyền Report_Role (chưa tạo list, thiếu quyền đọc…): báo rõ thay vì hiện trang trống
+  const [rolesError, setRolesError] = React.useState<string>('');
 
   // Load and resolve roles
   const loadRoles = React.useCallback(async (): Promise<void> => {
@@ -74,8 +77,12 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
       const resolution = await roleService.resolveUserRoles(effectiveEmail, isAdmin);
       setAssignedRoles(resolution.assignedRoles);
       setAllRoles(resolution.allRoles);
+      setRolesError('');
     } catch (err: unknown) {
       console.error('Error loading report roles:', err);
+      setAssignedRoles([]);
+      setAllRoles([]);
+      setRolesError(err instanceof Error ? err.message : 'Không đọc được list Report_Role.');
     } finally {
       setIsLoadingRoles(false);
     }
@@ -156,6 +163,31 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
           initialDate={entryDate}
           onBack={handleBackFromEntry}
         />
+      ) : rolesError && !isLoadingRoles ? (
+        <>
+          <PageHeader
+            leading={
+              <button type="button" className="btn btn--secondary" onClick={onGoHome}>
+                <Icon name="home" />
+                <span>Trang Chủ</span>
+              </button>
+            }
+            title="Quản lý Báo cáo thi công"
+          />
+          <EmptyState
+            narrow
+            tone="danger"
+            icon="error-circle"
+            title="Chưa đọc được phân quyền báo cáo"
+            message={rolesError.slice(0, 300)}
+            hint="Kiểm tra list Report_Role đã tạo đúng tên và bạn có quyền đọc (xem docs/SHAREPOINT_SETUP.md)."
+            action={
+              <button type="button" className="btn btn--primary" onClick={() => loadRoles().catch(() => undefined)}>
+                Thử lại
+              </button>
+            }
+          />
+        </>
       ) : (
         <ReportLandingView
           assignments={assignedRoles}

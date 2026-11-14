@@ -1,18 +1,20 @@
-import { ReportDayInfo, ReportDoc, ReportMetadata, SignedDocInfo, TemplateVersionInfo } from '../types/report.types';
-import { parseReportDocFromBuffer, encodeReportDocToBuffer } from '../utils/reportCodec';
+import { ReportDayInfo, ReportDoc, ReportMetadata, ReportSection, SignedDocInfo, TemplateVersionInfo } from '../types/report.types';
+import { ReportJson } from '../types/reportJson.types';
+import { applyTemplate, carryForwardDoc, docFromTemplate, docToJson, jsonToDoc, parseReportJson, serializeReportJson } from '../utils/reportJson';
 import { applyFormDefaults } from '../utils/reportForm';
-import { nextReportNo, syncMetadata } from '../utils/reportMeta';
-import { carryForwardTable, collectAutoIdCounters, fillAutoIds } from '../utils/reportTable';
+import { formatReportNo, nextReportNo, syncMetadata } from '../utils/reportMeta';
+import { collectAutoIdCounters, fillAutoIds } from '../utils/reportTable';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
 import { CatalogRow, ReportCatalog, emptyCatalog, mergeCatalogRows, parseCatalogFromWorkbook } from '../utils/reportCatalog';
+import { buildStandaloneHtml, ReportHtmlAssets } from '../utils/reportHtml';
+import { bufferToDataUrl, embeddableImage, mimeOfFile } from '../utils/reportImage';
 import { ReportFileService } from './ReportFileService';
-import { ReportTemplateService } from './ReportTemplateService';
+import { LoadedTemplate, ReportTemplateService } from './ReportTemplateService';
 import { ReportRegistryService } from './ReportRegistryService';
 import { ReportCatalogService } from './ReportCatalogService';
 
 export interface LoadedReportResult {
   doc: ReportDoc;
-  templateBuffer?: ArrayBuffer;
   isExisting: boolean;
 }
 
@@ -27,40 +29,40 @@ export class ReportDataService {
   private _fileService: ReportFileService;
   private _templateService: ReportTemplateService;
   private _registry: ReportRegistryService;
-  private _catalogList: ReportCatalogService;
+  private _catalogSource: ReportCatalogService;
 
   constructor(
     fileService: ReportFileService,
     templateService: ReportTemplateService,
     registry: ReportRegistryService,
-    catalogList: ReportCatalogService
+    catalogSource: ReportCatalogService
   ) {
     this._fileService = fileService;
     this._templateService = templateService;
     this._registry = registry;
-    this._catalogList = catalogList;
+    this._catalogSource = catalogSource;
   }
 
   private _catalogFile?: { at: number; wb: Promise<{ XLSX: typeof import('xlsx'); wb: import('xlsx').WorkBook } | undefined> };
 
   /**
-   * Danh mục (Activity P6, cấu kiện, tài nguyên, vật tư…) của đơn vị (file ActivityP6.xlsx ở gốc thư viện). File nhớ 5 phút trong bộ nhớ trang;
-   * `force` bỏ qua bộ nhớ. Không đọc được file thì trả danh mục rỗng kèm cảnh báo (form vẫn dùng được, chỉ giữ giá trị cũ).
+   * Danh mục (Activity P6, cấu kiện, tài nguyên, vật tư, thời tiết, trạng thái, đơn vị thi công…) của đơn vị cho các dropdown.
+   * Nguồn là list CatalogItems + file ActivityP6.xlsx (Activity, chỉ admin ghi). Không đọc được thì trả
+   * danh mục rỗng/một phần kèm cảnh báo (form vẫn dùng được, chỉ giữ giá trị đã lưu).
    */
   public async getCatalog(unit: string, force = false): Promise<ReportCatalog> {
-    const fromFile = await this.getCatalogFromFile(unit, force);
-    // Bảng người dùng được tự thêm nằm ở list CatalogItems; không đọc được thì chỉ cảnh báo, vẫn dùng phần từ file
+    const base = await this.getCatalogFromFile(unit, force);
     try {
-      return mergeCatalogRows(fromFile, await this._catalogList.getRows(unit));
+      return mergeCatalogRows(base, await this._catalogSource.getRows(unit));
     } catch (err: unknown) {
-      console.warn('[Report] Could not read CatalogItems list:', err);
-      return { ...fromFile, warnings: fromFile.warnings.concat('Chưa đọc được list CatalogItems (kiểm tra list và quyền đọc).') };
+      console.warn('[Report] Could not read CatalogItems:', err);
+      return { ...base, warnings: base.warnings.concat('Chưa đọc được danh mục dùng chung (kiểm tra list CatalogItems và quyền đọc).') };
     }
   }
 
-  /** Thêm một mục vào list CatalogItems (người dùng thêm bằng "Khác…"); trả về mục lưu được và `created` = false nếu đã có. */
+  /** Thêm một mục vào danh mục dùng chung (người dùng thêm bằng "Khác…"); trả mục lưu được và `created` = false nếu đã có. */
   public addCatalogItem(unit: string, row: CatalogRow): Promise<{ row: CatalogRow; created: boolean }> {
-    return this._catalogList.addRow(unit, row);
+    return this._catalogSource.addRow(unit, row);
   }
 
   private async getCatalogFromFile(unit: string, force: boolean): Promise<ReportCatalog> {
@@ -78,9 +80,7 @@ export class ReportDataService {
     }
     try {
       const parsed = await this._catalogFile.wb;
-      if (!parsed) {
-        return emptyCatalog(unit, 'Chưa có file danh mục ActivityP6.xlsx ở gốc thư viện.');
-      }
+      if (!parsed) return emptyCatalog(unit, 'Chưa có file danh mục ActivityP6.xlsx ở gốc thư viện.');
       return parseCatalogFromWorkbook(parsed.XLSX, parsed.wb, unit);
     } catch (err: unknown) {
       this._catalogFile = undefined;
@@ -124,18 +124,29 @@ export class ReportDataService {
     return {
       ...doc,
       idCounters: counters,
-      sections: doc.sections.map((s) => (s.kind === 'table' ? fillAutoIds(s, doc.unit, counters) : s))
+      sections: doc.sections.map((s): ReportSection => (s.kind === 'table' ? fillAutoIds(s, doc.unit, counters) : s))
     };
   }
 
+  /** Cờ cập nhật template: báo cáo (đã lưu hoặc kế thừa) dùng template cũ hơn bản mới nhất trong _template/. */
+  private flagOutdated(doc: ReportDoc, latest: LoadedTemplate | undefined, source: 'existing' | 'previous_day'): ReportDoc {
+    const info: TemplateVersionInfo | undefined = latest ? latest.info : undefined;
+    if (isTemplateVersionOutdated(doc.metadata.templateVersion, info)) {
+      return { ...doc, latestTemplateInfo: info, templateUpdateRequired: true, outdatedSourceType: source, outdatedTemplateVersion: doc.metadata.templateVersion || '' };
+    }
+    const metadata: ReportMetadata =
+      info && info.version && (source === 'previous_day' || !doc.metadata.templateVersion)
+        ? { ...doc.metadata, templateVersion: info.version }
+        : doc.metadata;
+    return { ...doc, metadata, latestTemplateInfo: info, templateUpdateRequired: false };
+  }
+
   /**
-   * Load report for unit, docId and dateStr.
-   * 1. Checks latest template in _template/ (e.g. template_ST01_20261109.xlsx).
-   * 2. If existing file is found in data/<Unit>/<DocID>_<yyyyMMdd>/, loads it and checks if its templateVersion is outdated.
-   * 3. Otherwise checks adjacent / closest previous day's report:
-   *    - If previous report's templateVersion matches the latest template -> loads previous day's data directly without prompting.
-   *    - If previous report's templateVersion is older than the latest template -> sets templateUpdateRequired = true so the UI prompts the user to load the new template first.
-   * 4. If no previous report exists, loads fresh from the latest unit template.
+   * Mở báo cáo của đơn vị/ngày:
+   * 1. Đã có data/<Unit>/<DocID>_<yyyyMMdd>/<DocID>_<yyyyMMdd>.data.json: đọc đúng file đó (báo cáo cũ hơn template mới nhất thì
+   *    báo cần cập nhật template).
+   * 2. Chưa có: lấy báo cáo ngày trước gần nhất làm nền (luỹ kế/reset theo template, số báo cáo + 1, bỏ ảnh).
+   * 3. Đơn vị chưa có báo cáo nào: tạo từ template mới nhất trong _template/.
    */
   public async loadReport(
     docId: string,
@@ -155,181 +166,148 @@ export class ReportDataService {
     currentUserEmail: string,
     siteManager?: string
   ): Promise<LoadedReportResult> {
-    const [existingFile, latestTemplate] = await Promise.all([
-      this._fileService.getReportFileWithMeta(unit, docId, dateStr),
-      this._fileService
-        .findLatestTemplateForUnit(unit, docId)
-        .catch((): { info?: TemplateVersionInfo; buffer?: ArrayBuffer } => ({}))
+    const ctx = { unit, email: currentUserEmail, siteManager };
+    const [existing, latest] = await Promise.all([
+      this._fileService.getReportJsonWithMeta(unit, docId, dateStr),
+      this._templateService.getLatest(unit, docId)
     ]);
 
-    const templateBuffer = latestTemplate.buffer;
-    const latestTemplateInfo = latestTemplate.info;
-
-    if (existingFile && existingFile.buffer) {
-      let doc = await parseReportDocFromBuffer(existingFile.buffer, docId, unit, dateStr);
-      doc.eTag = existingFile.eTag;
-      doc.isExisting = true;
-      doc.latestTemplateInfo = latestTemplateInfo;
-      doc = applyFormDefaults(doc, { unit, email: currentUserEmail, siteManager });
-
-      const isOutdated = isTemplateVersionOutdated(doc.metadata.templateVersion, latestTemplateInfo);
-      if (isOutdated) {
-        doc.templateUpdateRequired = true;
-        doc.outdatedSourceType = 'existing';
-        doc.outdatedTemplateVersion = doc.metadata.templateVersion || '';
-      } else {
-        doc.templateUpdateRequired = false;
-        if (latestTemplateInfo?.version && !doc.metadata.templateVersion) {
-          doc.metadata.templateVersion = latestTemplateInfo.version;
-        }
-      }
-
-      return {
-        doc,
-        templateBuffer,
-        isExisting: true
-      };
+    if (existing) {
+      let doc = jsonToDoc(parseReportJson(existing.text), latest ? latest.template : undefined);
+      doc = { ...doc, eTag: existing.eTag, isExisting: true };
+      doc = applyFormDefaults(doc, ctx);
+      return { doc: this.flagOutdated(doc, latest, 'existing'), isExisting: true };
     }
 
-    // Try loading from the adjacent / closest previous day's report first
-    const prevReport = await this._fileService.getPreviousReportFile(unit, docId, dateStr);
-    if (prevReport && prevReport.buffer) {
-      let doc = await parseReportDocFromBuffer(prevReport.buffer, docId, unit, dateStr);
-      doc.dateStr = dateStr;
-      doc.isExisting = false;
-      doc.eTag = undefined;
-      doc.copiedFromDate = prevReport.sourceDateStr;
-      // Ảnh thuộc về từng ngày: không sao chép sang báo cáo mới
-      // Luỹ kế: số liệu của ngày trước thành "luỹ kế hôm qua"; ô thực hiện trong ngày về 0 (cột carry/reset của template)
-      doc.sections = doc.sections.map((sec) =>
-        sec.kind === 'photo' ? { ...sec, groups: [] } : sec.kind === 'table' ? carryForwardTable(sec) : sec
-      );
-      // Số báo cáo tự nhảy theo từng đơn vị: số của báo cáo ngày trước + 1
-      doc.metadata = syncMetadata({ ...doc.metadata, reportNo: nextReportNo(doc.metadata.reportNo) }, unit);
-      doc.latestTemplateInfo = latestTemplateInfo;
-      doc.metadata.email = currentUserEmail;
-      doc = applyFormDefaults(doc, { unit, email: currentUserEmail, siteManager });
-      doc.metadata.updateTime = new Date().toISOString();
+    const prev = await this._fileService.getPreviousReportJson(unit, docId, dateStr);
+    if (prev) {
+      const prevDoc = jsonToDoc(parseReportJson(prev.text), latest ? latest.template : undefined);
+      let doc = carryForwardDoc({ ...prevDoc, dateStr: prevDoc.dateStr }, dateStr, currentUserEmail);
+      doc = { ...doc, copiedFromDate: prev.sourceDateStr };
+      // Số báo cáo tự nhảy theo từng đơn vị: số của báo cáo ngày trước + 1 (rồi theo sổ ReportRegistry)
+      doc = { ...doc, metadata: syncMetadata({ ...doc.metadata, reportNo: nextReportNo(doc.metadata.reportNo) }, unit) };
+      doc = applyFormDefaults(doc, ctx);
       doc = await this.applyRegistryNo(doc);
-
-      const isOutdated = isTemplateVersionOutdated(doc.metadata.templateVersion, latestTemplateInfo);
-      if (isOutdated) {
-        doc.templateUpdateRequired = true;
-        doc.outdatedSourceType = 'previous_day';
-        doc.outdatedTemplateVersion = doc.metadata.templateVersion || '';
-      } else {
-        doc.templateUpdateRequired = false;
-        if (latestTemplateInfo?.version) {
-          doc.metadata.templateVersion = latestTemplateInfo.version;
-        }
-      }
-
-      return {
-        doc,
-        templateBuffer,
-        isExisting: false
-      };
+      return { doc: this.flagOutdated(doc, latest, 'previous_day'), isExisting: false };
     }
 
-    const templateResult = await this._templateService.getTemplate(
+    if (!latest) {
+      if (!this.isDaily(docId)) return { doc: this.emptyWeeklyDoc(docId, unit, dateStr, currentUserEmail), isExisting: false };
+      throw new Error(`Chưa có template cho ${unit} trong thư mục _template/ (template_DRP_${unit}_<yyyyMMdd>.json). Vui lòng tải template lên SharePoint.`);
+    }
+    let doc = docFromTemplate(latest.template, { docId, unit, dateStr, email: currentUserEmail, siteManager, version: latest.info.version });
+    doc = { ...doc, latestTemplateInfo: latest.info };
+    return { doc: await this.applyRegistryNo(doc), isExisting: false };
+  }
+
+  /** Báo cáo tuần (placeholder): chưa có template JSON nên chỉ là khung trống. */
+  private emptyWeeklyDoc(docId: string, unit: string, dateStr: string, email: string): ReportDoc {
+    return {
       docId,
       unit,
       dateStr,
-      currentUserEmail,
-      siteManager,
-      latestTemplate
-    );
-
-
-    return {
-      doc: await this.applyRegistryNo(templateResult.doc),
-      templateBuffer: templateResult.templateBuffer,
-      isExisting: false
+      metadata: {
+        docTitle: 'BÁO CÁO TUẦN',
+        docTitleEn: 'WEEKLY REPORT',
+        subTitle: '',
+        docCode: '',
+        templateVersion: `default_${unit}`,
+        location: unit,
+        reportNo: formatReportNo(1),
+        subcontractors: [],
+        email,
+        updateTime: new Date().toISOString()
+      },
+      sections: [],
+      tasks: []
     };
   }
 
   /**
-   * Explicitly load the latest unit template from _template/ when the user confirms upgrading from an outdated template
+   * Áp dụng template mới nhất lên báo cáo đang mở khi người dùng xác nhận (ghép theo `id` mục/cột/trường, giữ dữ liệu cũ).
    */
-  public async loadLatestTemplateForReport(
-    docId: string,
-    unit: string,
-    dateStr: string,
-    currentUserEmail: string,
-    siteManager?: string,
-    currentDoc?: ReportDoc
-  ): Promise<LoadedReportResult> {
-    const templateResult = await this._templateService.getTemplate(
-      docId,
-      unit,
-      dateStr,
-      currentUserEmail,
-      siteManager
-    );
-
-    const newDoc = templateResult.doc;
-    if (currentDoc) {
-      newDoc.eTag = currentDoc.eTag;
-      newDoc.isExisting = currentDoc.isExisting;
-      // Giữ số báo cáo của báo cáo hiện tại (không quay về 00001)
-      newDoc.metadata = syncMetadata({ ...newDoc.metadata, reportNo: currentDoc.metadata.reportNo }, currentDoc.unit);
-      // Giữ lại ảnh đã tải của báo cáo hiện tại khi chuyển sang template mới
-      newDoc.sections = newDoc.sections.map((sec) => {
-        if (sec.kind !== 'photo') return sec;
-        const old = currentDoc.sections.filter((x) => x.kind === 'photo' && x.key === sec.key)[0];
-        return old && old.kind === 'photo' ? { ...sec, groups: old.groups } : sec;
-      });
-    }
-    newDoc.templateUpdateRequired = false;
-    newDoc.copiedFromDate = undefined;
-
-    return {
-      doc: await this.applyIdCounters(currentDoc && currentDoc.isExisting ? newDoc : await this.applyRegistryNo(newDoc)),
-      templateBuffer: templateResult.templateBuffer,
-      isExisting: Boolean(currentDoc?.isExisting)
-    };
+  public async applyLatestTemplate(doc: ReportDoc, email: string, siteManager?: string): Promise<ReportDoc> {
+    const latest = await this._templateService.getLatest(doc.unit, doc.docId);
+    if (!latest) throw new Error(`Chưa có template cho ${doc.unit} trong thư mục _template/.`);
+    const next = applyTemplate(doc, latest.template, latest.info.version, { email, siteManager });
+    return await this.applyIdCounters({ ...next, latestTemplateInfo: latest.info });
   }
 
   /**
-   * Save report: encodes the workbook, uploads it, then records it in the ReportRegistry list.
-   * New reports re-read the registry first so the report no. is the latest one at the moment of saving.
-   * `registryWarning` is set when the file was saved but the registry could not be updated.
+   * Lưu báo cáo: ghi `.data.json` (nguồn dữ liệu, kiểm tra ETag) rồi `.html` (bản xem/in độc lập nhúng dữ liệu) cạnh nhau,
+   * sau đó ghi sổ ReportRegistry. Lỗi ghi HTML hoặc sổ chỉ báo cảnh báo, không chặn việc lưu dữ liệu.
    */
   public async saveReport(
     doc: ReportDoc,
-    templateBuffer?: ArrayBuffer
-  ): Promise<{ serverRelativeUrl: string; eTag?: string; metadata: ReportMetadata; registryWarning?: string }> {
+    userEmail: string
+  ): Promise<{ serverRelativeUrl: string; eTag?: string; metadata: ReportMetadata; registryWarning?: string; htmlWarning?: string }> {
     const base = doc.isExisting ? doc : await this.applyRegistryNo(doc);
-    const toSave: ReportDoc = { ...base, metadata: { ...base.metadata, updateTime: new Date().toISOString() } };
+    const now = new Date().toISOString();
+    // updated = người đang lưu; created chỉ ghi ở lần lưu đầu tiên và giữ nguyên các lần sau
+    const metadata: ReportMetadata = {
+      ...base.metadata,
+      email: userEmail || base.metadata.email,
+      updateTime: now,
+      created: base.metadata.created && base.isExisting ? base.metadata.created : { by: userEmail || base.metadata.email, at: now }
+    };
+    const toSave: ReportDoc = { ...base, metadata };
+    const json = docToJson(toSave);
+    const text = serializeReportJson(json);
 
-    const buffer = await encodeReportDocToBuffer(toSave, templateBuffer);
-    const res = await this._fileService.saveReportFile(
-      doc.unit,
-      doc.docId,
-      doc.dateStr,
-      buffer,
-      doc.eTag
-    );
+    const res = await this._fileService.saveReportJson(doc.unit, doc.docId, doc.dateStr, text, doc.eTag);
+
+    let htmlWarning: string | undefined;
+    try {
+      const html = await buildStandaloneHtml(toSave, text, await this.collectHtmlAssets(toSave, json));
+      await this._fileService.saveReportHtml(doc.unit, doc.docId, doc.dateStr, html);
+    } catch (err: unknown) {
+      console.warn('[Report] Could not write standalone HTML:', err);
+      htmlWarning = `Đã lưu dữ liệu báo cáo nhưng chưa tạo được file HTML xem độc lập. ${errorDetail(err)}`;
+    }
 
     let registryWarning: string | undefined;
     if (this.isDaily(doc.docId)) {
       try {
         // Bộ đếm cộng dồn: số lớn nhất của báo cáo này và của các báo cáo trước (để ngày/báo cáo sau không dùng lại số)
         const counters = collectAutoIdCounters(toSave.sections, doc.unit, toSave.idCounters);
-        await this._registry.recordSave(
-          doc.unit,
-          doc.docId,
-          doc.dateStr,
-          toSave.metadata.reportNo,
-          toSave.metadata.email,
-          counters
-        );
+        await this._registry.recordSave(doc.unit, doc.docId, doc.dateStr, metadata.reportNo, metadata.email, counters);
       } catch (err: unknown) {
         console.warn('[ReportRegistry] Could not record save:', err);
         registryWarning = `Đã lưu báo cáo nhưng chưa ghi được vào sổ ReportRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}`;
       }
     }
-    return { ...res, metadata: toSave.metadata, registryWarning };
+    return { ...res, metadata, registryWarning, htmlWarning };
+  }
+
+  /** Logo và ảnh hiện trường (đã thu nhỏ) để nhúng vào file HTML; ảnh/logo không đọc được thì bỏ qua (HTML hiện chữ/khung trống). */
+  private async collectHtmlAssets(doc: ReportDoc, json: ReportJson): Promise<ReportHtmlAssets> {
+    const logos: ReportHtmlAssets['logos'] = {};
+    const readLogo = async (file: string): Promise<string | undefined> => {
+      try {
+        const buf = await this._fileService.getResourceFileBuffer(file);
+        return buf ? bufferToDataUrl(buf, mimeOfFile(file)) : undefined;
+      } catch {
+        return undefined;
+      }
+    };
+    [logos.thaco, logos.crec] = await Promise.all([readLogo('thaco_logo.jpg'), readLogo('crec_logo.jpg')]);
+
+    const photos: Record<string, string> = {};
+    for (const section of json.sections) {
+      if (section.type !== 'photo') continue;
+      for (const row of section.rows || []) {
+        const files = (row as { files?: string[] }).files || [];
+        for (const name of files) {
+          try {
+            const buf = await this._fileService.getReportPhotoBuffer(doc.unit, doc.docId, doc.dateStr, row.id, name);
+            if (buf) photos[`${row.id}/${name}`] = await embeddableImage(buf, name);
+          } catch (err: unknown) {
+            console.warn(`[Report] Could not embed photo ${row.id}/${name}:`, err);
+          }
+        }
+      }
+    }
+    return { logos, photos };
   }
 
   /**
@@ -391,15 +369,10 @@ export class ReportDataService {
     return await this._fileService.getReportDayInfos(unit, docId, dateStrs, concurrency);
   }
 
-  /**
-   * File PDF đã ký của một ngày (undefined nếu chưa có)
-   */
   /** Doc. code ghi trong file báo cáo đã lưu ('' nếu chưa có file). */
   public async getSavedDocCode(unit: string, docId: string, dateStr: string): Promise<string> {
-    const file = await this._fileService.getReportFileWithMeta(unit, docId, dateStr);
-    if (!file || !file.buffer) return '';
-    const parsed = await parseReportDocFromBuffer(file.buffer, docId, unit, dateStr);
-    return parsed.metadata.docCode || '';
+    const file = await this._fileService.getReportJsonWithMeta(unit, docId, dateStr);
+    return file ? parseReportJson(file.text).docCode || '' : '';
   }
 
   /** Mở file PDF đã ký của một ngày trong tab mới (tên file chỉ biết khi đọc thư mục). */
@@ -410,6 +383,7 @@ export class ReportDataService {
     return true;
   }
 
+  /** File PDF đã ký của một ngày (undefined nếu chưa có) */
   public async getSignedDocument(unit: string, docId: string, dateStr: string): Promise<SignedDocInfo | undefined> {
     return await this._fileService.getSignedPdf(unit, docId, dateStr);
   }

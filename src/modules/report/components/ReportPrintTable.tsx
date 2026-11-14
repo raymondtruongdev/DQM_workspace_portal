@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { ReportTable } from '../types/report.types';
+import { formFieldDisplay } from '../utils/reportForm';
 import {
   columnAlign,
   columnTotal,
   firstTotalIndex,
   formatNumber,
   hasTotals,
+  isoToVN,
   resolveTitle,
   splitLabel,
   toneOf
@@ -52,7 +54,12 @@ export const ReportPrintTable: React.FC<IReportPrintTableProps> = ({ table, roma
             <tr key={r.id || i}>
               {columns.map((col) => {
                 const v = r.values[col.code];
-                const text = col.type === 'number' || col.type === 'calc' ? formatNumber(v ?? 0) : v ?? '';
+                const text =
+                  col.type === 'number' || col.type === 'calc'
+                    ? formatNumber(v ?? 0)
+                    : col.type === 'date'
+                    ? isoToVN(String(v ?? ''))
+                    : v ?? '';
                 return (
                   <td key={col.code} className={cellClass(columnAlign(col), toneOf(col, v))}>
                     {text}
@@ -73,6 +80,13 @@ export const ReportPrintTable: React.FC<IReportPrintTableProps> = ({ table, roma
               ))}
             </tr>
           )}
+          {(table.fields || []).map((f) => (
+            <tr key={`field-${f.key}`}>
+              <td colSpan={columns.length}>
+                <strong>{f.label}:</strong> <span style={{ whiteSpace: 'pre-line' }}>{formFieldDisplay(f)}</span>
+              </td>
+            </tr>
+          ))}
           {table.showSummary && (
             <tr>
               <td colSpan={columns.length}>

@@ -1,6 +1,6 @@
 import { ReportDoc } from '../types/report.types';
 
-/** Mã mục = khoá của sheet (chữ thường): "weather", "manpower", "issues", … */
+/** Mã mục = `id` của mục trong file báo cáo: "weather", "manpower", "issues", … */
 export type ReportSectionId = string;
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'];
@@ -21,7 +21,7 @@ export function sectionAnchor(key: string): string {
   return `report-sec-${key}`;
 }
 
-/** Thứ tự mục = thứ tự sheet trong template; số La Mã liên tục. */
+/** Thứ tự mục = thứ tự trong file báo cáo; số La Mã liên tục. */
 export function buildSectionNumbering(doc: Pick<ReportDoc, 'sections'>): ReportSectionNumbering {
   const map: Record<string, string> = {};
   const visible = doc.sections.map((sec, i) => {

@@ -1,4 +1,3 @@
-import { parseCatalogRef } from './reportCatalog';
 import {
   CellValue,
   ColumnTone,
@@ -8,90 +7,11 @@ import {
 } from '../types/report.types';
 
 /**
- * Bảng động: cấu trúc bảng nằm trong sheet của template (xem AGENTS.md mục 5.3).
- *
- *   Dòng 1: Title | <Tiêu đề VI> | <Tiêu đề EN> | <Nhãn ngắn> | [single]   (single = bảng một dòng cố định, không thêm/xoá dòng)
- *   Dòng 2: Summary | <Tóm tắt> | [off]                                (off = ẩn ô Tóm tắt)
- *   Dòng 3: mã cột (Org, Nos, …, IsLocked)
- *   Dòng 4: nhãn "Tiếng Việt | English"
- *   Dòng 5: spec cột: <loại>[;cờ…]
- *   Dòng 6+: dữ liệu
- *
- * Loại: text · number · date · select:A/B/C · calc:<công thức, ví dụ Nos*Hrs>
- * Cờ: key (chỉ đọc khi dòng bị khoá) · readonly (chỉ đọc ở mọi dòng; không cờ = cho sửa) · total (có dòng Tổng) · left|center|right · w=<%> ·
- *     default=<giá trị, có thể dùng {unit} {n3}> · tone=<giá trị>:danger|warning|success|info|muted,… ·
- *     carry=<công thức> (khi tạo từ báo cáo ngày trước: giá trị = công thức tính trên dòng của ngày trước, vd Daily+PrevCum) ·
- *     reset (khi tạo từ báo cáo ngày trước: về giá trị mặc định) ·
- *     from=<mã cột> (chọn mã ở cột đó thì ô này tự điền giá trị ràng buộc của mã trong danh mục và bị khoá, vd Activity theo Element;
- *       mã chưa có ràng buộc hoặc "---" thì ô cho nhập/chọn tay)
- * default có thể dùng {unit} và {n<k>}: số thứ tự tự tăng = số lớn nhất đang có trong cột + 1, đệm đủ k chữ số (vd default=ISS-{unit}-{n5} → ISS-ST01-00004).
- * Loại select có thể là select:@<tên bảng> (vd select:@ActivityP6_ID, select:@Element_ID): danh sách lấy từ ActivityP6.xlsx;
- * select:@Bảng.<cột ràng buộc> (vd select:@Material_ID.Material): dropdown liệt kê giá trị ràng buộc, chọn thì cột from= tự điền mã;
- * "Khác…" thêm giá trị vào spec (select:@Element_ID/Mới) vì file danh mục người dùng chỉ có quyền đọc.
- * Ô select luôn có mục cuối "Khác…" để nhập giá trị mới; giá trị mới được ghi lại vào spec (select:A/B/C/mới)
- * nên các ngày sau (tạo từ báo cáo ngày trước) có sẵn trong danh sách.
+ * Bảng động: định nghĩa cột (kiểu, danh mục, công thức, mặc định, luỹ kế…) đến từ template JSON, ghép với nhãn của báo cáo
+ * theo `id` cột (xem reportJson.ts). Ô select dùng danh mục (list CatalogItems) hoặc danh sách cố định `options`;
+ * mọi ô select đều có mục cuối "Khác…" để thêm giá trị mới (danh mục thì ghi vào list dùng chung).
+ * Mã tự tăng: cột text có default chứa {n<k>} (vd EVT-{unit}-{n5}) = số lớn nhất đang dùng + 1, đệm k chữ số.
  */
-
-export const LOCK_COLUMN_CODE = 'IsLocked';
-
-export function parseColumnSpec(code: string, label: string, rawSpec: string): TableColumn {
-  const spec = (rawSpec || '').trim();
-  const tokens = spec.split(';').map((t) => t.trim()).filter(Boolean);
-  const col: TableColumn = { code, label: label || code, spec, type: 'text' };
-
-  tokens.forEach((tok, i) => {
-    const lower = tok.toLowerCase();
-    if (i === 0 && lower.startsWith('select:')) {
-      col.type = 'select';
-      col.options = tok.slice(7).split('/').map((o) => o.trim()).filter(Boolean);
-      // select:@Element_ID[/giá trị thêm…] -> danh sách lấy từ file danh mục lúc chạy; các giá trị sau @… là giá trị người dùng
-      // đã thêm bằng "Khác…" (ghi lại khi lưu để ngày sau có sẵn). Spec giữ nguyên `@…` khi lưu.
-      const ref = col.options.length > 0 ? parseCatalogRef(col.options[0]) : undefined;
-      if (ref) {
-        col.optionsRef = ref.table;
-        if (ref.byLink) col.optionsBy = 'link';
-        col.options = col.options.slice(1);
-      }
-    } else if (i === 0 && lower.startsWith('calc:')) {
-      col.type = 'calc';
-      col.formula = tok.slice(5).trim();
-    } else if (i === 0 && lower === 'number') {
-      col.type = 'number';
-    } else if (i === 0 && lower === 'date') {
-      col.type = 'date';
-    } else if (lower.startsWith('from=')) {
-      col.from = tok.slice(5).trim();
-    } else if (lower === 'reset') {
-      col.reset = true;
-    } else if (lower.startsWith('carry=')) {
-      col.carry = tok.slice(6).trim();
-    } else if (lower === 'key') {
-      col.key = true;
-    } else if (lower === 'readonly') {
-      col.readonly = true;
-    } else if (lower === 'total') {
-      col.total = true;
-    } else if (lower === 'left' || lower === 'center' || lower === 'right') {
-      col.align = lower;
-    } else if (lower.startsWith('w=')) {
-      const w = parseFloat(tok.slice(2));
-      if (!isNaN(w) && w > 0) col.width = w;
-    } else if (lower.startsWith('default=')) {
-      col.defaultValue = tok.slice(8);
-    } else if (lower.startsWith('tone=')) {
-      const tones: Record<string, ColumnTone> = {};
-      tok.slice(5).split(',').forEach((pair) => {
-        const idx = pair.lastIndexOf(':');
-        if (idx < 1) return;
-        const val = pair.slice(0, idx).trim();
-        const tone = pair.slice(idx + 1).trim().toLowerCase();
-        if (tone === 'danger' || tone === 'warning' || tone === 'success' || tone === 'info' || tone === 'muted') tones[val] = tone;
-      });
-      col.tones = tones;
-    }
-  });
-  return col;
-}
 
 /** "Đơn vị | Org." -> { vi: 'Đơn vị', en: 'Org.' } */
 export function splitLabel(label: string): { vi: string; en: string } {
@@ -116,20 +36,6 @@ export function isoToVN(iso: string): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
 }
 
-/** "12/11/2026" (hoặc "12/11/26") -> "2026-11-12"; không đúng định dạng thì trả chuỗi rỗng (ô chọn ngày trống). */
-export function vnToIso(vn: string): string {
-  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(vn.trim());
-  if (!m) return '';
-  const y = m[3].length === 2 ? `20${m[3]}` : m[3];
-  return `${y}-${('0' + m[2]).slice(-2)}-${('0' + m[1]).slice(-2)}`;
-}
-
-/** Số ngày của Excel (khi ô ngày bị Excel đổi thành số) -> "dd/MM/yyyy". */
-export function excelSerialToVN(serial: number): string {
-  const d = new Date(Math.round((serial - 25569) * 86400000));
-  return `${('0' + d.getUTCDate()).slice(-2)}/${('0' + (d.getUTCMonth() + 1)).slice(-2)}/${d.getUTCFullYear()}`;
-}
-
 /** Thay {tomorrow} trong tiêu đề mục bằng ngày hôm sau của báo cáo (dd/MM/yyyy). */
 export function resolveTitle(title: string, dateStr: string): string {
   if (!/\{tomorrow\}/i.test(title)) return title;
@@ -142,26 +48,16 @@ export function resolveTitle(title: string, dateStr: string): string {
 
 /* ------------------------ Danh sách chọn mở rộng ------------------------ */
 
-/** Giá trị mới của ô select không được chứa dấu phân tách của spec. */
+/** Giá trị mới của ô select: bỏ ký tự phân tách danh sách (/ và ;) và khoảng trắng thừa. */
 export function sanitizeOption(v: string): string {
   return v.replace(/[/;]/g, '-').trim();
 }
 
-/** Ghi lại spec với danh sách chọn mới: "select:A/B;center" -> "select:A/B/C;center". */
-export function specWithOptions(spec: string, options: string[]): string {
-  const tokens = spec.split(';');
-  tokens[0] = `select:${options.join('/')}`;
-  return tokens.join(';');
-}
-
-/** Thêm một giá trị mới vào danh sách chọn của cột (cập nhật cả `options` lẫn `spec`). */
+/** Thêm một giá trị mới vào danh sách chọn cố định của cột. */
 export function columnWithOption(col: TableColumn, value: string): TableColumn {
   const options = col.options || [];
   if (options.some((o) => o.toLowerCase() === value.toLowerCase())) return col;
-  const next = options.concat(value);
-  // Cột danh mục: giữ `@bảng` ở đầu danh sách trong spec
-  const refToken = col.optionsRef ? col.spec.split(';')[0].slice(7).split('/')[0] : undefined;
-  return { ...col, options: next, spec: specWithOptions(col.spec, refToken ? [refToken].concat(next) : next) };
+  return { ...col, options: options.concat(value) };
 }
 
 /* ---------------------------- Công thức ---------------------------- */
@@ -367,28 +263,40 @@ export function fillAutoIds(table: ReportTable, unit: string, floor: Record<stri
   return current;
 }
 
+/** Giá trị mặc định của một ô theo cột (mã tự tăng {n<k>} do createRow/fillAutoIds điền). */
+export function defaultCellValue(c: TableColumn): CellValue {
+  if (c.type === 'calc') return 0;
+  if (c.type === 'number') {
+    const n = c.defaultValue !== undefined ? parseFloat(c.defaultValue) : 0;
+    return isNaN(n) ? 0 : n;
+  }
+  if (c.type === 'select') return c.defaultValue !== undefined ? c.defaultValue : c.options && c.options.length ? c.options[0] : '';
+  return c.defaultValue !== undefined ? c.defaultValue.replace(/\{unit\}/gi, '') : '';
+}
+
 export function createRow(table: ReportTable, unit: string, counters: Record<string, number> = {}): TableRow {
   const values: Record<string, CellValue> = {};
   table.columns.forEach((c) => {
-    if (c.type === 'calc') {
-      values[c.code] = 0;
-    } else if (c.type === 'number') {
-      const n = c.defaultValue !== undefined ? parseFloat(c.defaultValue) : 0;
-      values[c.code] = isNaN(n) ? 0 : n;
-    } else if (c.type === 'date') {
-      values[c.code] = c.defaultValue !== undefined ? c.defaultValue : '';
-    } else if (c.type === 'select') {
-      values[c.code] =
-        c.defaultValue !== undefined ? c.defaultValue : c.options && c.options.length ? c.options[0] : '';
-    } else {
-      values[c.code] = c.defaultValue !== undefined ? expandDefault(c.defaultValue, unit, table, c.code, counters[autoIdKey(table, c)] || 0) : '';
-    }
+    values[c.code] =
+      c.type === 'text' && c.defaultValue !== undefined
+        ? expandDefault(c.defaultValue, unit, table, c.code, counters[autoIdKey(table, c)] || 0)
+        : defaultCellValue(c);
   });
   return recalcRow(table.columns, {
-    id: `${table.key}-${Date.now()}`,
+    id: nextRowId(table),
     isLocked: false,
     values
   });
+}
+
+/** Mã dòng mới: r<số lớn nhất đang có trong mục + 1>; không bao giờ trùng dòng đang có. */
+export function nextRowId(table: Pick<ReportTable, 'rows'>): string {
+  let max = 0;
+  table.rows.forEach((r) => {
+    const m = /^r(\d+)$/.exec(r.id);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  return `r${max + 1}`;
 }
 
 export function columnTotal(table: ReportTable, col: TableColumn): number {

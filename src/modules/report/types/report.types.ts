@@ -1,56 +1,60 @@
 export interface TemplateVersionInfo {
-  fileName: string;          // e.g. "template_ST01_20261109.xlsx"
-  version: string;           // e.g. "template_ST01_20261109"
-  versionDate: string;       // e.g. "20261109"
+  fileName: string;          // e.g. "template_DRP_ST01_20261114.json"
+  version: string;           // e.g. "template_DRP_ST01_20261114"
+  versionDate: string;       // e.g. "20261114"
   serverRelativeUrl: string;
   timeLastModified?: string;
 }
 
-/** Metadata fields a template may flag as required (column `Required` of sheet 01_General). */
+/** Metadata fields that must be filled before saving/printing. */
 export type RequirableField = 'location' | 'reportNo' | 'subcontractor';
 
-/** Thông tin chung của báo cáo (sheet 01_General). Nội dung báo cáo nằm trong các mục (sections). */
+/** Dấu vết tạo/sửa báo cáo: email người dùng (do trình duyệt ghi, chỉ để hiển thị) và thời điểm ISO 8601. */
+export interface ReportStamp {
+  by: string;
+  at: string;
+}
+
+/** Thông tin chung của báo cáo. Nội dung báo cáo nằm trong các mục (sections). */
 export interface ReportMetadata {
-  /** Fields that must be filled before saving/printing (from template flag). */
-  requiredFields?: RequirableField[];
   docTitle: string;             // e.g. "BÁO CÁO NGÀY" or "BÁO CÁO TUẦN"
   docTitleEn: string;           // e.g. "DAILY REPORT"
-  subTitle: string;             // e.g. "Tuyến Metro số 2 – Gói thầu M2.1..."
+  subTitle: string;             // Tên dự án (một chuỗi, bản in tự xuống dòng)
   docCode: string;              // Mã tài liệu đã thay {unit} {reportNo}, e.g. "HCM2_1-23_CS-THAC_DCEM-CPZZ-ST01-CWS-DRP-00001"
-  docCodePattern?: string;      // Mẫu mã tài liệu có {unit} {reportNo} (từ template)
-  templateVersion?: string;     // e.g. "template_ST01_20261109"
+  docCodePattern?: string;      // Mẫu mã tài liệu có {unit} và {reportNo} (từ template, không lưu trong file báo cáo)
+  templateVersion?: string;     // e.g. "template_DRP_ST01_20261114"
   location: string;             // Luôn = mã đơn vị (ST01), tự điền, không sửa được
   reportNo: string;             // Số báo cáo 5 chữ số, tự tăng độc lập theo từng đơn vị, e.g. "00001"
-  subcontractor: string;        // Đơn vị thi công đã chọn, nối bằng ", " e.g. "THAC_CRSG, THAC_THAN"
-  subcontractorOptions?: string[]; // Danh sách đơn vị thi công có thể chọn (người dùng có thể thêm)
-  email: string;                // User email
-  updateTime: string;           // ISO 8601 or formatted string
+  subcontractors: string[];     // Các đơn vị thi công được chọn trong báo cáo này
+  email: string;                // Người lưu gần nhất (updated.by)
+  updateTime: string;           // Thời điểm lưu gần nhất (updated.at, ISO 8601)
+  created?: ReportStamp;        // Người/thời điểm lưu lần đầu (không đổi ở các lần lưu sau)
 }
 
 export type CellValue = string | number | undefined;
 export type ColumnType = 'text' | 'number' | 'select' | 'calc' | 'date';
 export type ColumnTone = 'danger' | 'warning' | 'success' | 'info' | 'muted';
 
-/** Cột của bảng động, khai báo trong sheet (dòng mã cột + nhãn + spec). */
+/** Cột của bảng động = định nghĩa trong template ghép với nhãn của báo cáo (xem reportJson.ts). */
 export interface TableColumn {
-  code: string;                       // Mã cột, ví dụ "Nos"
+  code: string;                       // `id` cột, ví dụ "nos"
   label: string;                      // "Giờ công | Man-hrs"
-  spec: string;                       // Nguyên văn spec trong sheet, ví dụ "number;total;w=14"
   type: ColumnType;
-  options?: string[];                 // select:A/B/C
-  formula?: string;                   // calc:Nos*Hrs
-  key?: boolean;                      // dòng IsLocked => ô này chỉ đọc
+  options?: string[];                 // danh sách chọn cố định (nếu không dùng danh mục)
+  formula?: string;                   // calc: nos*hrs
+  key?: boolean;                      // dòng isLocked => ô này chỉ đọc
   readonly?: boolean;                 // ô chỉ đọc ở mọi dòng
   total?: boolean;                    // có dòng Tổng
   align?: 'left' | 'center' | 'right';
   width?: number;                     // % bề rộng (tuỳ chọn)
-  defaultValue?: string;              // giá trị khi thêm dòng; {unit}, {n3}
+  defaultValue?: string;              // giá trị khi thêm dòng; {unit}, {n5}
   tones?: Record<string, ColumnTone>; // tô màu theo giá trị (select)
-  carry?: string;                     // công thức tính trên dòng của báo cáo ngày trước, kết quả thành giá trị cột này (luỹ kế)
-  reset?: boolean;                    // khi tạo từ báo cáo ngày trước: đưa về giá trị mặc định
-  optionsRef?: string;                // select:@<tên bảng> — danh sách lấy từ bảng danh mục trong ActivityP6.xlsx (tên bảng chữ thường), không nằm trong spec
-  optionsBy?: 'link';                 // select:@Bảng.<cột ràng buộc>: dropdown liệt kê giá trị ràng buộc (vd tên vật tư) thay vì mã; chọn thì cột from= tự điền mã
-  from?: string;                      // from=<mã cột>: chọn mã ở cột đó thì cột này tự điền giá trị ràng buộc của mã (vd Activity theo Element)
+  carry?: string;                     // công thức tính trên dòng của ngày trước (luỹ kế)
+  reset?: boolean;                    // khi tạo từ ngày trước: về giá trị mặc định
+  optionsRef?: string;                // tên danh mục (chữ thường): danh sách lấy từ danh mục lúc chạy
+  optionsBy?: 'link';                 // dropdown liệt kê giá trị ràng buộc (vd tên vật tư); chọn thì cột from tự điền mã
+  noNone?: boolean;                   // danh mục cố định: không có mục "---" đầu danh sách
+  from?: string;                      // chọn mã ở cột này thì ô này tự điền giá trị ràng buộc của mã
 }
 
 export interface TableRow {
@@ -59,56 +63,57 @@ export interface TableRow {
   values: Record<string, CellValue>;
 }
 
-/** Một mục dạng bảng, mỗi mục = một sheet 0N_<Tên> trong template/báo cáo. */
-export interface ReportTable {
-  kind: 'table';
-  key: string;        // tên sheet (không tiền tố số), chữ thường: "manpower"
-  sheetBase: string;  // tên sheet gốc không tiền tố: "Manpower"
-  title: string;      // "NHÂN LỰC"
-  titleEn: string;    // "MANPOWER"
-  shortTitle: string; // nhãn thanh nhảy nhanh
-  summary: string;    // Tóm tắt | Summary
-  showSummary: boolean; // có hiện ô Tóm tắt không (Summary | | off)
-  single: boolean;    // bảng một dòng cố định: không thêm/xoá dòng (Title | … | single)
-  columns: TableColumn[];
-  rows: TableRow[];
-}
-
 export type FieldType = 'text' | 'textarea' | 'number' | 'select';
 
-/** Trường của mục dạng form (một dòng trong sheet form). */
+/** Trường văn bản đơn lẻ của một mục (ghi chú HSE, ký duyệt, chỉ đạo…). */
 export interface FormField {
   key: string;
   label: string;                // "Sáng | AM"
-  spec: string;                 // Nguyên văn spec trong sheet
   type: FieldType;
-  options?: string[];           // select:A/B/C
-  full?: boolean;               // trải hết hàng
+  options?: string[];
+  full?: boolean;               // trải hết hàng, in dạng "Nhãn: giá trị"
   span?: number;                // số cột lưới chiếm (mặc định 1)
   rows?: number;                // số dòng của textarea
   lines?: number;               // số dòng kẻ của textarea khi in (UI vẫn hiện `rows` dòng)
   placeholder?: string;
   defaultValue?: string;        // giá trị khi trống; {user} {siteManager} {unit} được điền tự động
-  required?: boolean;           // cột Required của sheet
+  required?: boolean;
   value: CellValue;
 }
 
-/** Một mục dạng form (thời tiết, công việc, HSE, ký duyệt…): mỗi sheet form = một mục. */
+/** Mục dạng bảng (có thể kèm các trường văn bản `fields`, vd HSE). */
+export interface ReportTable {
+  kind: 'table';
+  key: string;        // `id` mục: "manpower"
+  title: string;      // "NHÂN LỰC"
+  titleEn: string;    // "MANPOWER"
+  shortTitle: string; // nhãn thanh nhảy nhanh
+  summary: string;    // Tóm tắt | Summary
+  showSummary: boolean; // có hiện ô Tóm tắt trên form nhập không
+  single: boolean;    // bảng một dòng cố định: không thêm/xoá dòng
+  columns: TableColumn[];
+  rows: TableRow[];
+  /** Trường văn bản của mục (in dạng "Nhãn: giá trị" dưới bảng). */
+  fields?: FormField[];
+  /** Số cột lưới của `fields`. */
+  fieldColumns?: number;
+}
+
+/** Mục chỉ có các trường văn bản (ký duyệt, chỉ đạo…). */
 export interface ReportForm {
   kind: 'form';
   key: string;
-  sheetBase: string;
   title: string;
   titleEn: string;
   shortTitle: string;
   columns: number;              // số cột lưới (và số cột bảng khi in)
   sign: boolean;                // in dạng khung chữ ký
-  summary: string;              // Tóm tắt | Summary (dòng 2 của sheet)
-  showSummary: boolean;         // có hiện ô Tóm tắt không
+  summary: string;
+  showSummary: boolean;
   fields: FormField[];
 }
 
-/** Nhóm ảnh của một bộ phận: tên bộ phận, tóm tắt và các file ảnh trong photos/<groupId>/. */
+/** Nhóm ảnh của một bộ phận: tên bộ phận, tóm tắt và các file ảnh trong photos/<id>/. */
 export interface PhotoGroup {
   id: string;           // tên thư mục con chứa ảnh
   department: string;   // "DCEM", "HSE"…
@@ -116,11 +121,10 @@ export interface PhotoGroup {
   files: string[];      // tên file ảnh
 }
 
-/** Mục ảnh hiện trường theo bộ phận: mỗi sheet Photo = một mục. */
+/** Mục ảnh hiện trường theo bộ phận. */
 export interface ReportPhotoSection {
   kind: 'photo';
   key: string;
-  sheetBase: string;
   title: string;
   titleEn: string;
   shortTitle: string;
@@ -153,9 +157,9 @@ export interface ReportDoc {
   unit: string;           // e.g. "ST01", "ST06"
   dateStr: string;        // "YYYY-MM-DD"
   metadata: ReportMetadata;
-  /** Các mục của báo cáo (bảng hoặc form), theo thứ tự sheet trong template. */
+  /** Các mục của báo cáo, theo thứ tự hiển thị. */
   sections: ReportSection[];
-  tasks: ReportTaskRow[]; // Used for WeeklyReport or legacy tree-table
+  tasks: ReportTaskRow[]; // Chỉ báo cáo tuần (placeholder)
   eTag?: string;
   isExisting?: boolean;
   copiedFromDate?: string; // e.g. "2026-11-10" when pre-filled from previous day
@@ -181,7 +185,7 @@ export type ReportDayStatus = 'missing' | 'unsigned' | 'done';
 export interface ReportDayInfo {
   dateStr: string;            // YYYY-MM-DD
   status: ReportDayStatus;
-  savedAt?: string;           // thời điểm lưu file báo cáo (.xlsx)
+  savedAt?: string;           // thời điểm lưu file báo cáo (.data.json)
   signed?: SignedDocInfo;     // file PDF đã ký (nếu có)
   reporter?: string;          // người lập (email) – từ sổ ReportRegistry
   reportNo?: string;          // số báo cáo – từ sổ ReportRegistry

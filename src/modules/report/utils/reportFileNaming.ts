@@ -29,10 +29,17 @@ export function getReportFolderName(docId: string, date: string | Date): string 
 }
 
 /**
- * File name inside folder: <DocID>_<yyyyMMdd>.xlsx, e.g. DailyReport_20261110.xlsx
+ * File dữ liệu báo cáo trong thư mục: <DocID>_<yyyyMMdd>.data.json, e.g. DailyReport_20261110.data.json
  */
 export function getReportFileName(docId: string, date: string | Date): string {
-  return `${getReportFolderName(docId, date)}.xlsx`;
+  return `${getReportFolderName(docId, date)}.data.json`;
+}
+
+/**
+ * Bản xem/in độc lập (nhúng sẵn dữ liệu) cùng thư mục: <DocID>_<yyyyMMdd>.html
+ */
+export function getReportHtmlFileName(docId: string, date: string | Date): string {
+  return `${getReportFolderName(docId, date)}.html`;
 }
 
 /**
@@ -82,7 +89,7 @@ export function getReportFolderRelativePath(
 
 /**
  * Server relative path for the report file:
- * <libraryPath>/data/<Unit>/<DocID>_<yyyyMMdd>/<DocID>_<yyyyMMdd>.xlsx
+ * <libraryPath>/data/<Unit>/<DocID>_<yyyyMMdd>/<DocID>_<yyyyMMdd>.data.json
  */
 export function getReportFileRelativePath(
   libraryPath: string,
@@ -110,22 +117,12 @@ export function getReportPhotosFolderRelativePath(
 }
 
 /**
- * Server relative path for template file:
- * <libraryPath>/_template/<DocID>_template.xlsx
- */
-export function getTemplateFileRelativePath(libraryPath: string, docId: string): string {
-  const cleanLib = libraryPath.replace(/\/+$/, '');
-  const cleanDoc = sanitizeSharePointPath(docId);
-  return `${cleanLib}/_template/${cleanDoc}_template.xlsx`;
-}
-
-/**
  * Extract 8-digit yyyyMMdd date from a template version string or filename
  * e.g. "template_ST01_20261109" -> "20261109"
  */
 export function extractTemplateVersionDate(versionStr?: string): string {
   if (!versionStr) return '';
-  const clean = versionStr.replace(/\.xlsx$/i, '').trim();
+  const clean = versionStr.replace(/\.json$/i, '').trim();
   const matchCompact = clean.match(/(\d{8})$/) || clean.match(/_(\d{8})(?:_|$)/);
   if (matchCompact) {
     return matchCompact[1];
@@ -145,7 +142,7 @@ export function formatTemplateVersionDisplay(versionStr?: string): string {
   if (!versionStr || !versionStr.trim()) {
     return 'Chưa gắn phiên bản (Mẫu mặc định)';
   }
-  const clean = versionStr.replace(/\.xlsx$/i, '').trim();
+  const clean = versionStr.replace(/\.json$/i, '').trim();
   const d8 = extractTemplateVersionDate(clean);
   if (d8 && d8.length === 8) {
     const formattedDate = `${d8.slice(6, 8)}/${d8.slice(4, 6)}/${d8.slice(0, 4)}`;
@@ -166,7 +163,7 @@ function getDocShortPrefix(docId?: string): string {
 
 /**
  * Match a file name inside _template/ against a target unit and DocID.
- * Pattern: template_<DRP|WRP>_<Unit>_<yyyyMMdd>.xlsx (e.g. template_DRP_ST01_20261109.xlsx)
+ * Pattern: template_<DRP|WRP>_<Unit>_<yyyyMMdd>.json (e.g. template_DRP_ST01_20261114.json)
  */
 export function matchUnitTemplateFileName(
   fileName: string,
@@ -174,9 +171,9 @@ export function matchUnitTemplateFileName(
   docId?: string
 ): { version: string; versionDate: string; fileName: string } | undefined {
   const trimmed = fileName.trim();
-  if (!/\.xlsx$/i.test(trimmed)) return undefined;
+  if (!/\.json$/i.test(trimmed)) return undefined;
 
-  const base = trimmed.replace(/\.xlsx$/i, '');
+  const base = trimmed.replace(/\.json$/i, '');
   const match = base.match(/^template_([a-z]+)_([a-z0-9-]+)_(\d{8})$/i);
   if (!match) return undefined;
   if (match[1].toUpperCase() !== getDocShortPrefix(docId)) return undefined;
@@ -196,10 +193,10 @@ export function isTemplateVersionOutdated(
   }
 
   // Only enforce template upgrade prompt when a unit-specific versioned template exists (or has versionDate)
-  const latestVer = latestTemplate.version.replace(/\.xlsx$/i, '').trim();
+  const latestVer = latestTemplate.version.replace(/\.json$/i, '').trim();
   const latestDate = latestTemplate.versionDate || extractTemplateVersionDate(latestVer);
 
-  const docVer = (docTemplateVersion || '').replace(/\.xlsx$/i, '').trim();
+  const docVer = (docTemplateVersion || '').replace(/\.json$/i, '').trim();
   if (!docVer) {
     // Report has no templateVersion recorded (legacy/old template)
     return Boolean(latestDate || /^template_/i.test(latestVer));

@@ -1,4 +1,4 @@
-import { SharePointClient } from '../../../core/services/SharePointClient';
+import { ISharePointClient } from '../../../core/services/SharePointClient';
 import { ReportDayInfo } from '../types/report.types';
 import { getReportFolderRelativePath } from '../utils/reportFileNaming';
 import { formatReportNo } from '../utils/reportMeta';
@@ -35,14 +35,14 @@ const esc = (v: string): string => v.replace(/'/g, "''");
  * trạng thái, thời điểm lưu/ký. Nguồn dữ liệu của số báo cáo, lịch 14 ngày và tab Tổng quan.
  */
 export class ReportRegistryService {
-  private _client: SharePointClient;
+  private _client: ISharePointClient;
   private _siteUrl: string;
   private _libraryPath: () => string;
   private _names: Promise<Record<Col, string>> | undefined;
   /** List đã có cột Counters chưa (chưa thêm thì bỏ qua bộ đếm, mã tự tăng chỉ dựa vào báo cáo đang mở). */
   private _hasCounters = false;
 
-  constructor(client: SharePointClient, siteUrl: string, libraryPath: () => string) {
+  constructor(client: ISharePointClient, siteUrl: string, libraryPath: () => string) {
     this._client = client;
     this._siteUrl = siteUrl;
     this._libraryPath = libraryPath;

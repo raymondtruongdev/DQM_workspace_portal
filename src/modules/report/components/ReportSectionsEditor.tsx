@@ -24,7 +24,7 @@ export interface IReportSectionsEditorProps {
   onDeletePhotoGroup: (sectionKey: string, groupId: string) => Promise<void>;
 }
 
-/** Các mục của báo cáo: mỗi sheet của template = một mục (bảng hoặc form), theo thứ tự sheet. */
+/** Các mục của báo cáo theo thứ tự trong file (bảng, ảnh hoặc các trường văn bản). */
 export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
   doc,
   disabled = false,
@@ -58,6 +58,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
               roman={roman}
               anchor={anchor}
               disabled={disabled}
+              showErrors={showErrors}
               onChange={onSectionChange}
             />
           );

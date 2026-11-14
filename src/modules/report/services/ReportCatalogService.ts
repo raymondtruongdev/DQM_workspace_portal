@@ -1,4 +1,4 @@
-import { SharePointClient } from '../../../core/services/SharePointClient';
+import { ISharePointClient } from '../../../core/services/SharePointClient';
 import { CatalogRow, normKey } from '../utils/reportCatalog';
 
 /** Tên SharePoint List chứa danh mục người dùng được tự thêm (cột cần tạo: xem AGENTS.md mục 5.3). */
@@ -25,11 +25,11 @@ function isDuplicateError(err: unknown): boolean {
  * và khoá duy nhất `Title` của list (`<Unit>|<Catalog>|code|<mã chuẩn hoá>` hoặc `…|link|<giá trị chuẩn hoá>`).
  */
 export class ReportCatalogService {
-  private _client: SharePointClient;
+  private _client: ISharePointClient;
   private _siteUrl: string;
   private _names: Promise<Record<Col, string>> | undefined;
 
-  constructor(client: SharePointClient, siteUrl: string) {
+  constructor(client: ISharePointClient, siteUrl: string) {
     this._client = client;
     this._siteUrl = siteUrl;
   }

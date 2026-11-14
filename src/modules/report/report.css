@@ -490,7 +490,7 @@
   width: 100%;
 }
 
-/* Lưới trường của mục dạng form (số cột lấy từ dòng Layout của sheet) */
+/* Lưới trường văn bản của mục (số cột lấy từ `layout` của template) */
 .report-form-grid {
   display: grid;
   grid-template-columns: repeat(var(--report-form-cols, 2), minmax(0, 1fr));

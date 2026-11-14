@@ -46,6 +46,8 @@ const HEX_ALLOWED_SELECTOR = /\.bcn-/;
 /** File TSX được phép chứa hex (CSS in A4 trong chuỗi, hình thương hiệu module). */
 const HEX_ALLOWED_TSX = [
   /ReportPrintPreviewModal\.tsx$/,
+  /reportPrintCss\.ts$/, // CSS in A4 dùng chung cho cửa sổ in và file HTML độc lập
+  /reportHtml\.ts$/, // khung giấy + thanh công cụ của file HTML độc lập (không có token vì chạy ngoài portal)
   /moduleRegistry\.tsx$/,
   /modules[\\/][^\\/]+[\\/]index\.ts$/ // định nghĩa icon thương hiệu của module
 ];
