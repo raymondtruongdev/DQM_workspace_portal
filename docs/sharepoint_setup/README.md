@@ -1,6 +1,6 @@
 # Tự động cài đặt SharePoint (Workspace Portal)
 
-Script `setup-sharepoint.mjs` thay cho các bước tạo tay ở mục 2 và 3 của `docs/SHAREPOINT_SETUP.md`: tạo 4 list, thư viện `CapNhatCongViec`, thư mục, upload file mẫu và nạp dữ liệu ban đầu. Chạy lại nhiều lần an toàn (chỉ bổ sung phần còn thiếu).
+Script `setup-sharepoint.mjs` thay cho các bước tạo tay ở mục 2 và 3 của `docs/SHAREPOINT_SETUP.md`: tạo 4 list, thư viện `DailyReportLibrary`, thư mục, upload file mẫu và nạp dữ liệu ban đầu. Chạy lại nhiều lần an toàn (chỉ bổ sung phần còn thiếu).
 
 | File | Vai trò |
 |---|---|
@@ -12,7 +12,7 @@ Script `setup-sharepoint.mjs` thay cho các bước tạo tay ở mục 2 và 3 
 
 **Làm:**
 - List `UserProfiles`, `ReportRole`, `ReportRegistry`, `CatalogItems`: tạo cột đúng tên nội bộ (không bị `field_N`), kiểu Text/Number(0 số lẻ)/Yes-No, `Title` Enforce unique values + Indexed (`ReportRegistry`, `CatalogItems`), index `Unit`/`ReportDate`/`ReportNo`/`Email`, bật versioning.
-- Thư viện `CapNhatCongViec` + thư mục `_template`, `resource`, `data`, `data/<Unit>` (đơn vị lấy từ tên các file template).
+- Thư viện `DailyReportLibrary` + thư mục `_template`, `resource`, `data`, `data/<Unit>` (đơn vị lấy từ tên các file template).
 - Upload `ActivityP6.xlsx`, `_template/template_DRP_*.json`, logo `resource/*.jpg` từ `data_test/sharepoint_sample/`. File đã có trên SharePoint thì **bỏ qua** (tránh đè bản admin đã sửa), dùng `--force` để ghi đè.
 - Nạp dữ liệu: `CatalogItems` (63 dòng mẫu), admin đầu tiên vào `UserProfiles` (`--admin`), `ReportRole` mẫu (chỉ khi có `--seed-sample`). `ReportRegistry` để trống (web part tự ghi).
 

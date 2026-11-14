@@ -4,7 +4,7 @@
   "clientId": "",
   "tenant": "organizations",
   "library": {
-    "name": "CapNhatCongViec",
+    "name": "DailyReportLibrary",
     "description": "Báo cáo hằng ngày, template, danh mục Activity, logo (Workspace Portal)",
     "versioning": true,
     "folders": ["_template", "resource", "data"],

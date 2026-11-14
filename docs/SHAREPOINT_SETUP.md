@@ -11,7 +11,7 @@ Tất cả file mẫu nằm trong `data_test/sharepoint_sample/` (riêng các fi
 
 | Thành phần | Loại | Dùng để | Ai ghi |
 |---|---|---|---|
-| `CapNhatCongViec` | Thư viện tài liệu | Template, danh mục Activity, logo, báo cáo hằng ngày | Xem bảng ở mục 2 |
+| `DailyReportLibrary` | Thư viện tài liệu | Template, danh mục Activity, logo, báo cáo hằng ngày | Xem bảng ở mục 2 |
 | `UserProfiles` | List | Nhận diện người đăng nhập, vai trò admin/user | Chỉ admin |
 | `ReportRole` | List | Ai được làm báo cáo của đơn vị nào (một người có thể nhiều dòng) | Chỉ admin |
 | `ReportRegistry` | List | Sổ báo cáo: số báo cáo tự tăng, trạng thái từng ngày, tab Tổng quan, lịch 14 ngày | Người báo cáo thêm/sửa, admin toàn quyền |
@@ -20,12 +20,12 @@ Tất cả file mẫu nằm trong `data_test/sharepoint_sample/` (riêng các fi
 
 Tên thư viện/list phải đúng chữ hoa/thường như trên (tên thư viện đặt ở `REPORT_CONFIG.LIBRARY_NAME` trong `src/modules/report/constants/reportConfig.ts`).
 
-## 2. Thư viện tài liệu `CapNhatCongViec`
+## 2. Thư viện tài liệu `DailyReportLibrary`
 
-Tạo thư viện tài liệu tên `CapNhatCongViec` rồi tạo cấu trúc sau (thư mục `data/<Unit>/` và các thư mục con **do web part tự tạo** khi lưu, trừ khi bạn tạo sẵn `data/<Unit>` để phân quyền theo đơn vị, xem 2.4):
+Tạo thư viện tài liệu tên `DailyReportLibrary` rồi tạo cấu trúc sau (thư mục `data/<Unit>/` và các thư mục con **do web part tự tạo** khi lưu, trừ khi bạn tạo sẵn `data/<Unit>` để phân quyền theo đơn vị, xem 2.4):
 
 ```
-CapNhatCongViec/
+DailyReportLibrary/
 ├── ActivityP6.xlsx           danh mục Activity (một sheet)
 ├── _template/
 │   ├── template_DRP_ST01_20261114.json
@@ -71,7 +71,7 @@ Dòng 1: `ActivityID | Unit | Description`; mỗi dòng sau một Activity.
 
 ### 2.4 Phân quyền thư viện (bảo mật thật nằm ở SharePoint)
 
-1. Ngắt kế thừa quyền ở thư viện `CapNhatCongViec`: nhóm người dùng báo cáo = **Read** ở gốc, `_template`, `resource`; admin (Site Owners) = Full Control.
+1. Ngắt kế thừa quyền ở thư viện `DailyReportLibrary`: nhóm người dùng báo cáo = **Read** ở gốc, `_template`, `resource`; admin (Site Owners) = Full Control.
 2. Thư mục `data/`: người báo cáo cần quyền **Contribute** (tạo thư mục, ghi/ghi đè file, tải ảnh, upload bản ký). Muốn mỗi nhóm chỉ ghi vào đơn vị của mình: admin tạo sẵn `data/<Unit>` (vd `data/ST01`), ngắt kế thừa và cấp Contribute cho nhóm của đơn vị đó trên chính thư mục này; khi đó nhóm báo cáo không cần quyền ghi ở `data/`. Web part tự tạo các thư mục con `DRP_<yyyyMMdd>_<Unit>/` bên trong.
 3. Nên chỉ admin được **xoá** file bản ký (`*_signed.pdf`): dùng mức quyền tuỳ chỉnh "Contribute không xoá" cho người báo cáo.
 4. Bật versioning cho thư viện (mỗi lần ghi đè `.json` có bản lịch sử).

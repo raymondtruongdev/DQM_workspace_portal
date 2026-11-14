@@ -17,7 +17,7 @@ interface Seed {
 }
 
 const SITE = 'https://dev.local/sites/demo';
-const LIBRARY = '/sites/demo/CapNhatCongViec';
+const LIBRARY = '/sites/demo/DailyReportLibrary';
 const seed = (window as unknown as { __SEED__: Seed }).__SEED__;
 
 Object.keys(seed.files).forEach((rel) => seedFile(`${LIBRARY}/${rel}`, seed.files[rel]));

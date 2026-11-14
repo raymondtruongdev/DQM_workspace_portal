@@ -8,7 +8,7 @@
 
 ### 1.1. Quản lý Báo cáo Ngày (`src/modules/report`)
 
-- Lưu trữ trên SharePoint Document Library **`CapNhatCongViec`**; báo cáo ngày lưu dạng **JSON + HTML độc lập** (app chỉ hỗ trợ JSON, không còn đọc/ghi báo cáo hay template Excel):
+- Lưu trữ trên SharePoint Document Library **`DailyReportLibrary`**; báo cáo ngày lưu dạng **JSON + HTML độc lập** (app chỉ hỗ trợ JSON, không còn đọc/ghi báo cáo hay template Excel):
   - Template báo cáo: `_template/template_DRP_<Unit>_<yyyyMMdd>.json` (ngày trong tên file là phiên bản, bản mới nhất thắng).
   - Mỗi báo cáo một thư mục `data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/` gồm `<DRP|WRP>_<yyyyMMdd>_<Unit>.json` (dữ liệu), `<DRP|WRP>_<yyyyMMdd>_<Unit>.html` (bản xem/in độc lập, nhúng sẵn dữ liệu + ảnh + logo), `photos/<GroupID>/` (ảnh hiện trường) và `<DocCode>_signed.pdf` (bản đã ký).
   - Phân quyền theo người: list `ReportRole`; nhận diện đăng nhập: list `UserProfiles`; sổ quản lý số báo cáo/trạng thái: list `ReportRegistry`; danh mục dùng chung: list `CatalogItems` + file `ActivityP6.xlsx` (chỉ admin ghi).
@@ -46,12 +46,12 @@ Cần **4 SharePoint List** và **1 Document Library** trên site đích (Dev: `
 | `ReportRole` | List | Ai được làm báo cáo nào (đơn vị × loại báo cáo) |
 | `ReportRegistry` | List | Sổ báo cáo: số báo cáo tự tăng, trạng thái, bộ đếm mã |
 | `CatalogItems` | List | Danh mục dùng chung (Element, Resource, Vật tư, thời tiết, trạng thái…) |
-| `CapNhatCongViec` | Document Library | `ActivityP6.xlsx`, `_template/`, `resource/` (logo), `data/<Unit>/...` |
+| `DailyReportLibrary` | Document Library | `ActivityP6.xlsx`, `_template/`, `resource/` (logo), `data/<Unit>/...` |
 
 Cấu trúc thư viện:
 
 ```text
-CapNhatCongViec/
+DailyReportLibrary/
 ├── ActivityP6.xlsx                  # Danh mục Activity (một sheet), người dùng chỉ đọc, chỉ admin ghi
 ├── _template/
 │   └── template_DRP_<Unit>_<yyyyMMdd>.json

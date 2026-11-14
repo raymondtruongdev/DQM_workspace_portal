@@ -41,7 +41,7 @@ DQM_workspace_portal/
 │   └── sharepoint_setup/                # *_list.xlsx tạo list + script cài đặt tự động (setup-sharepoint.mjs)
 ├── data_test/
 │   ├── Mau_BCN_ST06_20261025.pdf        # Mẫu giấy chuẩn Báo cáo ngày A4 song ngữ
-│   └── sharepoint_sample/               # Bản mẫu thư viện CapNhatCongViec
+│   └── sharepoint_sample/               # Bản mẫu thư viện DailyReportLibrary
 │       ├── ActivityP6.xlsx              # Danh mục Activity (một sheet)
 │       ├── _template/                   # template_DRP_<Unit>_<yyyyMMdd>.json
 │       ├── resource/                    # thaco_logo.jpg, crec_logo.jpg
@@ -61,7 +61,7 @@ DQM_workspace_portal/
 │   └── modules/
 │       ├── home/                        # HomeView: trang chủ liệt kê module từ registry
 │       ├── admin/                       # Admin Config (chỉ admin): UI Kit (Style Guide), Shutdown Server
-│       └── report/                      # Module Quản lý Báo cáo (library CapNhatCongViec)
+│       └── report/                      # Module Quản lý Báo cáo (library DailyReportLibrary)
 │           ├── ReportModule.tsx
 │           ├── views/                   # ReportLandingView, ReportCalendarView, ReportEntryView, ReportOverviewView
 │           ├── components/              # Form động (ReportDynamic*, ReportFieldsGrid, ReportMetaForm, ReportSectionsEditor, ảnh), bản in A4 (ReportPrint*), ReportSignedDocument, ReportTaskTable (weekly placeholder)
@@ -86,7 +86,7 @@ DQM_workspace_portal/
 - **`styles/` và `components/`:** Design System dùng chung (token, nút, ô nhập, card, bảng, hộp thoại, icon Fluent); module chỉ ghép thành phần chung. Xem AGENTS.md mục 8.
 
 ### 3.2 Module `report` (`src/modules/report`)
-- Lưu trữ trên Document Library `CapNhatCongViec` theo cấu trúc `data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/` gồm `.json` (nguồn dữ liệu), `.html` (bản xem/in độc lập), `photos/<GroupID>/` và `<DocCode>_signed.pdf`.
+- Lưu trữ trên Document Library `DailyReportLibrary` theo cấu trúc `data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/` gồm `.json` (nguồn dữ liệu), `.html` (bản xem/in độc lập), `photos/<GroupID>/` và `<DocCode>_signed.pdf`.
 - **Dữ liệu và cách nhập tách đôi:** file `.json` chỉ chứa định danh, nhãn và giá trị thật; kiểu ô, danh mục dropdown, công thức, mặc định, luỹ kế, bố cục nằm ở template JSON `_template/template_DRP_<Unit>_<yyyyMMdd>.json`, ghép theo `id` (`jsonToDoc`). Thêm/bớt mục, cột, trường chỉ cần sửa template.
 - **Sổ `ReportRegistry`:** nguồn của số báo cáo tự tăng, trạng thái từng ngày (lịch 14 ngày, tab Tổng quan) và bộ đếm mã tự tăng (Event ID, Issue ID).
 - **Danh mục dùng chung:** `ActivityP6.xlsx` (chỉ admin ghi) + list `CatalogItems` (người dùng thêm bằng "Khác…", chống trùng hai lớp).
@@ -106,7 +106,7 @@ DQM_workspace_portal/
 | `ReportRole` | List | Phân quyền báo cáo theo người (đơn vị × loại báo cáo) |
 | `ReportRegistry` | List | Sổ báo cáo: số tự tăng, trạng thái, bộ đếm mã |
 | `CatalogItems` | List | Danh mục dùng chung của form báo cáo |
-| `CapNhatCongViec` | Document Library | `ActivityP6.xlsx`, `_template/`, `resource/`, `data/<Unit>/...` của module Report |
+| `DailyReportLibrary` | Document Library | `ActivityP6.xlsx`, `_template/`, `resource/`, `data/<Unit>/...` của module Report |
 | `SiteAssets/portal_config.json` | File | Cấu hình chế độ bảo trì (chỉ admin được ghi) |
 
 Hướng dẫn tạo chi tiết: [docs/SHAREPOINT_SETUP.md](./docs/SHAREPOINT_SETUP.md) và [docs/sharepoint_setup/README.md](./docs/sharepoint_setup/README.md).

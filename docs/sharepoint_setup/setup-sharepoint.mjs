@@ -4,7 +4,7 @@
  *
  * Làm gì (idempotent: chạy lại nhiều lần an toàn, chỉ bổ sung phần còn thiếu):
  *   1. Tạo 4 list: UserProfiles, ReportRole, ReportRegistry, CatalogItems (cột, index, unique, versioning).
- *   2. Tạo thư viện CapNhatCongViec + thư mục _template, resource, data, data/<Unit>.
+ *   2. Tạo thư viện DailyReportLibrary + thư mục _template, resource, data, data/<Unit>.
  *   3. Upload ActivityP6.xlsx, template JSON, logo (mặc định KHÔNG ghi đè file đã có).
  *   4. Nạp dữ liệu: CatalogItems (mẫu), admin đầu tiên vào UserProfiles, (tuỳ chọn) ReportRole mẫu.
  *
