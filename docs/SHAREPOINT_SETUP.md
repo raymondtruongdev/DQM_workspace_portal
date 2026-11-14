@@ -29,9 +29,11 @@ DailyReportLibrary/
 ├── ActivityP6.xlsx           danh mục Activity (một sheet)
 ├── _template/
 │   ├── template_DRP_ST01_20261114.json
-│   ├── template_DRP_ST02_20261114.json
-│   ├── template_DRP_ST04_20261114.json
-│   └── template_DRP_ST05_20261114.json
+│   ├── template_DRP_ST02_20261114.json   (bản trống, cũ)
+│   ├── template_DRP_ST02_20261115.json   (bản mới nhất: cùng nội dung ST01, mã ST01 → ST02)
+│   ├── template_DRP_ST04_20261114.json / template_DRP_ST04_20261115.json
+│   ├── template_DRP_ST05_20261114.json / template_DRP_ST05_20261115.json
+│   └── template_DRP_ST06_20261115.json / template_DRP_ST07_20261115.json
 ├── resource/
 │   ├── thaco_logo.jpg
 │   └── crec_logo.jpg
@@ -102,7 +104,7 @@ Dòng 1: `ActivityID | Unit | Description`; mỗi dòng sau một Activity.
 - Quyền: người báo cáo được **thêm và sửa**, **không xoá** ("Contribute không xoá"); admin toàn quyền. Không xoá dòng cũ (số báo cáo kế tiếp lấy từ số lớn nhất trong list).
 
 ### 3.4 `CatalogItems` (từ `docs/sharepoint_setup/CatalogItems_list.xlsx`)
-- Tạo list từ Excel (bảng `CatalogItems`), mọi cột **Single line of text**. File đã gồm 63 dòng: mã nhân lực/thiết bị dùng chung (`Unit = ALL`), Element và Vật tư theo từng đơn vị, và các danh sách chọn dùng chung (`ALL`): `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`.
+- Tạo list từ Excel (bảng `CatalogItems`), mọi cột **Single line of text**. File đã gồm 77 dòng: mã nhân lực/thiết bị dùng chung (`Unit = ALL`), Element và Vật tư theo từng đơn vị, và các danh sách chọn dùng chung (`ALL`): `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`.
 - List settings: cột `Title` bật **Indexed** + **Enforce unique values**; Index thêm cho `Unit`; bật versioning.
 - Quyền: người báo cáo chỉ **thêm** dòng (không sửa/xoá); admin toàn quyền (sửa chính tả, gán mã, xoá mục sai).
 - Ý nghĩa cột: `Title` = khoá duy nhất do web tự sinh (`<Unit>|<Catalog>|code|<giá trị chuẩn hoá>`); `Unit` = mã đơn vị hoặc `ALL`; `Catalog` = tên danh mục chữ thường; `Code` = mã/giá trị; `Link` = giá trị ràng buộc (vd mã nhân lực ↔ "Chỉ huy trưởng").
