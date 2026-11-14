@@ -1,5 +1,5 @@
 /**
- * Định dạng file lưu báo cáo (`<DocID>_<yyyyMMdd>.data.json`) và file template (`template_DRP_<Unit>_<yyyyMMdd>.json`).
+ * Định dạng file lưu báo cáo (`<DRP|WRP>_<yyyyMMdd>_<Unit>.json`) và file template (`template_DRP_<Unit>_<yyyyMMdd>.json`).
  * Hợp đồng đầy đủ: docs/REPORT_JSON_PLAN.md và mẫu docs/sample/DailyReport.sample.data.json.
  *
  * Nguyên tắc: file báo cáo chỉ chứa định danh, nhãn và GIÁ TRỊ THẬT (kể cả ô đã tính và dòng Tổng) để mở một mình đọc được.

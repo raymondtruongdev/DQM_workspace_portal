@@ -36,9 +36,9 @@ CapNhatCongViec/
 │   ├── thaco_logo.jpg
 │   └── crec_logo.jpg
 └── data/                     (tự tạo)
-    └── ST01/DailyReport_20261110/
-        ├── DailyReport_20261110.data.json
-        ├── DailyReport_20261110.html
+    └── ST01/DRP_20261114_ST01/
+        ├── DRP_20261114_ST01.json
+        ├── DRP_20261114_ST01.html
         ├── photos/g1/…
         └── HCM2_…_signed.pdf
 ```
@@ -51,7 +51,7 @@ CapNhatCongViec/
 | `_template/template_DRP_<Unit>_<yyyyMMdd>.json` | `_template/` | Người dùng: chỉ đọc. Admin: ghi |
 | `resource/thaco_logo.jpg`, `crec_logo.jpg` | `resource/` | Người dùng: chỉ đọc. Admin: ghi |
 
-**Không upload:** `data/` (báo cáo demo, chỉ để tham khảo cấu trúc; muốn thử thì upload nguyên thư mục `data/ST01/DailyReport_20261110`), các file `*_list.xlsx` (dùng để tạo list ở mục 3; không còn file `Report_Role.xlsx`, phân quyền nằm ở list `Report_Role`), `_template/*.xlsx` (template Excel cũ, app không đọc), `*.docx`, `~$*`.
+**Không upload:** `data/` (báo cáo demo, chỉ để tham khảo cấu trúc; muốn thử thì upload nguyên thư mục `data/ST01/DRP_20261114_ST01`), các file `*_list.xlsx` (dùng để tạo list ở mục 3; không còn file `Report_Role.xlsx`, phân quyền nằm ở list `Report_Role`), `_template/*.xlsx` (template Excel cũ, app không đọc), `*.docx`, `~$*`.
 
 ### 2.2 `ActivityP6.xlsx` (một sheet `ActivityP6`)
 
@@ -72,9 +72,9 @@ Dòng 1: `ActivityID | Unit | Description`; mỗi dòng sau một Activity.
 ### 2.4 Phân quyền thư viện (bảo mật thật nằm ở SharePoint)
 
 1. Ngắt kế thừa quyền ở thư viện `CapNhatCongViec`: nhóm người dùng báo cáo = **Read** ở gốc, `_template`, `resource`; admin (Site Owners) = Full Control.
-2. Thư mục `data/`: người báo cáo cần quyền **Contribute** (tạo thư mục, ghi/ghi đè file, tải ảnh, upload bản ký). Muốn mỗi nhóm chỉ ghi vào đơn vị của mình: admin tạo sẵn `data/<Unit>` (vd `data/ST01`), ngắt kế thừa và cấp Contribute cho nhóm của đơn vị đó trên chính thư mục này; khi đó nhóm báo cáo không cần quyền ghi ở `data/`. Web part tự tạo các thư mục con `DailyReport_<yyyyMMdd>/` bên trong.
+2. Thư mục `data/`: người báo cáo cần quyền **Contribute** (tạo thư mục, ghi/ghi đè file, tải ảnh, upload bản ký). Muốn mỗi nhóm chỉ ghi vào đơn vị của mình: admin tạo sẵn `data/<Unit>` (vd `data/ST01`), ngắt kế thừa và cấp Contribute cho nhóm của đơn vị đó trên chính thư mục này; khi đó nhóm báo cáo không cần quyền ghi ở `data/`. Web part tự tạo các thư mục con `DRP_<yyyyMMdd>_<Unit>/` bên trong.
 3. Nên chỉ admin được **xoá** file bản ký (`*_signed.pdf`): dùng mức quyền tuỳ chỉnh "Contribute không xoá" cho người báo cáo.
-4. Bật versioning cho thư viện (mỗi lần ghi đè `.data.json` có bản lịch sử).
+4. Bật versioning cho thư viện (mỗi lần ghi đè `.json` có bản lịch sử).
 
 ## 3. Bốn list trên site
 
@@ -128,7 +128,7 @@ Web part tự lấy site hiện hành từ `pageContext.web.absoluteUrl` (hoặc
 5. Tạo sẵn thư mục `data/ST06` và cấp quyền Contribute cho nhóm của đơn vị (nếu phân quyền theo đơn vị; xem mục 2.5).
 
 ## 7. Sao lưu
-Mỗi báo cáo là một thư mục tự chứa: `.data.json` là dữ liệu gốc, `.html` là bản xem/in độc lập (mở offline), `photos/` là ảnh, `*_signed.pdf` là bản ký. Sao chép thư mục `data/` là đủ để sao lưu; sổ `ReportRegistry` chỉ là chỉ mục có thể dựng lại.
+Mỗi báo cáo là một thư mục tự chứa: `.json` là dữ liệu gốc, `.html` là bản xem/in độc lập (mở offline), `photos/` là ảnh, `*_signed.pdf` là bản ký. Sao chép thư mục `data/` là đủ để sao lưu; sổ `ReportRegistry` chỉ là chỉ mục có thể dựng lại.
 SharePoint Online thường buộc file `.html` trong thư viện **tải về** thay vì mở trực tiếp: người dùng tải về rồi mở bằng trình duyệt.
 
 ## 8. Kiểm tra sau khi cài (làm lần lượt)
@@ -141,7 +141,7 @@ SharePoint Online thường buộc file `.html` trong thư viện **tải về**
 | 4 | Mở dropdown Activity ở mục Khối lượng | Có mã + mô tả của đúng đơn vị đó; không có cảnh báo danh mục |
 | 5 | Chọn "Khác…" ở một ô (vd Thời tiết), nhập giá trị mới | Giá trị được chọn; list `CatalogItems` có thêm một dòng |
 | 6 | Chọn một mã nhân lực | Ô "Loại" tự điền và khoá |
-| 7 | Điền đơn vị thi công, bấm **Lưu báo cáo** | Thông báo "Đã lưu báo cáo số 00001"; thư mục `data/<Unit>/DailyReport_<yyyyMMdd>/` có `.data.json` và `.html`; `ReportRegistry` có 1 dòng `unsigned` |
+| 7 | Điền đơn vị thi công, bấm **Lưu báo cáo** | Thông báo "Đã lưu báo cáo số 00001"; thư mục `data/<Unit>/DRP_<yyyyMMdd>_<Unit>/` có `.json` và `.html`; `ReportRegistry` có 1 dòng `unsigned` |
 | 8 | Tải `.html` về và mở bằng trình duyệt (tắt mạng) | Hiện đủ bản in A4, nút In/Lưu PDF hoạt động |
 | 9 | Tải một ảnh ở mục Ảnh hiện trường, Lưu lại | Ảnh nằm ở `photos/g1/`; `.html` mới nhúng ảnh |
 | 10 | Upload bản PDF đã ký | File `<MãTàiLiệu>_signed.pdf` trong thư mục; sổ chuyển `done` |
@@ -160,7 +160,7 @@ SharePoint Online thường buộc file `.html` trong thư viện **tải về**
 | "Chưa đọc được danh mục dùng chung (kiểm tra list CatalogItems…)" | List chưa tạo/sai tên, thiếu quyền đọc | Tạo list `CatalogItems`, cấp quyền đọc |
 | "Chưa thêm được vào danh mục dùng chung" | Thiếu quyền thêm hoặc sai tên cột | Cấp quyền Add; giữ nguyên tên hiển thị 5 cột |
 | "Đã lưu báo cáo nhưng chưa ghi được vào sổ ReportRegistry…" | List chưa tạo, sai kiểu cột (Date/Choice), thiếu quyền | Làm lại mục 3.2; đọc phần "Chi tiết" trong thông báo |
-| "Đã lưu dữ liệu báo cáo nhưng chưa tạo được file HTML xem độc lập" | Thiếu quyền ghi hoặc tenant chặn `.html` | Kiểm tra quyền; dữ liệu `.data.json` vẫn an toàn |
+| "Đã lưu dữ liệu báo cáo nhưng chưa tạo được file HTML xem độc lập" | Thiếu quyền ghi hoặc tenant chặn `.html` | Kiểm tra quyền; dữ liệu `.json` vẫn an toàn |
 | Lưu lỗi "412 / Precondition failed" | Người khác vừa lưu cùng báo cáo | Bấm **Làm mới** rồi sửa lại |
 | Không thấy ô báo cáo nào ("Chưa được phân quyền…") | Email chưa có dòng `Active = Yes` trong list `Report_Role` (hoặc chưa có trong `UserProfiles`) | Thêm/sửa dòng phân quyền |
 | "Chưa đọc được phân quyền báo cáo" (kèm lỗi 404/403) | List `Report_Role` chưa tạo, sai tên hoặc người dùng không có quyền đọc | Tạo list đúng tên `Report_Role`, cấp quyền đọc |

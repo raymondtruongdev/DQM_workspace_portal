@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ReportDoc } from '../types/report.types';
 import { buildSectionNumbering } from '../utils/reportSections';
-import { formatTemplateVersionDisplay } from '../utils/reportFileNaming';
+import { formatTemplateVersionDisplay, getReportFolderName } from '../utils/reportFileNaming';
 import { isoToVN } from '../utils/reportTable';
 import { ReportPrintTable } from './ReportPrintTable';
 import { ReportPrintForm } from './ReportPrintForm';
@@ -100,7 +100,7 @@ export const ReportPrintDocument: React.FC<IReportPrintDocumentProps> = ({ doc, 
         <div className="bcn-footer-note">
           <div>Sinh tự động từ Microsoft 365 (SharePoint)</div>
           <div>
-            Ảnh: {`data/${doc.unit}/${doc.docId}_${doc.dateStr.replace(/-/g, '')}/photos/`}
+            Ảnh: {`data/${doc.unit}/${getReportFolderName(doc.docId, doc.unit, doc.dateStr)}/photos/`}
             {' | '}
             Template version: {formatTemplateVersionDisplay(m.templateVersion || doc.latestTemplateInfo?.version)}
           </div>

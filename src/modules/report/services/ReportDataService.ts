@@ -143,7 +143,7 @@ export class ReportDataService {
 
   /**
    * Mở báo cáo của đơn vị/ngày:
-   * 1. Đã có data/<Unit>/<DocID>_<yyyyMMdd>/<DocID>_<yyyyMMdd>.data.json: đọc đúng file đó (báo cáo cũ hơn template mới nhất thì
+   * 1. Đã có data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>.json: đọc đúng file đó (báo cáo cũ hơn template mới nhất thì
    *    báo cần cập nhật template).
    * 2. Chưa có: lấy báo cáo ngày trước gần nhất làm nền (luỹ kế/reset theo template, số báo cáo + 1, bỏ ảnh).
    * 3. Đơn vị chưa có báo cáo nào: tạo từ template mới nhất trong _template/.
@@ -234,7 +234,7 @@ export class ReportDataService {
   }
 
   /**
-   * Lưu báo cáo: ghi `.data.json` (nguồn dữ liệu, kiểm tra ETag) rồi `.html` (bản xem/in độc lập nhúng dữ liệu) cạnh nhau,
+   * Lưu báo cáo: ghi `.json` (nguồn dữ liệu, kiểm tra ETag) rồi `.html` (bản xem/in độc lập nhúng dữ liệu) cạnh nhau,
    * sau đó ghi sổ ReportRegistry. Lỗi ghi HTML hoặc sổ chỉ báo cảnh báo, không chặn việc lưu dữ liệu.
    */
   public async saveReport(
@@ -318,14 +318,14 @@ export class ReportDataService {
   }
 
   /**
-   * Server-relative folder holding the report's photos: data/<Unit>/<DocID>_<yyyyMMdd>/photos
+   * Server-relative folder holding the report's photos: data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos
    */
   public getPhotosFolderPath(unit: string, docId: string, dateStr: string): string {
     return this._fileService.getReportPhotosFolderPath(unit, docId, dateStr);
   }
 
   /**
-   * Upload a photo into data/<Unit>/<DocID>_<yyyyMMdd>/photos/<groupId>/; returns the stored file name
+   * Upload a photo into data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos/<groupId>/; returns the stored file name
    */
   public async uploadPhoto(
     unit: string,

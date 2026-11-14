@@ -20,26 +20,25 @@ export function toYYYYMMDD(date: string | Date): string {
 }
 
 /**
- * Folder name: <DocID>_<yyyyMMdd>, e.g. DailyReport_20261110 or WeeklyReport_20261110
+ * Tên chung của một báo cáo: <DRP|WRP>_<yyyyMMdd>_<Unit>, e.g. DRP_20261114_ST01.
+ * Dùng làm tên thư mục và tên file (.json, .html) của báo cáo đó.
  */
-export function getReportFolderName(docId: string, date: string | Date): string {
-  const cleanDoc = sanitizeSharePointPath(docId);
-  const dateStr = toYYYYMMDD(date);
-  return `${cleanDoc}_${dateStr}`;
+export function getReportFolderName(docId: string, unit: string, date: string | Date): string {
+  return `${getDocShortPrefix(docId)}_${toYYYYMMDD(date)}_${sanitizeSharePointPath(unit)}`;
 }
 
 /**
- * File dữ liệu báo cáo trong thư mục: <DocID>_<yyyyMMdd>.data.json, e.g. DailyReport_20261110.data.json
+ * File dữ liệu báo cáo trong thư mục: <DRP|WRP>_<yyyyMMdd>_<Unit>.json, e.g. DRP_20261114_ST01.json
  */
-export function getReportFileName(docId: string, date: string | Date): string {
-  return `${getReportFolderName(docId, date)}.data.json`;
+export function getReportFileName(docId: string, unit: string, date: string | Date): string {
+  return `${getReportFolderName(docId, unit, date)}.json`;
 }
 
 /**
- * Bản xem/in độc lập (nhúng sẵn dữ liệu) cùng thư mục: <DocID>_<yyyyMMdd>.html
+ * Bản xem/in độc lập (nhúng sẵn dữ liệu) cùng thư mục: <DRP|WRP>_<yyyyMMdd>_<Unit>.html
  */
-export function getReportHtmlFileName(docId: string, date: string | Date): string {
-  return `${getReportFolderName(docId, date)}.html`;
+export function getReportHtmlFileName(docId: string, unit: string, date: string | Date): string {
+  return `${getReportFolderName(docId, unit, date)}.html`;
 }
 
 /**
@@ -73,7 +72,7 @@ export function getUnitFolderRelativePath(
 
 /**
  * Server relative path for the report folder:
- * <libraryPath>/data/<Unit>/<DocID>_<yyyyMMdd>
+ * <libraryPath>/data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>
  */
 export function getReportFolderRelativePath(
   libraryPath: string,
@@ -83,13 +82,13 @@ export function getReportFolderRelativePath(
 ): string {
   const cleanLib = libraryPath.replace(/\/+$/, '');
   const cleanUnit = sanitizeSharePointPath(unit);
-  const folderName = getReportFolderName(docId, date);
+  const folderName = getReportFolderName(docId, unit, date);
   return `${cleanLib}/data/${cleanUnit}/${folderName}`;
 }
 
 /**
  * Server relative path for the report file:
- * <libraryPath>/data/<Unit>/<DocID>_<yyyyMMdd>/<DocID>_<yyyyMMdd>.data.json
+ * <libraryPath>/data/<Unit>/DRP_<yyyyMMdd>_<Unit>/DRP_<yyyyMMdd>_<Unit>.json
  */
 export function getReportFileRelativePath(
   libraryPath: string,
@@ -98,13 +97,13 @@ export function getReportFileRelativePath(
   date: string | Date
 ): string {
   const folderPath = getReportFolderRelativePath(libraryPath, unit, docId, date);
-  const fileName = getReportFileName(docId, date);
+  const fileName = getReportFileName(docId, unit, date);
   return `${folderPath}/${fileName}`;
 }
 
 /**
  * Server relative path for the report photos subfolder:
- * <libraryPath>/data/<Unit>/<DocID>_<yyyyMMdd>/photos
+ * <libraryPath>/data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos
  */
 export function getReportPhotosFolderRelativePath(
   libraryPath: string,
@@ -156,7 +155,7 @@ export function formatTemplateVersionDisplay(versionStr?: string): string {
  * DailyReport -> DRP
  * WeeklyReport -> WRP
  */
-function getDocShortPrefix(docId?: string): string {
+export function getDocShortPrefix(docId?: string): string {
   const lower = (docId || 'DailyReport').trim().toLowerCase();
   return lower.includes('week') || lower === 'wrp' ? 'WRP' : 'DRP';
 }

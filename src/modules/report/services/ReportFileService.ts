@@ -11,6 +11,7 @@ import {
   getUnitFolderRelativePath,
   matchUnitTemplateFileName,
   getReportFolderName,
+  getDocShortPrefix,
   getSignedPdfFileName,
   isSignedPdfName
 } from '../utils/reportFileNaming';
@@ -119,7 +120,7 @@ export class ReportFileService {
   }
 
   /**
-   * File dữ liệu của một ngày (.data.json) kèm ETag; undefined nếu chưa có.
+   * File dữ liệu của một ngày (.json) kèm ETag; undefined nếu chưa có.
    */
   public async getReportJsonWithMeta(
     unit: string,
@@ -150,16 +151,18 @@ export class ReportFileService {
       }
     }
 
-    // 2. Quét các thư mục con của data/<Unit> tìm <DocID>_<yyyyMMdd> gần nhất trước dateStr
+    // 2. Quét các thư mục con của data/<Unit> tìm <DRP|WRP>_<yyyyMMdd>_<Unit> gần nhất trước dateStr
     try {
       const subfolders = await this._client.getFolderSubfolderNames(this._siteUrl, this.getUnitFolderPath(unit));
       if (!subfolders || subfolders.length === 0) return undefined;
-      const prefix = `${sanitizeSharePointPath(docId).toLowerCase()}_`;
+      const prefix = `${getDocShortPrefix(docId)}_`.toLowerCase();
+      const suffix = `_${sanitizeSharePointPath(unit)}`.toLowerCase();
       const targetCompact = dateStr.replace(/-/g, '');
       const priorDates: string[] = [];
       subfolders.forEach((name) => {
-        if (name.toLowerCase().indexOf(prefix) !== 0) return;
-        const compact = name.slice(prefix.length).trim();
+        const lower = name.toLowerCase();
+        if (lower.indexOf(prefix) !== 0 || lower.slice(-suffix.length) !== suffix) return;
+        const compact = name.slice(prefix.length, name.length - suffix.length).trim();
         if (/^\d{8}$/.test(compact) && compact < targetCompact) {
           const iso = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
           if (iso !== prevDateStr) priorDates.push(iso);
@@ -193,7 +196,7 @@ export class ReportFileService {
     return unitFolderPath;
   }
 
-  /** Đảm bảo data/<Unit> và data/<Unit>/<DocID>_<yyyyMMdd> tồn tại; trả đường dẫn thư mục báo cáo. */
+  /** Đảm bảo data/<Unit> và data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit> tồn tại; trả đường dẫn thư mục báo cáo. */
   private async ensureReportFolder(unit: string, docId: string, dateStr: string): Promise<string> {
     await this.ensureUnitFolder(unit);
     const folderPath = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
@@ -207,7 +210,7 @@ export class ReportFileService {
   }
 
   /**
-   * Ghi file dữ liệu báo cáo (.data.json) vào data/<Unit>/<DocID>_<yyyyMMdd>/ (tự tạo thư mục), có kiểm tra ETag khi ghi đè.
+   * Ghi file dữ liệu báo cáo (.json) vào data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/ (tự tạo thư mục), có kiểm tra ETag khi ghi đè.
    */
   public async saveReportJson(
     unit: string,
@@ -217,13 +220,13 @@ export class ReportFileService {
     eTag?: string
   ): Promise<{ serverRelativeUrl: string; eTag?: string }> {
     const folderPath = await this.ensureReportFolder(unit, docId, dateStr);
-    return await this._client.uploadFile(this._siteUrl, folderPath, getReportFileName(docId, dateStr), ReportFileService.encode(text), true, eTag);
+    return await this._client.uploadFile(this._siteUrl, folderPath, getReportFileName(docId, unit, dateStr), ReportFileService.encode(text), true, eTag);
   }
 
   /** Ghi bản xem/in độc lập (.html) cạnh file dữ liệu; luôn ghi đè. */
   public async saveReportHtml(unit: string, docId: string, dateStr: string, html: string): Promise<void> {
     const folderPath = await this.ensureReportFolder(unit, docId, dateStr);
-    await this._client.uploadFile(this._siteUrl, folderPath, getReportHtmlFileName(docId, dateStr), ReportFileService.encode(html), true);
+    await this._client.uploadFile(this._siteUrl, folderPath, getReportHtmlFileName(docId, unit, dateStr), ReportFileService.encode(html), true);
   }
 
   /** Nội dung một ảnh hiện trường (để nhúng vào bản HTML độc lập). */
@@ -238,14 +241,14 @@ export class ReportFileService {
 
   /**
    * Path to photos subfolder:
-   * <libraryPath>/data/<Unit>/<DocID>_<yyyyMMdd>/photos
+   * <libraryPath>/data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos
    */
   public getReportPhotosFolderPath(unit: string, docId: string, dateStr: string): string {
     return getReportPhotosFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
   }
 
   /**
-   * Upload a photo into data/<Unit>/<DocID>_<yyyyMMdd>/photos/<groupId>/
+   * Upload a photo into data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos/<groupId>/
    * Returns the stored file name.
    */
   public async uploadReportPhoto(
@@ -287,7 +290,7 @@ export class ReportFileService {
 
   /**
    * Trạng thái báo cáo của các ngày (dateStrs: YYYY-MM-DD) trong data/<Unit>:
-   * - missing: chưa có file báo cáo (.data.json) của ngày đó
+   * - missing: chưa có file báo cáo (.json) của ngày đó
    * - unsigned: có file báo cáo nhưng thư mục chưa có file PDF
    * - done: có file báo cáo và có file PDF đã ký
    */
@@ -306,7 +309,7 @@ export class ReportFileService {
     const existing = new Set(subfolders.map((n) => n.toLowerCase()));
 
     const readDay = async (dateStr: string): Promise<ReportDayInfo> => {
-      if (!existing.has(getReportFolderName(docId, dateStr).toLowerCase())) {
+      if (!existing.has(getReportFolderName(docId, unit, dateStr).toLowerCase())) {
         return { dateStr, status: 'missing' };
       }
       const folder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
@@ -316,7 +319,7 @@ export class ReportFileService {
       } catch {
         files = [];
       }
-      const reportName = getReportFileName(docId, dateStr).toLowerCase();
+      const reportName = getReportFileName(docId, unit, dateStr).toLowerCase();
       const report = files.filter((f) => f.name.toLowerCase() === reportName)[0];
       if (!report) return { dateStr, status: 'missing' };
       const signed = this.pickSignedPdf(files);

@@ -10,7 +10,7 @@
 
 - Lưu trữ trên SharePoint Document Library **`CapNhatCongViec`**; báo cáo ngày lưu dạng **JSON + HTML độc lập** (app chỉ hỗ trợ JSON, không còn đọc/ghi báo cáo hay template Excel):
   - Template báo cáo: `_template/template_DRP_<Unit>_<yyyyMMdd>.json` (ngày trong tên file là phiên bản, bản mới nhất thắng).
-  - Mỗi báo cáo một thư mục `data/<Unit>/<DocID>_<yyyyMMdd>/` gồm `<DocID>_<yyyyMMdd>.data.json` (dữ liệu), `<DocID>_<yyyyMMdd>.html` (bản xem/in độc lập, nhúng sẵn dữ liệu + ảnh + logo), `photos/<GroupID>/` (ảnh hiện trường) và `<DocCode>_signed.pdf` (bản đã ký).
+  - Mỗi báo cáo một thư mục `data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/` gồm `<DRP|WRP>_<yyyyMMdd>_<Unit>.json` (dữ liệu), `<DRP|WRP>_<yyyyMMdd>_<Unit>.html` (bản xem/in độc lập, nhúng sẵn dữ liệu + ảnh + logo), `photos/<GroupID>/` (ảnh hiện trường) và `<DocCode>_signed.pdf` (bản đã ký).
   - Phân quyền theo người: list `Report_Role`; nhận diện đăng nhập: list `UserProfiles`; sổ quản lý số báo cáo/trạng thái: list `ReportRegistry`; danh mục dùng chung: list `CatalogItems` + file `ActivityP6.xlsx` (chỉ admin ghi).
 - **Tính năng nổi bật:**
   - **Lịch 14 ngày và 3 trạng thái** (Chưa nhập / Chưa upload bản ký / Hoàn tất), tab **Tổng quan** cho admin (ma trận đơn vị × ngày, xuất Excel).
@@ -57,9 +57,9 @@ CapNhatCongViec/
 │   └── template_DRP_<Unit>_<yyyyMMdd>.json
 ├── resource/                        # thaco_logo.jpg, crec_logo.jpg (logo bản in)
 └── data/                            # App tự tạo
-    └── <Unit>/<DocID>_<yyyyMMdd>/
-        ├── <DocID>_<yyyyMMdd>.data.json
-        ├── <DocID>_<yyyyMMdd>.html
+    └── <Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
+        ├── <DRP|WRP>_<yyyyMMdd>_<Unit>.json
+        ├── <DRP|WRP>_<yyyyMMdd>_<Unit>.html
         ├── photos/<GroupID>/
         └── <DocCode>_signed.pdf
 ```

@@ -7,7 +7,7 @@ export interface IReportPhotoSectionEditorProps {
   section: ReportPhotoSection;
   roman: string;
   anchor: string;
-  /** Thư mục ảnh của báo cáo (server-relative): data/<Unit>/<DocID>_<yyyyMMdd>/photos */
+  /** Thư mục ảnh của báo cáo (server-relative): data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos */
   photosFolder: string;
   disabled?: boolean;
   isUploading?: boolean;

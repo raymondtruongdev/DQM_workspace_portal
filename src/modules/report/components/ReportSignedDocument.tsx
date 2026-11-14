@@ -4,7 +4,7 @@ import { Icon } from '../../../core/components';
 import { formatFileSize, formatSavedAt } from '../utils/reportCalendar';
 
 export interface IReportSignedDocumentProps {
-  /** Thư mục báo cáo hiển thị cho người dùng, vd data/ST01/DailyReport_20261110/ */
+  /** Thư mục báo cáo hiển thị cho người dùng, vd data/ST01/DRP_20261114_ST01/ */
   folderLabel: string;
   /** Báo cáo đã lưu lên SharePoint (và không còn thay đổi chưa lưu). */
   canUpload: boolean;

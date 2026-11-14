@@ -32,7 +32,7 @@ import { carryForwardTable, columnTotal, defaultCellValue, recalcTable, splitLab
 
 /**
  * Chuyển đổi giữa ba dạng:
- *   - file báo cáo `.data.json` (ReportJson): nhãn + giá trị thật, gọn, đọc được một mình;
+ *   - file báo cáo `.json` (ReportJson): nhãn + giá trị thật, gọn, đọc được một mình;
  *   - template `.json` (ReportTemplateJson): cấu trúc + cách nhập (kiểu ô, danh mục, công thức, mặc định…);
  *   - mô hình đang sửa trên web (ReportDoc): file báo cáo ghép với template theo `id` mục / `id` cột / `id` trường.
  * Cột/mục/trường có trong file báo cáo mà template không có (hoặc chưa tải được template) vẫn hiển thị như ô văn bản thường.
@@ -322,7 +322,7 @@ function sectionToJson(s: ReportSection): ReportJsonSection {
   return out;
 }
 
-/** Mô hình đang sửa thành nội dung file `.data.json` (gọn, chỉ nhãn + giá trị thật). */
+/** Mô hình đang sửa thành nội dung file `.json` (gọn, chỉ nhãn + giá trị thật). */
 export function docToJson(doc: ReportDoc): ReportJson {
   const m = doc.metadata;
   const reportNo = parseInt(m.reportNo, 10);
@@ -344,7 +344,7 @@ export function docToJson(doc: ReportDoc): ReportJson {
   return json;
 }
 
-/** Nội dung file `.data.json` dạng văn bản (xuống dòng + thụt lề để người mở file đọc được). */
+/** Nội dung file `.json` dạng văn bản (xuống dòng + thụt lề để người mở file đọc được). */
 export function serializeReportJson(json: ReportJson): string {
   return `${JSON.stringify(json, null, 2)}\n`;
 }

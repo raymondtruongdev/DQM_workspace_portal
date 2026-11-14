@@ -55,7 +55,7 @@ const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;',
 
 /**
  * File HTML độc lập của báo cáo: nội dung bản in A4 đã render sẵn (giống hệt cửa sổ xem trước của web) + CSS in + logo/ảnh nhúng
- * + toàn bộ dữ liệu `.data.json` trong thẻ `<script type="application/json" id="report-data">`.
+ * + toàn bộ dữ liệu `.json` trong thẻ `<script type="application/json" id="report-data">`.
  * Mở bằng trình duyệt không cần mạng hay web server; bấm nút In để lưu PDF. */
 export async function buildStandaloneHtml(doc: ReportDoc, jsonText: string, assets: ReportHtmlAssets): Promise<string> {
   // Render bằng chính bản React của web part vào một thẻ div rời (không gắn vào trang) rồi lấy innerHTML. Không dùng

@@ -45,7 +45,7 @@ DQM_workspace_portal/
 │       ├── ActivityP6.xlsx              # Danh mục Activity (một sheet)
 │       ├── _template/                   # template_DRP_<Unit>_<yyyyMMdd>.json
 │       ├── resource/                    # thaco_logo.jpg, crec_logo.jpg
-│       └── data/                        # Báo cáo mẫu data/<Unit>/<DocID>_<yyyyMMdd>/
+│       └── data/                        # Báo cáo mẫu data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
 ├── src/
 │   ├── entry/                           # Điểm vào SPFx WebPart (PortalWebPart.ts, manifest, loc/)
 │   ├── app/                             # Khung điều phối Portal
@@ -86,8 +86,8 @@ DQM_workspace_portal/
 - **`styles/` và `components/`:** Design System dùng chung (token, nút, ô nhập, card, bảng, hộp thoại, icon Fluent); module chỉ ghép thành phần chung. Xem AGENTS.md mục 8.
 
 ### 3.2 Module `report` (`src/modules/report`)
-- Lưu trữ trên Document Library `CapNhatCongViec` theo cấu trúc `data/<Unit>/<DocID>_<yyyyMMdd>/` gồm `.data.json` (nguồn dữ liệu), `.html` (bản xem/in độc lập), `photos/<GroupID>/` và `<DocCode>_signed.pdf`.
-- **Dữ liệu và cách nhập tách đôi:** file `.data.json` chỉ chứa định danh, nhãn và giá trị thật; kiểu ô, danh mục dropdown, công thức, mặc định, luỹ kế, bố cục nằm ở template JSON `_template/template_DRP_<Unit>_<yyyyMMdd>.json`, ghép theo `id` (`jsonToDoc`). Thêm/bớt mục, cột, trường chỉ cần sửa template.
+- Lưu trữ trên Document Library `CapNhatCongViec` theo cấu trúc `data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/` gồm `.json` (nguồn dữ liệu), `.html` (bản xem/in độc lập), `photos/<GroupID>/` và `<DocCode>_signed.pdf`.
+- **Dữ liệu và cách nhập tách đôi:** file `.json` chỉ chứa định danh, nhãn và giá trị thật; kiểu ô, danh mục dropdown, công thức, mặc định, luỹ kế, bố cục nằm ở template JSON `_template/template_DRP_<Unit>_<yyyyMMdd>.json`, ghép theo `id` (`jsonToDoc`). Thêm/bớt mục, cột, trường chỉ cần sửa template.
 - **Sổ `ReportRegistry`:** nguồn của số báo cáo tự tăng, trạng thái từng ngày (lịch 14 ngày, tab Tổng quan) và bộ đếm mã tự tăng (Event ID, Issue ID).
 - **Danh mục dùng chung:** `ActivityP6.xlsx` (chỉ admin ghi) + list `CatalogItems` (người dùng thêm bằng "Khác…", chống trùng hai lớp).
 - **Phân quyền báo cáo:** list `Report_Role` kết hợp `UserProfiles`; admin thấy mọi phân quyền.

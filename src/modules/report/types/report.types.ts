@@ -185,7 +185,7 @@ export type ReportDayStatus = 'missing' | 'unsigned' | 'done';
 export interface ReportDayInfo {
   dateStr: string;            // YYYY-MM-DD
   status: ReportDayStatus;
-  savedAt?: string;           // thời điểm lưu file báo cáo (.data.json)
+  savedAt?: string;           // thời điểm lưu file báo cáo (.json)
   signed?: SignedDocInfo;     // file PDF đã ký (nếu có)
   reporter?: string;          // người lập (email) – từ sổ ReportRegistry
   reportNo?: string;          // số báo cáo – từ sổ ReportRegistry

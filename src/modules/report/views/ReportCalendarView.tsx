@@ -150,7 +150,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
       navigator.clipboard.writeText(text).then(done, () => setToast({ type: 'error', text: 'Không sao chép được.' }));
     }
   };
-  const folderLabel = `data/${role.unit}/${getReportFolderName(role.docId, selected)}/`;
+  const folderLabel = `data/${role.unit}/${getReportFolderName(role.docId, role.unit, selected)}/`;
 
   const pickFile = (dateStr: string): void => {
     uploadTarget.current = dateStr;

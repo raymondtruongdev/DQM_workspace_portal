@@ -244,7 +244,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     };
   }, [dataService, role.unit, role.docId, dateStr, isReportSaved, isWeekly]);
 
-  // Upload file PDF đã ký vào thư mục báo cáo của ngày (cùng thư mục với file .data.json)
+  // Upload file PDF đã ký vào thư mục báo cáo của ngày (cùng thư mục với file .json)
   const handleUploadSigned = async (file: File): Promise<void> => {
     if (!doc || !doc.isExisting || hasUnsavedChanges) return;
     if (await onCheckMaintenance()) return;
@@ -275,7 +275,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     }
   };
 
-  // Thư mục ảnh của báo cáo: data/<Unit>/<DocID>_<yyyyMMdd>/photos (mỗi bộ phận một thư mục con)
+  // Thư mục ảnh của báo cáo: data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos (mỗi bộ phận một thư mục con)
   const photosFolder = dataService.getPhotosFolderPath(role.unit, role.docId, dateStr);
 
   const updatePhotoSection = (
@@ -298,7 +298,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     return sec && sec.kind === 'photo' ? sec.groups.filter((g) => g.id === groupId)[0] : undefined;
   };
 
-  // Tải ảnh của một bộ phận lên data/<Unit>/<DocID>_<yyyyMMdd>/photos/<groupId>/
+  // Tải ảnh của một bộ phận lên data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos/<groupId>/
   const handleUploadGroupPhotos = async (sectionKey: string, groupId: string, files: FileList): Promise<void> => {
     if (!doc || files.length === 0) return;
     if (await onCheckMaintenance()) return;
@@ -435,7 +435,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     if (ensureRequiredFilled('xuất báo cáo')) setShowPrintPreview(true);
   };
 
-  // Lưu báo cáo: ghi .data.json + .html độc lập
+  // Lưu báo cáo: ghi .json + .html độc lập
   const handleSave = async (): Promise<void> => {
     if (!doc || !ensureRequiredFilled('lưu báo cáo')) return;
     if (await onCheckMaintenance()) return;
@@ -693,7 +693,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
 
           {!isWeekly && (
             <ReportSignedDocument
-              folderLabel={`data/${role.unit}/${getReportFolderName(role.docId, dateStr)}/`}
+              folderLabel={`data/${role.unit}/${getReportFolderName(role.docId, role.unit, dateStr)}/`}
               canUpload={Boolean(doc.isExisting) && !hasUnsavedChanges}
               blockedReason={
                 doc.isExisting

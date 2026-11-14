@@ -5,7 +5,7 @@ import { ReportPrintDocument } from './ReportPrintDocument';
 
 export interface IReportPrintPreviewModalProps {
   doc: ReportDoc;
-  /** Thư mục ảnh của báo cáo (server-relative): data/<Unit>/<DocID>_<yyyyMMdd>/photos */
+  /** Thư mục ảnh của báo cáo (server-relative): data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos */
   photosFolder: string;
   /** Thư mục logo (server-relative): <thư viện>/resource, chứa thaco_logo.jpg và crec_logo.jpg. */
   resourceFolder: string;

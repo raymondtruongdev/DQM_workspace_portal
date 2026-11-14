@@ -1,6 +1,6 @@
 # Plan: lưu Daily Report (DRP) dạng JSON + HTML độc lập
 
-> Trạng thái: **đã triển khai** (xem mục 13). Tài liệu này giữ hợp đồng JSON và lý do thiết kế; quy tắc vận hành nằm ở `AGENTS.md` mục 5.3. File mẫu: JSON [sample/DailyReport.sample.data.json](sample/DailyReport.sample.data.json) và HTML độc lập [sample/DailyReport.sample.html](sample/DailyReport.sample.html) (ảnh nhúng sẵn). Thư mục báo cáo demo đúng cấu trúc SharePoint: `data_test/sharepoint_sample/data/ST01/DailyReport_20261110/`.
+> Trạng thái: **đã triển khai** (xem mục 13). Tài liệu này giữ hợp đồng JSON và lý do thiết kế; quy tắc vận hành nằm ở `AGENTS.md` mục 5.3. File mẫu: JSON [sample/DailyReport.sample.data.json](sample/DailyReport.sample.data.json) và HTML độc lập [sample/DailyReport.sample.html](sample/DailyReport.sample.html) (ảnh nhúng sẵn). Thư mục báo cáo demo đúng cấu trúc SharePoint: `data_test/sharepoint_sample/data/ST01/DRP_20261114_ST01/`.
 > Hợp đồng JSON (mục 3) đã được tóm tắt vào mục Report của `AGENTS.md`.
 > **Lưu ý (đã chốt sau khi triển khai):** app chỉ hỗ trợ JSON. Đường đọc dự phòng `.xlsx`, `reportCodec` và script chuyển hàng loạt xlsx → json (nhắc ở các mục 3-12 bên dưới) **đã bỏ, không làm**; template Excel cũ đã xoá khỏi repo. Các đoạn nhắc `.xlsx` bên dưới chỉ là bối cảnh lịch sử của kế hoạch.
 
@@ -9,7 +9,7 @@
 Hiện mỗi báo cáo ngày được lưu thành một file `.xlsx`, nên dữ liệu bị buộc vào vị trí sheet/dòng/cột và cú pháp spec riêng của Excel. Mục tiêu:
 
 - Khi bấm **Lưu** tạo ra **2 file**:
-  - `*.data.json`: dữ liệu báo cáo (backup, đọc lại để sửa).
+  - `*.json`: dữ liệu báo cáo (backup, đọc lại để sửa).
   - `*.html`: bản xem/in độc lập, **nhúng thẳng JSON**, mở offline và in PDF mà không cần vào web.
 - Dữ liệu tổ chức theo dòng-cột, thêm section mới dễ, không phụ thuộc tên cột cố định hay vị trí cột.
 - Người mở JSON đọc được số liệu thật mà không cần web UI.
@@ -64,9 +64,9 @@ Hiện mỗi báo cáo ngày được lưu thành một file `.xlsx`, nên dữ 
 ## 4. Cấu trúc file lưu
 
 ```
-data/<Unit>/<DocID>_<yyyyMMdd>/
-├── <DocID>_<yyyyMMdd>.data.json    nguồn dữ liệu (backup)
-├── <DocID>_<yyyyMMdd>.html         bản xem/in độc lập, nhúng JSON
+data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
+├── <DRP|WRP>_<yyyyMMdd>_<Unit>.json    nguồn dữ liệu (backup)
+├── <DRP|WRP>_<yyyyMMdd>_<Unit>.html         bản xem/in độc lập, nhúng JSON
 ├── photos/<GroupID>/…              ảnh (giữ nguyên)
 └── <DocCode>_signed.pdf            bản ký (giữ nguyên)
 ```
@@ -80,8 +80,8 @@ data/<Unit>/<DocID>_<yyyyMMdd>/
 
 ## 6. Luồng Lưu / Mở
 
-- **Lưu** (`ReportDataService.saveReport`): `checkMaintenance()` → ghi `.data.json` (giữ ETag) → ghi `.html` → ghi sổ `ReportRegistry`. HTML lỗi thì cảnh báo nhưng vẫn giữ JSON (cách xử lý như ghi sổ).
-- **Mở** (`loadReport`): ưu tiên `.data.json`; chưa có thì đọc `.xlsx` cũ (đường dự phòng); chưa có gì thì lấy báo cáo ngày trước, rồi template.
+- **Lưu** (`ReportDataService.saveReport`): `checkMaintenance()` → ghi `.json` (giữ ETag) → ghi `.html` → ghi sổ `ReportRegistry`. HTML lỗi thì cảnh báo nhưng vẫn giữ JSON (cách xử lý như ghi sổ).
+- **Mở** (`loadReport`): ưu tiên `.json`; chưa có thì đọc `.xlsx` cũ (đường dự phòng); chưa có gì thì lấy báo cáo ngày trước, rồi template.
 - Khi mở: ghép cột với template theo `id`, tính lại công thức và `totals`.
 - **Sao chép từ ngày trước:** áp dụng luỹ kế (`carry`) và reset theo template; bỏ ảnh; `reportNo` do sổ cấp.
 
@@ -109,7 +109,7 @@ data/<Unit>/<DocID>_<yyyyMMdd>/
 | `services/ReportDataService.ts` | `saveReport`, `loadReport`, `getSavedDocCode` |
 | `components/ReportPrint*`, `ReportPrintPreviewModal.tsx` | tách CSS in, thêm `buildStandaloneHtml` |
 | `ReportPhotoSectionEditor.tsx` | `id` nhóm ảnh `g<n>` thay `g<Date.now()>` |
-| `ReportCalendarView`, `ReportOverviewView`, `ReportFileService.getReportDayInfos` | phát hiện "đã nhập" bằng `.data.json` thay vì `.xlsx` |
+| `ReportCalendarView`, `ReportOverviewView`, `ReportFileService.getReportDayInfos` | phát hiện "đã nhập" bằng `.json` thay vì `.xlsx` |
 | `ReportSignedDocument`, `utils/reportFileNaming.ts` | đọc `docCode` từ JSON |
 | `AGENTS.md` | cập nhật mục Report: kiến trúc JSON, bỏ quy tắc Excel |
 
@@ -127,7 +127,7 @@ data/<Unit>/<DocID>_<yyyyMMdd>/
 - Round-trip JSON không mất dữ liệu; Apply thêm/bớt cột giữ đúng dữ liệu cũ.
 - Mở file HTML trực tiếp trên máy (không mạng), bản in giống PDF hiện tại.
 - Báo cáo copy từ ngày trước: luỹ kế đúng, reset đúng, ảnh không sao chép.
-- Lịch 14 ngày và Tổng quan vẫn đúng trạng thái khi chuyển sang `.data.json`.
+- Lịch 14 ngày và Tổng quan vẫn đúng trạng thái khi chuyển sang `.json`.
 - Mở báo cáo xlsx cũ rồi Lưu: sinh đủ json + html.
 
 ## 11. Cần chốt trước khi code
@@ -148,7 +148,7 @@ data/<Unit>/<DocID>_<yyyyMMdd>/
 ## 13. Trạng thái triển khai
 
 **Đã làm (chạy thử bằng `dev/`, chưa thử trên SharePoint thật):**
-- App chỉ đọc/ghi `.data.json` (không còn codec Excel). `utils/reportJson.ts`: `jsonToDoc` / `docToJson` / `docFromTemplate` / `applyTemplate` / `carryForwardDoc`, kiểm tra `schema`.
+- App chỉ đọc/ghi `.json` (không còn codec Excel). `utils/reportJson.ts`: `jsonToDoc` / `docToJson` / `docFromTemplate` / `applyTemplate` / `carryForwardDoc`, kiểm tra `schema`.
 - **Template JSON** (`_template/template_DRP_<Unit>_<yyyyMMdd>.json`) giữ mọi thứ về cách nhập (kiểu ô, danh mục, công thức, mặc định, luỹ kế, bố cục); mẫu 4 đơn vị trong `data_test/sharepoint_sample/_template/`. Apply template ghép theo `id`, giữ dữ liệu cũ.
 - Mục có thể gồm bảng + `fields` (HSE) hoặc chỉ `fields` (ký duyệt, chỉ đạo); mã dòng `r<n>`; mã nhóm ảnh `g<n>`.
 - Mọi dropdown (kể cả danh sách trước đây cố định) lấy từ danh mục dùng chung. Nguồn danh mục: file `ActivityP6.xlsx` + list `CatalogItems` (file mẫu đã thêm các danh mục `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`). Chạy thử cục bộ dùng list giả lập nạp từ `CatalogItems_list.xlsx` (`dev/`). Đơn vị thi công chọn từ danh mục `subcontractor` (không còn `subcontractorOptions` trong JSON).
