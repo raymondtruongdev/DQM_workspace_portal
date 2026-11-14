@@ -2,7 +2,7 @@
  * Dựng khung chạy thử cục bộ của module Report (không cần SharePoint):  node dev/build.js
  * Kết quả: temp/dev/index.html (mở bằng trình duyệt). Chi tiết: AGENTS.md mục "Chạy thử cục bộ".
  *  1. tsc biên dịch src/ + dev/ sang temp/dev/js
- *  2. nạp data_test/sharepoint_sample (template, ActivityP6.xlsx, logo, báo cáo mẫu; list CatalogItems, ReportRole từ các file *_list.xlsx ở docs/sharepoint_setup) thành seed.js
+ *  2. nạp docs/sharepoint_setup/DailyReportLibrary (template, ActivityP6.xlsx, logo, báo cáo mẫu; list CatalogItems, ReportRole từ các file *_list.xlsx ở docs/sharepoint_setup) thành seed.js
  *  3. webpack gộp, thay `core/services/SharePointClient` bằng bản giả lập trong bộ nhớ và `@microsoft/sp-http` bằng stub
  */
 const fs = require('fs');
@@ -13,7 +13,7 @@ const webpack = require('webpack');
 const root = path.resolve(__dirname, '..');
 const out = path.join(root, 'temp', 'dev');
 const js = path.join(out, 'js');
-const sample = path.join(root, 'data_test', 'sharepoint_sample');
+const sample = path.join(root, 'docs', 'sharepoint_setup', 'DailyReportLibrary');
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });

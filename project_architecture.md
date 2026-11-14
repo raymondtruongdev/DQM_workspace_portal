@@ -38,14 +38,12 @@ DQM_workspace_portal/
 │   ├── REPORT_JSON_PLAN.md              # Hợp đồng JSON/HTML của báo cáo ngày và lý do thiết kế
 │   ├── SHAREPOINT_SETUP.md              # Hướng dẫn cài đặt SharePoint thủ công
 │   ├── sample/                          # Báo cáo mẫu (JSON + HTML độc lập)
-│   └── sharepoint_setup/                # *_list.xlsx tạo list + script cài đặt tự động (setup-sharepoint.mjs)
-├── data_test/
-│   ├── Mau_BCN_ST06_20261025.pdf        # Mẫu giấy chuẩn Báo cáo ngày A4 song ngữ
-│   └── sharepoint_sample/               # Bản mẫu thư viện DailyReportLibrary
-│       ├── ActivityP6.xlsx              # Danh mục Activity (một sheet)
-│       ├── _template/                   # template_DRP_<Unit>_<yyyyMMdd>.json
-│       ├── resource/                    # thaco_logo.jpg, crec_logo.jpg
-│       └── data/                        # Báo cáo mẫu data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
+│   └── sharepoint_setup/                # Mọi thứ cần để cài đặt lên SharePoint: *_list.xlsx tạo list + script (setup-sharepoint.mjs, setup.config.json)
+│       └── DailyReportLibrary/          # Bản mẫu thư viện DailyReportLibrary (upload lên SharePoint)
+│           ├── ActivityP6.xlsx          # Danh mục Activity (một sheet)
+│           ├── _template/               # template_DRP_<Unit>_<yyyyMMdd>.json
+│           ├── resource/                # thaco_logo.jpg, crec_logo.jpg
+│           └── data/                    # Báo cáo mẫu data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
 ├── src/
 │   ├── entry/                           # Điểm vào SPFx WebPart (PortalWebPart.ts, manifest, loc/)
 │   ├── app/                             # Khung điều phối Portal

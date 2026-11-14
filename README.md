@@ -65,7 +65,7 @@ DailyReportLibrary/
 ```
 
 - **Hướng dẫn từng bước:** [`docs/SHAREPOINT_SETUP.md`](./docs/SHAREPOINT_SETUP.md). File tạo list (`*_list.xlsx`) và script cài đặt tự động nằm ở [`docs/sharepoint_setup/`](./docs/sharepoint_setup/README.md).
-- **File mẫu** (`ActivityP6.xlsx`, template JSON, logo, báo cáo mẫu) nằm ở `data_test/sharepoint_sample/`, tải lên thủ công (hoặc bằng script); thư mục `data/...` do app tự tạo.
+- **File mẫu** (`ActivityP6.xlsx`, template JSON, logo, báo cáo mẫu) nằm ở `docs/sharepoint_setup/DailyReportLibrary/`, tải lên thủ công (hoặc bằng script); thư mục `data/...` do app tự tạo.
 - Tài khoản phải có trong **cả** `UserProfiles` và `ReportRole` mới làm được báo cáo; admin (`UserProfiles.Role = admin`) thấy mọi phân quyền.
 - Người dùng báo cáo cần quyền **Edit** trên thư mục `data/<Unit>` của mình. Phân quyền SharePoint là bảo mật thật; kiểm tra quyền ở giao diện chỉ là tiện ích.
 

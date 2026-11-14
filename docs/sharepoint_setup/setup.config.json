@@ -10,9 +10,9 @@
     "folders": ["_template", "resource", "data"],
     "unitFoldersUnderData": true,
     "files": [
-      { "from": "data_test/sharepoint_sample/ActivityP6.xlsx", "to": "ActivityP6.xlsx" },
-      { "fromGlob": "data_test/sharepoint_sample/_template/template_DRP_*.json", "toFolder": "_template" },
-      { "fromGlob": "data_test/sharepoint_sample/resource/*.jpg", "toFolder": "resource" }
+      { "from": "docs/sharepoint_setup/DailyReportLibrary/ActivityP6.xlsx", "to": "ActivityP6.xlsx" },
+      { "fromGlob": "docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_*.json", "toFolder": "_template" },
+      { "fromGlob": "docs/sharepoint_setup/DailyReportLibrary/resource/*.jpg", "toFolder": "resource" }
     ]
   },
   "lists": [

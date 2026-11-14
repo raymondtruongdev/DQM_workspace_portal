@@ -7,7 +7,7 @@ import { dumpFiles, dumpList, readText, seedFile, seedList } from './LocalShareP
 
 /**
  * Khung chạy thử cục bộ của module Report: dựng module trong khung `.app-layout > .main-content` như PortalShell,
- * nhưng thư viện tài liệu và list SharePoint là bản giả lập trong bộ nhớ, nạp từ data_test/sharepoint_sample.
+ * nhưng thư viện tài liệu và list SharePoint là bản giả lập trong bộ nhớ, nạp từ docs/sharepoint_setup/DailyReportLibrary.
  * Dựng bằng `node dev/build.js`, mở `temp/dev/index.html`. Xem AGENTS.md mục "Chạy thử cục bộ".
  */
 interface Seed {

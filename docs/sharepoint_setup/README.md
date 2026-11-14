@@ -13,7 +13,7 @@ Script `setup-sharepoint.mjs` thay cho các bước tạo tay ở mục 2 và 3 
 **Làm:**
 - List `UserProfiles`, `ReportRole`, `ReportRegistry`, `CatalogItems`: tạo cột đúng tên nội bộ (không bị `field_N`), kiểu Text/Number(0 số lẻ)/Yes-No, `Title` Enforce unique values + Indexed (`ReportRegistry`, `CatalogItems`), index `Unit`/`ReportDate`/`ReportNo`/`Email`, bật versioning.
 - Thư viện `DailyReportLibrary` + thư mục `_template`, `resource`, `data`, `data/<Unit>` (đơn vị lấy từ tên các file template).
-- Upload `ActivityP6.xlsx`, `_template/template_DRP_*.json`, logo `resource/*.jpg` từ `data_test/sharepoint_sample/`. File đã có trên SharePoint thì **bỏ qua** (tránh đè bản admin đã sửa), dùng `--force` để ghi đè.
+- Upload `ActivityP6.xlsx`, `_template/template_DRP_*.json`, logo `resource/*.jpg` từ `docs/sharepoint_setup/DailyReportLibrary/`. File đã có trên SharePoint thì **bỏ qua** (tránh đè bản admin đã sửa), dùng `--force` để ghi đè.
 - Nạp dữ liệu: `CatalogItems` (63 dòng mẫu), admin đầu tiên vào `UserProfiles` (`--admin`), `ReportRole` mẫu (chỉ khi có `--seed-sample`). `ReportRegistry` để trống (web part tự ghi).
 
 **Không làm (làm tay):** phân quyền list/thư viện (mục 5), build + deploy `.sppkg`, xoá dòng mẫu nếu bạn đã dùng `--seed-sample`.
@@ -61,7 +61,7 @@ node docs/sharepoint_setup/setup-sharepoint.mjs --site https://tenant.sharepoint
 | `--config <file>` | Dùng file cấu hình khác |
 | `--dry-run` | Chỉ in kế hoạch |
 
-Sửa `setup.config.json` khi cần thêm cột, thêm file upload hay đổi dữ liệu nạp; tên list/cột phải khớp code (xem `_ghi_chu` trong file). Thêm đơn vị mới: đặt template `template_DRP_<Unit>_<yyyyMMdd>.json` vào `data_test/sharepoint_sample/_template/` rồi chạy lại (script tạo `data/<Unit>` và upload template mới).
+Sửa `setup.config.json` khi cần thêm cột, thêm file upload hay đổi dữ liệu nạp; tên list/cột phải khớp code (xem `_ghi_chu` trong file). Thêm đơn vị mới: đặt template `template_DRP_<Unit>_<yyyyMMdd>.json` vào `docs/sharepoint_setup/DailyReportLibrary/_template/` rồi chạy lại (script tạo `data/<Unit>` và upload template mới).
 
 ## 4. Sau khi chạy
 

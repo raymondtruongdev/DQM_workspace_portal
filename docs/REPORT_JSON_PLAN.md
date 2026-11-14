@@ -1,6 +1,6 @@
 # Plan: lưu Daily Report (DRP) dạng JSON + HTML độc lập
 
-> Trạng thái: **đã triển khai** (xem mục 13). Tài liệu này giữ hợp đồng JSON và lý do thiết kế; quy tắc vận hành nằm ở `AGENTS.md` mục 5.3. File mẫu: JSON [sample/DailyReport.sample.data.json](sample/DailyReport.sample.data.json) và HTML độc lập [sample/DailyReport.sample.html](sample/DailyReport.sample.html) (ảnh nhúng sẵn). Thư mục báo cáo demo đúng cấu trúc SharePoint: `data_test/sharepoint_sample/data/ST01/DRP_20261114_ST01/`.
+> Trạng thái: **đã triển khai** (xem mục 13). Tài liệu này giữ hợp đồng JSON và lý do thiết kế; quy tắc vận hành nằm ở `AGENTS.md` mục 5.3. File mẫu: JSON [sample/DailyReport.sample.data.json](sample/DailyReport.sample.data.json) và HTML độc lập [sample/DailyReport.sample.html](sample/DailyReport.sample.html) (ảnh nhúng sẵn). Thư mục báo cáo demo đúng cấu trúc SharePoint: `docs/sharepoint_setup/DailyReportLibrary/data/ST01/DRP_20261114_ST01/`.
 > Hợp đồng JSON (mục 3) đã được tóm tắt vào mục Report của `AGENTS.md`.
 > **Lưu ý (đã chốt sau khi triển khai):** app chỉ hỗ trợ JSON. Đường đọc dự phòng `.xlsx`, `reportCodec` và script chuyển hàng loạt xlsx → json (nhắc ở các mục 3-12 bên dưới) **đã bỏ, không làm**; template Excel cũ đã xoá khỏi repo. Các đoạn nhắc `.xlsx` bên dưới chỉ là bối cảnh lịch sử của kế hoạch.
 
@@ -149,7 +149,7 @@ data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
 
 **Đã làm (chạy thử bằng `dev/`, chưa thử trên SharePoint thật):**
 - App chỉ đọc/ghi `.json` (không còn codec Excel). `utils/reportJson.ts`: `jsonToDoc` / `docToJson` / `docFromTemplate` / `applyTemplate` / `carryForwardDoc`, kiểm tra `schema`.
-- **Template JSON** (`_template/template_DRP_<Unit>_<yyyyMMdd>.json`) giữ mọi thứ về cách nhập (kiểu ô, danh mục, công thức, mặc định, luỹ kế, bố cục); mẫu 4 đơn vị trong `data_test/sharepoint_sample/_template/`. Apply template ghép theo `id`, giữ dữ liệu cũ.
+- **Template JSON** (`_template/template_DRP_<Unit>_<yyyyMMdd>.json`) giữ mọi thứ về cách nhập (kiểu ô, danh mục, công thức, mặc định, luỹ kế, bố cục); mẫu 4 đơn vị trong `docs/sharepoint_setup/DailyReportLibrary/_template/`. Apply template ghép theo `id`, giữ dữ liệu cũ.
 - Mục có thể gồm bảng + `fields` (HSE) hoặc chỉ `fields` (ký duyệt, chỉ đạo); mã dòng `r<n>`; mã nhóm ảnh `g<n>`.
 - Mọi dropdown (kể cả danh sách trước đây cố định) lấy từ danh mục dùng chung. Nguồn danh mục: file `ActivityP6.xlsx` + list `CatalogItems` (file mẫu đã thêm các danh mục `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`). Chạy thử cục bộ dùng list giả lập nạp từ `CatalogItems_list.xlsx` (`dev/`). Đơn vị thi công chọn từ danh mục `subcontractor` (không còn `subcontractorOptions` trong JSON).
 - **File HTML độc lập** sinh lúc Lưu: render tĩnh cùng `ReportPrintDocument` của cửa sổ in, nhúng logo + ảnh (nén cạnh dài 1280px, base64) + toàn bộ JSON. Quyết định các điểm mở: ảnh nhúng base64 có nén; không giữ đường đọc Excel cũ; dòng `Tóm tắt | Summary` vẫn in như bản in hiện tại (HTML/in chưa ẩn khi trống).

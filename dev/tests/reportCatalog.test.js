@@ -15,7 +15,7 @@ const book = (aoa, name = 'ActivityP6') => {
 const ids = (cat) => cat.tables['activityp6_id'].items.map((i) => i.id);
 
 test('file mẫu: lọc đúng Activity của từng đơn vị, kèm mô tả', () => {
-  const wb = XLSX.readFile(path.join(root, 'data_test', 'sharepoint_sample', 'ActivityP6.xlsx'));
+  const wb = XLSX.readFile(path.join(root, 'docs', 'sharepoint_setup', 'DailyReportLibrary', 'ActivityP6.xlsx'));
   const st01 = C.parseCatalogFromWorkbook(XLSX, wb, 'ST01');
   assert.deepEqual(ids(st01), ['CV-ST01-00001', 'CV-ST01-00002', 'CV-ST01-00003']);
   assert.match(st01.tables['activityp6_id'].items[0].description, /tường vây/);

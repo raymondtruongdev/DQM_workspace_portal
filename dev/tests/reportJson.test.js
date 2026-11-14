@@ -14,7 +14,7 @@ const T = require(path.join(js, 'reportTable'));
 
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const sampleText = read('docs/sample/DailyReport.sample.data.json');
-const tpl = () => J.parseTemplateJson(read('data_test/sharepoint_sample/_template/template_DRP_ST01_20261114.json'));
+const tpl = () => J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261114.json'));
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
 test('mở rồi lưu lại file mẫu không mất/đổi dữ liệu (round-trip)', () => {
@@ -51,7 +51,7 @@ test('mã tài liệu đã lưu được giữ nguyên dù template đổi mẫu
 });
 
 test('báo cáo mới từ template: đủ mục, số báo cáo 00001, mặc định {user}', () => {
-  const t = J.parseTemplateJson(read('data_test/sharepoint_sample/_template/template_DRP_ST02_20261114.json'));
+  const t = J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST02_20261114.json'));
   const doc = J.docFromTemplate(t, { docId: 'DailyReport', unit: 'ST02', dateStr: '2026-11-15', email: 'a@b.c', siteManager: 'Sếp', version: 'template_DRP_ST02_20261114' });
   assert.equal(doc.sections.length, 11);
   assert.equal(doc.metadata.reportNo, '00001');

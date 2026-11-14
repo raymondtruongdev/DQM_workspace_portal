@@ -3,7 +3,7 @@
 Dành cho admin triển khai lần đầu (site dev: `https://ytf84.sharepoint.com/sites/metro-checkin-dev`). Làm theo thứ tự các mục; mục 8 là danh sách kiểm tra sau khi cài.
 > **Tự động hoá:** mục 2 (tạo thư viện, upload file) và mục 3 (tạo list) có thể chạy bằng script `docs/sharepoint_setup/setup-sharepoint.mjs` (xem `docs/sharepoint_setup/README.md`); phân quyền vẫn làm tay.
 
-Tất cả file mẫu nằm trong `data_test/sharepoint_sample/` (riêng các file `*_list.xlsx` tạo list nằm ở `docs/sharepoint_setup/`) (thư mục này mô phỏng đúng cấu trúc thư viện SharePoint).
+Tất cả file cần để cài đặt nằm trong `docs/sharepoint_setup/`: các file `*_list.xlsx` tạo list, script cài đặt, và thư mục `DailyReportLibrary/` mô phỏng đúng cấu trúc thư viện SharePoint (file mẫu để upload).
 
 > Lưu ý: app mới chưa từng chạy trên SharePoint thật (mới chạy thử bằng khung giả lập `dev/`). Lần cài đầu hãy làm kỹ mục 8; gặp lỗi xem mục 9 hoặc gửi nguyên văn thông báo để sửa code.
 
@@ -43,7 +43,7 @@ DailyReportLibrary/
         └── HCM2_…_signed.pdf
 ```
 
-### 2.1 File cần upload (lấy từ `data_test/sharepoint_sample/`)
+### 2.1 File cần upload (lấy từ `docs/sharepoint_setup/DailyReportLibrary/`)
 
 | File / thư mục | Upload vào | Quyền |
 |---|---|---|
@@ -66,7 +66,7 @@ Dòng 1: `ActivityID | Unit | Description`; mỗi dòng sau một Activity.
 - Mỗi đơn vị một file; **ngày `yyyyMMdd` trong tên file là phiên bản**, web luôn dùng bản có ngày lớn nhất.
 - Sửa nội dung template (thêm/bớt mục, cột, trường, đổi danh mục, công thức…) thì **upload file mới với ngày mới hơn** (giữ file cũ hay xoá đều được). Báo cáo đang dùng bản cũ sẽ hiện khung vàng "Cần cập nhật template mới"; người dùng bấm "Apply template mới" thì dữ liệu cũ được giữ và cột/mục mới được thêm vào.
 - Giữ nguyên `id` của mục/cột/trường giữa các bản (đổi `id` nghĩa là cột mới, dữ liệu cột cũ bị bỏ khi Apply).
-- Cấu trúc file: `docs/REPORT_JSON_PLAN.md` mục 3 và `src/modules/report/types/reportJson.types.ts`; mẫu 4 đơn vị: `data_test/sharepoint_sample/_template/`.
+- Cấu trúc file: `docs/REPORT_JSON_PLAN.md` mục 3 và `src/modules/report/types/reportJson.types.ts`; mẫu 4 đơn vị: `docs/sharepoint_setup/DailyReportLibrary/_template/`.
 - Đơn vị chưa có báo cáo nào bắt buộc phải có template của đơn vị đó, nếu không web báo "Chưa có template cho STxx".
 
 ### 2.4 Phân quyền thư viện (bảo mật thật nằm ở SharePoint)
