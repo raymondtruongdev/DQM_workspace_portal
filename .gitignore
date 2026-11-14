@@ -36,3 +36,6 @@ obj
 
 # Styles Generated Code
 *.scss.ts
+
+# File khoá tạm của Office (đang mở Excel/Word)
+~$*
