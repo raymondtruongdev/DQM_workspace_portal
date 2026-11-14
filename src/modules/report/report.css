@@ -1401,61 +1401,12 @@
 .report-cal-legend__dot--unsigned { background: var(--color-warning); }
 .report-cal-legend__dot--missing { background: var(--color-danger); }
 
-.report-cal-detail {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--space-4) var(--space-6);
-}
-
-.report-cal-detail__main {
-  min-width: 0;
-}
-
-.report-cal-detail__main h3 {
-  margin: 0 0 var(--space-1-5);
-  font-size: var(--text-lg);
-}
-
-.report-cal-detail__kv {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: var(--space-3) var(--space-6);
-  margin: var(--space-4) 0 0;
-}
-
-.report-cal-detail__kv dt {
-  margin-bottom: 2px;
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
-
-.report-cal-detail__kv dd {
-  margin: 0;
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-
-.report-cal-detail__hint {
-  margin: var(--space-3) 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.report-cal-detail__hint code,
 .report-signed-folder code {
   padding: 1px var(--space-1-5);
   background: var(--color-surface-subtle);
   border-radius: var(--radius-xs);
   font-size: var(--text-xs);
   overflow-wrap: anywhere;
-}
-
-.report-cal-detail__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--space-2);
 }
 
 /* Khu "Bản đã ký" trong form nhập */
@@ -1663,8 +1614,6 @@
 }
 
 @media (max-width: 768px) {
-  .report-cal-detail { grid-template-columns: 1fr; }
-  .report-cal-detail__actions { justify-content: flex-start; }
   .report-signed-steps { grid-template-columns: 1fr; }
   .report-day-panel__top { flex-wrap: wrap; }
   .report-day-panel__actions { flex-basis: 100%; justify-content: flex-start; }

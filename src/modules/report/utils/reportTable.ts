@@ -313,15 +313,6 @@ export function firstTotalIndex(table: ReportTable): number {
   return i < 1 ? 1 : i;
 }
 
-/** Dòng có coi là trống không (không có ô nhập nào có nội dung). */
-export function isEmptyRow(columns: TableColumn[], values: Record<string, CellValue>): boolean {
-  return columns.every((c) => {
-    if (c.type === 'calc') return true;
-    const v = values[c.code];
-    return v === undefined || v === '';
-  });
-}
-
 export function formatNumber(v: CellValue): string {
   return typeof v === 'number' ? v.toLocaleString('vi-VN') : '';
 }

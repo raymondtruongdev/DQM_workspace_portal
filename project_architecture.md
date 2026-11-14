@@ -1,7 +1,7 @@
 # Kiến Trúc Dự Án THADICO DQM - Workspace Portal (SPFx 1.24.1)
 
 > **Mô hình kiến trúc:** Multi-Module Workspace Portal (Layered & Feature-Oriented React trên nền tảng SharePoint Framework `1.24.1`)
-> **Mục tiêu:** Đảm bảo tính đóng gói độc lập giữa các module nghiệp vụ (hiện có `report`), dùng chung tầng hạ tầng cốt lõi (`core/`), miễn phí 100% bản quyền (không phụ thuộc Power Apps Premium), và dễ dàng mở rộng thêm module mới.
+> **Mục tiêu:** Đảm bảo tính đóng gói độc lập giữa các module nghiệp vụ (hiện có `report`, `admin`, `home`), dùng chung tầng hạ tầng cốt lõi (`core/`), miễn phí 100% bản quyền (không phụ thuộc Power Apps Premium), và dễ dàng mở rộng thêm module mới.
 
 ---
 
@@ -11,9 +11,11 @@
 flowchart TD
     Entry["src/entry/\nPortalWebPart.ts (SPFx Entrypoint)"] --> App["src/app/\nPortalShell.tsx & moduleRegistry.tsx"]
     App --> Home["src/modules/home/\nHomeView.tsx (Landing Portal)"]
-    App --> Report["src/modules/report/\nDaily & Weekly Report Module"]
-    Home --> Core["src/core/\nAuth, SharePointClient, Layout, Styles, Utils"]
+    App --> Report["src/modules/report/\nDaily Report Module (Weekly: placeholder)"]
+    App --> Admin["src/modules/admin/\nUI Kit & Shutdown Server (chỉ admin)"]
+    Home --> Core["src/core/\nAuth, SharePointClient, Components, Styles, Utils"]
     Report --> Core
+    Admin --> Core
 ```
 
 ### Quy tắc phụ thuộc một chiều (One-Way Dependency Rule)
@@ -27,48 +29,47 @@ flowchart TD
 ## 2. Cấu trúc thư mục chi tiết
 
 ```text
-DQM_Check_In_App/
+DQM_workspace_portal/
 ├── config/                              # Cấu hình SPFx build, serve & package-solution
 ├── sharepoint/solution/                 # Gói cài đặt thành phẩm (workspace_portal.sppkg)
+├── scripts/check-styles.js              # Kiểm tra quy ước style (npm run lint:styles)
+├── dev/                                 # Khung chạy thử module Report không cần SharePoint + test (KHÔNG vào gói web part)
 ├── docs/
-│   └── REPORT_MODULE.md            # Tài liệu thiết kế & trạng thái triển khai module Report
+│   ├── REPORT_JSON_PLAN.md              # Hợp đồng JSON/HTML của báo cáo ngày và lý do thiết kế
+│   ├── SHAREPOINT_SETUP.md              # Hướng dẫn cài đặt SharePoint thủ công
+│   ├── sample/                          # Báo cáo mẫu (JSON + HTML độc lập)
+│   └── sharepoint_setup/                # *_list.xlsx tạo list + script cài đặt tự động (setup-sharepoint.mjs)
 ├── data_test/
-│   ├── Mau_BCN_ST06_20261025.pdf        # Mẫu chuẩn Báo cáo ngày A4 song ngữ
-│   └── sharepoint_sample/               # Dữ liệu mẫu mô phỏng thư viện SharePoint CapNhatCongViec
-│       ├── Report_Role.xlsx
-│       ├── _template/
-│       │   ├── DailyReport_template.xlsx
-│       │   └── WeeklyReport_template.xlsx
-│       └── data/
+│   ├── Mau_BCN_ST06_20261025.pdf        # Mẫu giấy chuẩn Báo cáo ngày A4 song ngữ
+│   └── sharepoint_sample/               # Bản mẫu thư viện CapNhatCongViec
+│       ├── ActivityP6.xlsx              # Danh mục Activity (một sheet)
+│       ├── _template/                   # template_DRP_<Unit>_<yyyyMMdd>.json
+│       ├── resource/                    # thaco_logo.jpg, crec_logo.jpg
+│       └── data/                        # Báo cáo mẫu data/<Unit>/<DocID>_<yyyyMMdd>/
 ├── src/
-│   ├── entry/                           # Điểm vào SPFx WebPart
-│   │   ├── PortalWebPart.ts
-│   │   ├── PortalWebPart.manifest.json
-│   │   └── loc/
+│   ├── entry/                           # Điểm vào SPFx WebPart (PortalWebPart.ts, manifest, loc/)
 │   ├── app/                             # Khung điều phối Portal
-│   │   ├── PortalShell.tsx              # Xác thực SSO M365, quản lý phiên và chuyển đổi module
-│   │   ├── moduleRegistry.tsx           # Đăng ký danh sách các PortalModule đang hoạt động
+│   │   ├── PortalShell.tsx              # SSO M365, nhận diện từ UserProfiles, chế độ bảo trì, chuyển module
+│   │   ├── moduleRegistry.tsx           # Đăng ký các PortalModule
 │   │   └── IPortalProps.ts
-│   ├── core/                            # Tầng hạ tầng dùng chung cho toàn bộ các module
-│   │   ├── auth/                        # UserProfileService, Session, checkIsAdmin
-│   │   ├── services/                    # SharePointClient (REST CRUD, Folder/File/ETag), RoleResolutionService
-│   │   ├── components/layout/           # TopAppBar, ToastAlert
-│   │   ├── constants/                   # Hằng số dùng chung
-│   │   ├── types/                       # UserSession, RoleEntry, PortalModule, ToastState
-│   │   ├── utils/                       # Xử lý ngày giờ, đường dẫn SharePoint, roleCodec
-│   │   └── styles/portal.css            # Hệ thống CSS Design Tokens & Global Responsive Layout
+│   ├── core/                            # Hạ tầng dùng chung (KHÔNG import từ modules/)
+│   │   ├── auth/                        # UserProfileService, checkIsAdmin, extractCleanEmail
+│   │   ├── services/                    # SharePointClient (REST list/file/folder/ETag), RoleResolutionService, PortalConfigService
+│   │   ├── components/                  # Icon, PageHeader, FilterChips, SearchInput, State, TileGrid, PromptDialog, CreatableSelect, layout/ToastAlert
+│   │   ├── constants/ types/ utils/     # Hằng số, kiểu dùng chung, xử lý đường dẫn SharePoint
+│   │   └── styles/                      # Design System: tokens.css, base.css, components/*.css, layout/landing.css, index.ts
 │   └── modules/
-│       ├── home/                        # Trang chủ Portal hiển thị thông tin M365 & danh sách module
-│       │   └── HomeView.tsx
-│       └── report/                      # Module: Quản lý Báo cáo Ngày & Tuần (Library CapNhatCongViec)
+│       ├── home/                        # HomeView: trang chủ liệt kê module từ registry
+│       ├── admin/                       # Admin Config (chỉ admin): UI Kit (Style Guide), Shutdown Server
+│       └── report/                      # Module Quản lý Báo cáo (library CapNhatCongViec)
 │           ├── ReportModule.tsx
-│           ├── views/                   # ReportLandingView, ReportEntryView
-│           ├── components/              # ReportMetaForm, ReportSectionsEditor, ReportPrintPreviewModal, ReportTaskTable
-│           ├── services/                # ReportDataService, ReportFileService, ReportTemplateService
-│           ├── utils/                   # reportCodec (SheetJS 6 sheets), reportFileNaming, reportTaskTree
-│           ├── types/                   # report.types.ts
+│           ├── views/                   # ReportLandingView, ReportCalendarView, ReportEntryView, ReportOverviewView
+│           ├── components/              # Form động (ReportDynamic*, ReportFieldsGrid, ReportMetaForm, ReportSectionsEditor, ảnh), bản in A4 (ReportPrint*), ReportSignedDocument, ReportTaskTable (weekly placeholder)
+│           ├── services/                # ReportDataService, ReportFileService, ReportTemplateService, ReportRegistryService, ReportCatalogService, ReportRoleService
+│           ├── utils/                   # reportJson (JSON ↔ mô hình ↔ template), reportTable/Form/Sections, reportCatalog, reportHtml (HTML độc lập), reportCalendar/Overview/Export, reportFileNaming, reportImage…
+│           ├── types/                   # report.types.ts, reportJson.types.ts
 │           ├── constants/               # reportConfig, reportStorageKeys
-│           └── report.css               # Giao diện form báo cáo, bảng động & bản in A4
+│           └── report.css               # Style riêng của module (tiền tố report-)
 ├── AGENTS.md                            # Quy chuẩn bắt buộc dành cho AI Agent & Developer
 ├── project_architecture.md              # Tài liệu kiến trúc tổng thể dự án
 └── README.md                            # Hướng dẫn cài đặt, chạy thử nghiệm và đóng gói
@@ -79,15 +80,21 @@ DQM_Check_In_App/
 ## 3. Điểm nhấn kiến trúc các Module chính
 
 ### 3.1 Tầng `core/` (Shared Infrastructure)
-- **`SharePointClient.ts`:** Bao bọc `SPHttpClient.configurations.v1` với header `Accept: application/json;odata=nometadata`, hỗ trợ đầy đủ thao tác List Items và Document Library (`getFileWithMeta`, `uploadFile` kèm `If-Match: ETag`, `ensureFolder` đệ quy từng cấp, `getFolderFiles`, `getFolderSubfolderNames`).
-- **`RoleResolutionService.ts` & `roleCodec.ts`:** Đọc và phân giải quyền truy cập từ file Excel phân quyền (`Report_Role.xlsx`) kết hợp quyền Admin từ SharePoint List `UserProfiles`.
+- **`SharePointClient.ts`:** Bao bọc `SPHttpClient.configurations.v1` với header `Accept: application/json;odata=nometadata`, hỗ trợ List Items (`getItems`, `queryItems`, `getListFieldMap` tra tên nội bộ cột theo tên hiển thị, `createItem`, `updateItem`) và Document Library (`getFileWithMeta`, `uploadFile` kèm `If-Match: ETag`, `ensureFolder`, `getFolderFiles`, `getFolderSubfolderNames`).
+- **`UserProfileService.ts`:** Đọc list `UserProfiles` (tự tra tên cột nội bộ, bỏ dòng `Active = No`) để xác định danh tính và vai trò mỗi lần mở web part; không lưu quyền ở trình duyệt.
+- **`PortalConfigService.ts`:** Đọc/ghi cấu hình bảo trì (`SiteAssets/portal_config.json`).
+- **`styles/` và `components/`:** Design System dùng chung (token, nút, ô nhập, card, bảng, hộp thoại, icon Fluent); module chỉ ghép thành phần chung. Xem AGENTS.md mục 8.
 
 ### 3.2 Module `report` (`src/modules/report`)
-- Lưu trữ hoàn toàn trên SharePoint Document Library `CapNhatCongViec` theo cấu trúc `data/<Unit>/<DocID>_<yyyyMMdd>/<DocID>_<yyyyMMdd>.xlsx` và thư mục ảnh `photos/`.
-- **Kiến trúc Excel 6 Sheets (`DailyReport`):** `01_General`, `02_Manpower`, `03_Equipment`, `04_WorkQty`, `05_Materials`, `06_Issues` giúp thêm/xoá dòng động không bao giờ làm lệch ô dữ liệu.
-- **Khoá dòng cố định (`IsLocked`):** Bảo vệ các dòng định mức trong template (như đơn vị `TCJV`, `NTP-TV01` và hạng mục `*-DW-1120`, `*-DW-1130`) không bị người dùng xoá hoặc sửa nhầm mã.
-- **Tự động kế thừa ngày liền kề trước đó:** Khi sang ngày mới chưa có báo cáo, hệ thống tự động nạp dữ liệu từ báo cáo của ngày liền kề trước đó để người dùng không phải nhập lại từ đầu; nếu chưa có mới nạp từ `_template`.
-- **In / Xuất PDF A4 trực tiếp:** Kết xuất bố cục chuẩn A4 song ngữ Việt – Anh ngay trên trình duyệt, tự động chảy trang mượt mà không tạo khoảng trắng dư thừa.
+- Lưu trữ trên Document Library `CapNhatCongViec` theo cấu trúc `data/<Unit>/<DocID>_<yyyyMMdd>/` gồm `.data.json` (nguồn dữ liệu), `.html` (bản xem/in độc lập), `photos/<GroupID>/` và `<DocCode>_signed.pdf`.
+- **Dữ liệu và cách nhập tách đôi:** file `.data.json` chỉ chứa định danh, nhãn và giá trị thật; kiểu ô, danh mục dropdown, công thức, mặc định, luỹ kế, bố cục nằm ở template JSON `_template/template_DRP_<Unit>_<yyyyMMdd>.json`, ghép theo `id` (`jsonToDoc`). Thêm/bớt mục, cột, trường chỉ cần sửa template.
+- **Sổ `ReportRegistry`:** nguồn của số báo cáo tự tăng, trạng thái từng ngày (lịch 14 ngày, tab Tổng quan) và bộ đếm mã tự tăng (Event ID, Issue ID).
+- **Danh mục dùng chung:** `ActivityP6.xlsx` (chỉ admin ghi) + list `CatalogItems` (người dùng thêm bằng "Khác…", chống trùng hai lớp).
+- **Phân quyền báo cáo:** list `Report_Role` kết hợp `UserProfiles`; admin thấy mọi phân quyền.
+- **Khoá dòng cố định (`locked`)**, **kế thừa dữ liệu ngày trước**, **Apply template theo `id`** khi có phiên bản mới.
+- **In / PDF A4 và HTML độc lập:** `ReportPrintDocument` render bản in song ngữ; `buildStandaloneHtml` dùng `createRoot` + `flushSync` vào div rời (không dùng `react-dom/server`) để sinh file HTML nhúng dữ liệu, ảnh và logo.
+- **Ghi lên SharePoint luôn gọi `checkMaintenance()` trước** (chế độ bảo trì chặn người thường).
+- SheetJS (`xlsx`) chỉ tải khi cần, để đọc `ActivityP6.xlsx` và xuất Excel ở tab Tổng quan.
 
 ---
 
@@ -95,7 +102,11 @@ DQM_Check_In_App/
 
 | Tài nguyên | Loại | Dùng cho |
 |---|---|---|
-| `UserProfiles` | List | Phân quyền `admin` / `user`, phòng ban (đọc bởi `core/auth/UserProfileService`) |
-| `CapNhatCongViec` | Document Library | `Report_Role.xlsx`, `_template/`, `data/<Unit>/...` của module Report |
+| `UserProfiles` | List | Nhận diện đăng nhập, vai trò `admin` / `user`, phòng ban (`core/auth/UserProfileService`) |
+| `Report_Role` | List | Phân quyền báo cáo theo người (đơn vị × loại báo cáo) |
+| `ReportRegistry` | List | Sổ báo cáo: số tự tăng, trạng thái, bộ đếm mã |
+| `CatalogItems` | List | Danh mục dùng chung của form báo cáo |
+| `CapNhatCongViec` | Document Library | `ActivityP6.xlsx`, `_template/`, `resource/`, `data/<Unit>/...` của module Report |
+| `SiteAssets/portal_config.json` | File | Cấu hình chế độ bảo trì (chỉ admin được ghi) |
 
-Các list `data_checkin` và `Account` đã bị xoá cùng module check-in. Hướng dẫn tạo chi tiết xem mục 3 trong [README.md](./README.md).
+Hướng dẫn tạo chi tiết: [docs/SHAREPOINT_SETUP.md](./docs/SHAREPOINT_SETUP.md) và [docs/sharepoint_setup/README.md](./docs/sharepoint_setup/README.md).

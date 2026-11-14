@@ -52,15 +52,6 @@ export function emptyCatalog(unit: string, warning: string): ReportCatalog {
   return { unit, tables: {}, warnings: [warning] };
 }
 
-/**
- * `select:@Element_ID` -> { table: 'element_id' }; `select:@Material_ID.Material` -> { table: 'material_id', byLink: true }
- * (dropdown liệt kê cột ràng buộc "Material", chọn thì mã được tự điền). Không phải tham chiếu thì undefined.
- */
-export function parseCatalogRef(option: string): { table: string; byLink: boolean } | undefined {
-  const m = /^@\s*([A-Za-z0-9_]+)(\.[A-Za-z0-9_]+)?$/.exec(option.trim());
-  return m ? { table: m[1].toLowerCase(), byLink: Boolean(m[2]) } : undefined;
-}
-
 function norm(v: unknown): string {
   return v === undefined || v === null ? '' : String(v).trim();
 }

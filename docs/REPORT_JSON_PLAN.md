@@ -2,6 +2,7 @@
 
 > Trạng thái: **đã triển khai** (xem mục 13). Tài liệu này giữ hợp đồng JSON và lý do thiết kế; quy tắc vận hành nằm ở `AGENTS.md` mục 5.3. File mẫu: JSON [sample/DailyReport.sample.data.json](sample/DailyReport.sample.data.json) và HTML độc lập [sample/DailyReport.sample.html](sample/DailyReport.sample.html) (ảnh nhúng sẵn). Thư mục báo cáo demo đúng cấu trúc SharePoint: `data_test/sharepoint_sample/data/ST01/DailyReport_20261110/`.
 > Hợp đồng JSON (mục 3) đã được tóm tắt vào mục Report của `AGENTS.md`.
+> **Lưu ý (đã chốt sau khi triển khai):** app chỉ hỗ trợ JSON. Đường đọc dự phòng `.xlsx`, `reportCodec` và script chuyển hàng loạt xlsx → json (nhắc ở các mục 3-12 bên dưới) **đã bỏ, không làm**; template Excel cũ đã xoá khỏi repo. Các đoạn nhắc `.xlsx` bên dưới chỉ là bối cảnh lịch sử của kế hoạch.
 
 ## 1. Mục tiêu
 

@@ -59,7 +59,7 @@ DQM_Check_In_App/
 │   ├── core/                    # Dùng chung cho mọi module (KHÔNG import từ modules/)
 │   │   ├── auth/                # Session, UserProfileService, extractCleanEmail, checkIsAdmin
 │   │   ├── services/            # SharePointClient (generic CRUD qua SPHttpClient)
-│   │   ├── components/          # React dùng chung: Icon, PageHeader, FilterChips, SearchInput, State (Loading/Empty), layout/ (TopAppBar, ToastAlert)
+│   │   ├── components/          # React dùng chung: Icon, PageHeader, FilterChips, SearchInput, State (Loading/Empty), layout/ (ToastAlert)
 │   │   ├── types/ constants/ utils/
 │   │   └── styles/              # Design System (xem mục 8): tokens.css, base.css, components/*.css, layout/*.css, index.ts
 │   ├── modules/
@@ -253,7 +253,7 @@ src/core/styles/
 ├── base.css            # nền chung: font, box-sizing, reset nút, focus, tiện ích (.text-center…), .icon/.spin
 ├── components/         # button, form (.input/.textarea/.field), badge, card (.card/.section-card), table,
 │                       #   chips (.chip/.search), page-header, feedback (toast, spinner, .state), dialog
-└── layout/             # app-bar, landing (khung portal)
+└── layout/             # landing (khung portal)
 src/core/components/    # React tương ứng: Icon, PageHeader, FilterChips, SearchInput, LoadingState/EmptyState…
 src/modules/<name>/<name>.css   # CHỈ style riêng của module (nạp trong <Name>Module.tsx, SAU core)
 src/modules/admin/              # Admin Config (chỉ admin thấy trên trang chủ): menu UI Kit (tài liệu sống của mọi thành phần dùng chung) + Shutdown Server
@@ -325,7 +325,7 @@ Các ý định đã bàn nhưng chưa triển khai; chỉ làm khi chủ dự �
 * **Cài đặt tự động:** `docs/sharepoint_setup/` (`setup-sharepoint.mjs` + `setup.config.json` + `README.md`) tạo 4 list, thư viện `CapNhatCongViec`, thư mục, upload file mẫu, nạp dữ liệu qua SharePoint REST (đăng nhập device code bằng app Entra riêng hoặc `SP_TOKEN`); idempotent, KHÔNG đổi phân quyền. Mới chạy `--dry-run`, CHƯA chạy thật trên SharePoint. Đổi tên list/cột trong code thì sửa `setup.config.json` cho khớp.
 * **Việc tiếp theo:** (1) chủ dự án làm theo `docs/SHAREPOINT_SETUP.md` (tạo 4 list từ `*_list.xlsx`, upload `ActivityP6.xlsx` + template JSON + logo, build, deploy) rồi chạy bảng kiểm tra mục 8; (2) sửa lỗi theo thông báo/ảnh chụp chủ dự án gửi; (3) sau đó mới tới backlog bên dưới. Chỗ dễ lỗi khi lên SharePoint thật: tên nội bộ cột list (`getListFieldMap`), ghi file `.html` (SPO có thể buộc tải về hoặc chặn), quyền ghi thư mục `data/<Unit>`, ETag 412 khi hai người lưu cùng lúc, dung lượng HTML khi nhiều ảnh lớn, nạp chunk `react-dom/server`/`xlsx` trong gói SPFx.
 * **Đã chốt, không hỏi lại:** app chỉ hỗ trợ JSON (không đọc Excel cũ); ảnh nhúng base64 thu nhỏ cạnh dài 1280px; dòng "Tóm tắt | Summary" trống vẫn in như bản in cũ; Apply template ghép theo `id`; `subcontractors` chỉ là mảng đã chọn (danh sách để chọn là danh mục `subcontractor`); mọi dropdown (kể cả danh sách cố định) lấy từ danh mục, mục dùng chung `Unit = ALL`; tên cột cùng ý nghĩa thì cùng tên giữa các list; cột `Id` của `UserProfiles` đã bỏ; Activity tách riêng (file chỉ-đọc, chỉ admin ghi) vì lý do bảo mật.
-* **Dọn dẹp còn lại:** xoá các template Excel cũ `data_test/sharepoint_sample/_template/*.xlsx` (app không đọc); đảm bảo commit không chứa file khoá `~$*`; `docs/REPORT_MODULE.md` đã bị xoá từ trước (xác nhận có chủ ý).
+* **Dọn dẹp:** đã xoá template Excel cũ `_template/*.xlsx`, `TopAppBar` + `app-bar.css`, CSS `report-cal-detail`, hàm `parseCatalogRef`, `isEmptyRow` (không còn nơi dùng); `.gitignore` đã chặn file khoá `~$*`; `docs/REPORT_MODULE.md` đã bị xoá từ trước (xác nhận có chủ ý).
 * **Chưa làm:** xem giao diện ở 1024/768px; báo cáo tuần vẫn là placeholder; `departmentCode` của `UserProfiles` chưa dùng.
 * **Cách làm việc với chủ dự án:** trả lời tiếng Việt, đề xuất trước khi làm thay đổi lớn; KHÔNG tự `git commit`/`push` (chủ dự án tự commit/amend); mọi ghi chú dự án chỉ ghi vào `AGENTS.md` hoặc `docs/`, không lưu vào `~/.claude`/skill.
 

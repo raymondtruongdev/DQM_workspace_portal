@@ -166,3 +166,6 @@ SharePoint Online thường buộc file `.html` trong thư viện **tải về**
 | "Chưa đọc được phân quyền báo cáo" (kèm lỗi 404/403) | List `Report_Role` chưa tạo, sai tên hoặc người dùng không có quyền đọc | Tạo list đúng tên `Report_Role`, cấp quyền đọc |
 | Hệ thống đang bảo trì | Admin bật Shutdown Server | Admin tắt ở Admin Config |
 | Dropdown vẫn thiếu giá trị mới sửa ở `ActivityP6.xlsx` | Web nhớ file 5 phút | Tải lại trang |
+| "Tài khoản của bạn chưa có trong danh sách phân quyền UserProfiles" dù đã có dòng | Tên cột nội bộ khác tên hiển thị (list tạo từ Excel hoặc đổi tên cột); hoặc trang đang chạy bản đã deploy cũ | Bản mới tự tra tên cột; mở F12 → Console xem dòng `[PortalShell]`/`[UserProfileService]`; đảm bảo đang chạy bản local hoặc đã deploy lại |
+| "Chưa có template cho STxx trong thư mục _template/" | Chưa upload `template_DRP_<Unit>_<yyyyMMdd>.json` | Upload template JSON vào thư mục `_template` ở gốc thư viện (không upload file `.xlsx`) |
+| Workbench không nạp bản local (Console: CORS / loopback `localhost:4321`) | Chrome chặn trang SharePoint truy cập máy local | Cho phép **Local network access** cho site trong Chrome, dùng link `debugManifestsFile=https%3A%2F%2Flocalhost%3A4321%2F...` rồi **Load debug scripts** |

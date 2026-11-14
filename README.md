@@ -6,18 +6,21 @@
 
 ## 1. Các phân hệ chính (Modules)
 
-### 1.1. Quản lý Báo cáo Ngày & Tuần (`src/modules/report`)
+### 1.1. Quản lý Báo cáo Ngày (`src/modules/report`)
 
-- Lưu trữ trên SharePoint Document Library **`CapNhatCongViec`**:
-  - Phân quyền theo trạm (`Unit`) và loại báo cáo (`DailyReport`, `WeeklyReport`) thông qua file `Report_Role.xlsx`.
-  - Mẫu chuẩn đặt tại `_template/DailyReport_template.xlsx` (cấu trúc **6 sheets**: `01_General`, `02_Manpower`, `03_Equipment`, `04_WorkQty`, `05_Materials`, `06_Issues`) và `_template/WeeklyReport_template.xlsx`.
-  - File báo cáo từng ngày lưu tại: `data/<Unit>/<DocID>_<yyyyMMdd>/<DocID>_<yyyyMMdd>.xlsx`.
-  - Ảnh hiện trường tải lên trực tiếp vào: `data/<Unit>/<DocID>_<yyyyMMdd>/photos/`.
+- Lưu trữ trên SharePoint Document Library **`CapNhatCongViec`**; báo cáo ngày lưu dạng **JSON + HTML độc lập** (app chỉ hỗ trợ JSON, không còn đọc/ghi báo cáo hay template Excel):
+  - Template báo cáo: `_template/template_DRP_<Unit>_<yyyyMMdd>.json` (ngày trong tên file là phiên bản, bản mới nhất thắng).
+  - Mỗi báo cáo một thư mục `data/<Unit>/<DocID>_<yyyyMMdd>/` gồm `<DocID>_<yyyyMMdd>.data.json` (dữ liệu), `<DocID>_<yyyyMMdd>.html` (bản xem/in độc lập, nhúng sẵn dữ liệu + ảnh + logo), `photos/<GroupID>/` (ảnh hiện trường) và `<DocCode>_signed.pdf` (bản đã ký).
+  - Phân quyền theo người: list `Report_Role`; nhận diện đăng nhập: list `UserProfiles`; sổ quản lý số báo cáo/trạng thái: list `ReportRegistry`; danh mục dùng chung: list `CatalogItems` + file `ActivityP6.xlsx` (chỉ admin ghi).
 - **Tính năng nổi bật:**
-  - **Tự động kế thừa dữ liệu ngày trước:** Khi mở một ngày mới chưa có báo cáo, hệ thống tự động lấy dữ liệu từ báo cáo của ngày liền kề trước đó (hoặc ngày gần nhất trước đó) để điền sẵn vào form; nếu chưa có mới lấy từ `_template`.
-  - **Khoá dòng cố định theo Template (`IsLocked`):** Các mục cố định (ví dụ đơn vị `TCJV`, `NTP-TV01` trong bảng Nhân lực; mã `*-DW-1120`, `*-DW-1130` trong bảng Khối lượng) được khoá biểu tượng `🔒`, không cho xoá hoặc sửa mã định danh.
-  - **Xem bản in / Xuất PDF khổ A4:** Dựng đúng bố cục báo cáo song ngữ Việt – Anh chuẩn A4 (tự động chảy trang liên tục, không bị ngắt khoảng trắng, giữ nguyên đường viền bảng) để in hoặc lưu thành PDF trực tiếp từ trình duyệt.
-  - **Lazy-load SheetJS (`xlsx`):** Chỉ tải thư viện đọc/ghi Excel khi người dùng mở phân hệ Báo cáo.
+  - **Lịch 14 ngày và 3 trạng thái** (Chưa nhập / Chưa upload bản ký / Hoàn tất), tab **Tổng quan** cho admin (ma trận đơn vị × ngày, xuất Excel).
+  - **Tự động kế thừa dữ liệu ngày trước:** ngày mới chưa có báo cáo thì lấy báo cáo ngày trước làm nền (áp dụng luỹ kế/đặt lại theo template); đơn vị chưa có báo cáo nào thì tạo từ template.
+  - **Thêm/bớt mục, cột, trường chỉ cần sửa template JSON** (đổi ngày trong tên file để báo cập nhật), không sửa code. Dòng mẫu `locked` không xoá được.
+  - **Danh mục dùng chung và mã tự tăng** (Event ID, Issue ID), dropdown có "Khác…" để thêm giá trị mới.
+  - **Xem bản in / PDF A4 song ngữ Việt – Anh** và **bản đã ký** (upload PDF ký tay).
+  - **Chế độ bảo trì** (Admin Config → Shutdown Server) chặn người thường ở mọi module.
+- Báo cáo tuần (`WeeklyReport`) hiện chỉ là placeholder.
+- Chi tiết nghiệp vụ và hợp đồng dữ liệu: [`AGENTS.md`](./AGENTS.md) mục 5.3, [`docs/REPORT_JSON_PLAN.md`](./docs/REPORT_JSON_PLAN.md).
 
 ---
 
@@ -27,7 +30,7 @@
 - **Trình quản lý gói:** `npm`
 
 ```bash
-cd /Volumes/DATA/THADICO_local/REPO_DQM/DQM_Check_In_App
+cd /Volumes/DATA/THADICO_local/REPO_DQM/DQM_workspace_portal
 npm install
 ```
 
@@ -35,42 +38,36 @@ npm install
 
 ## 3. Thiết lập SharePoint (một lần cho mỗi site)
 
-Ứng dụng chỉ cần **1 SharePoint List** và **1 Document Library** trên site đích (Dev: `https://ytf84.sharepoint.com/sites/metro-checkin-dev`)
+Cần **4 SharePoint List** và **1 Document Library** trên site đích (Dev: `https://ytf84.sharepoint.com/sites/metro-checkin-dev`):
 
-### 3.1. List `UserProfiles` (phân quyền Admin / User)
+| Tài nguyên | Loại | Dùng cho |
+|---|---|---|
+| `UserProfiles` | List | Nhận diện đăng nhập, vai trò `admin` / `user`, phòng ban |
+| `Report_Role` | List | Ai được làm báo cáo nào (đơn vị × loại báo cáo) |
+| `ReportRegistry` | List | Sổ báo cáo: số báo cáo tự tăng, trạng thái, bộ đếm mã |
+| `CatalogItems` | List | Danh mục dùng chung (Element, Resource, Vật tư, thời tiết, trạng thái…) |
+| `CapNhatCongViec` | Document Library | `ActivityP6.xlsx`, `_template/`, `resource/` (logo), `data/<Unit>/...` |
 
-Tạo List tên chính xác **`UserProfiles`** với các cột:
-
-| Cột hiển thị | Tên nội bộ           | Kiểu | Ý nghĩa                       |
-| --------------- | ----------------------- | ----- | ------------------------------- |
-| Email           | `Title` / `field_1` | Text  | Email Microsoft 365 (UPN)       |
-| Username        | `field_2`             | Text  | Tên hoặc mã người dùng    |
-| DepartmentCode  | `field_3`             | Text  | Mã phòng ban (ADMIN, DIRC...) |
-| DepartmentName  | `field_4`             | Text  | Tên phòng ban hiển thị      |
-| Role            | `field_5`             | Text  | `admin` hoặc `user`        |
-
-- Người dùng có `Role = admin` được xem toàn bộ trạm và loại báo cáo trong module Report.
-- Tài khoản chưa có trong list vẫn đăng nhập được, nhưng Landing Page sẽ cảnh báo chưa được cấp quyền.
-
-### 3.2. Document Library `CapNhatCongViec` (module Report)
-
-Tạo Document Library tên **`CapNhatCongViec`** với cấu trúc:
+Cấu trúc thư viện:
 
 ```text
 CapNhatCongViec/
-├── Report_Role.xlsx                 # Sheet "Role": ID | Unit | DocID | DocTitle | Site manager | Email | Status
+├── ActivityP6.xlsx                  # Danh mục Activity (một sheet), người dùng chỉ đọc, chỉ admin ghi
 ├── _template/
-│   ├── DailyReport_template.xlsx
-│   └── WeeklyReport_template.xlsx
-└── data/
+│   └── template_DRP_<Unit>_<yyyyMMdd>.json
+├── resource/                        # thaco_logo.jpg, crec_logo.jpg (logo bản in)
+└── data/                            # App tự tạo
     └── <Unit>/<DocID>_<yyyyMMdd>/
-        ├── <DocID>_<yyyyMMdd>.xlsx  # Tạo tự động khi lưu báo cáo
-        └── photos/                  # Ảnh hiện trường
+        ├── <DocID>_<yyyyMMdd>.data.json
+        ├── <DocID>_<yyyyMMdd>.html
+        ├── photos/<GroupID>/
+        └── <DocCode>_signed.pdf
 ```
 
-- Có thể lấy file mẫu tại `data_test/sharepoint_sample/` (`Report_Role.xlsx`, `_template/`).
-- `Report_Role.xlsx` và 2 file `_template` phải được tải lên thủ công; thư mục `data/...` được app tự tạo.
-- Người dùng cần quyền **Edit** trên library để lưu báo cáo và tải ảnh.
+- **Hướng dẫn từng bước:** [`docs/SHAREPOINT_SETUP.md`](./docs/SHAREPOINT_SETUP.md). File tạo list (`*_list.xlsx`) và script cài đặt tự động nằm ở [`docs/sharepoint_setup/`](./docs/sharepoint_setup/README.md).
+- **File mẫu** (`ActivityP6.xlsx`, template JSON, logo, báo cáo mẫu) nằm ở `data_test/sharepoint_sample/`, tải lên thủ công (hoặc bằng script); thư mục `data/...` do app tự tạo.
+- Tài khoản phải có trong **cả** `UserProfiles` và `Report_Role` mới làm được báo cáo; admin (`UserProfiles.Role = admin`) thấy mọi phân quyền.
+- Người dùng báo cáo cần quyền **Edit** trên thư mục `data/<Unit>` của mình. Phân quyền SharePoint là bảo mật thật; kiểm tra quyền ở giao diện chỉ là tiện ích.
 
 ---
 
@@ -84,6 +81,11 @@ npm run start
 2. Nếu mở trên trình duyệt mới lần đầu, truy cập `https://localhost:4321/temp/build/manifests.js` $\rightarrow$ Chọn **Advanced** $\rightarrow$ **Proceed to localhost (unsafe)** để tin cậy chứng chỉ SSL local.
 3. Mở SharePoint Hosted Workbench tại:
    - `https://ytf84.sharepoint.com/sites/metro-checkin-dev/_layouts/15/workbench.aspx?reset=true`
+   - Nếu trang vẫn chạy bản đã deploy cũ (tên file web part có mã hash thay vì `localhost:4321`) hoặc Console báo CORS/loopback: cho phép **Local network access** cho trang SharePoint trong Site settings của Chrome, rồi dùng link dự phòng có `debugManifestsFile=https%3A%2F%2Flocalhost%3A4321%2Ftemp%2Fbuild%2Fmanifests.js&debug=true&noredir=true` và bấm **Load debug scripts**.
+
+**Chạy thử module Report không cần SharePoint:** `npm run dev:report` (SharePoint giả lập trong bộ nhớ, mở `temp/dev/index.html`); `npm run test:report` chạy kiểm thử chuyển đổi JSON ↔ mô hình ↔ template. Không chạy `npm run build` khi `npm run start` đang chạy.
+
+**Kiểm tra giao diện/quy ước style:** `npm run lint:styles`, `npx tsc --noEmit -p tsconfig.json`, `npx eslint src --ext .ts,.tsx`.
 
 ---
 
@@ -109,4 +111,5 @@ npm run build
 
 - [`AGENTS.md`](./AGENTS.md): Quy chuẩn kiến trúc, quy tắc UI đa thiết bị (Responsive) và hướng dẫn dành cho AI Agent / Developer.
 - [`project_architecture.md`](./project_architecture.md): Sơ đồ kiến trúc phân tầng Multi-Module (`entry`, `app`, `core`, `modules`).
-- [`docs/REPORT_MODULE.md`](./docs/REPORT_MODULE.md): Chi tiết thiết kế 6 sheets và nghiệp vụ của phân hệ Quản lý Report.
+- [`docs/REPORT_JSON_PLAN.md`](./docs/REPORT_JSON_PLAN.md): Hợp đồng JSON/HTML của báo cáo ngày và lý do thiết kế.
+- [`docs/SHAREPOINT_SETUP.md`](./docs/SHAREPOINT_SETUP.md) và [`docs/sharepoint_setup/README.md`](./docs/sharepoint_setup/README.md): Cài đặt list/thư viện trên SharePoint (thủ công và script).
