@@ -30,13 +30,10 @@ export function checkIsAdmin(role?: string): boolean {
 /**
  * Maps raw SharePoint UserProfiles list items (or imported Excel table) to clean UserProfileRecord
  *
- * Cột đọc theo tên hiển thị (Email, DisplayName, Department, DepartmentName, Role); các tên field_N chỉ là dự phòng cho list
- * cũ từng có thêm cột số thứ tự ở đầu (nay đã bỏ):
- * - Col 1: Email / field_1 / Title / Mail / UserEmail / UserPrincipalName
- * - Col 2: Username / field_2 / Name / DisplayName / Title
- * - Col 3: DepartmentCode / Department / field_3
- * - Col 4: DepartmentName / field_4 / Department
- * - Col 5: Role / field_5
+ * Cột đọc theo TÊN HIỂN THỊ (Email, DisplayName, Department, DepartmentName, Role, Active), đã được `UserProfileService` đổi sang
+ * các khoá này từ tên nội bộ thật. KHÔNG đọc theo tên nội bộ `field_N`: SharePoint tự đặt `field_N` theo thứ tự cột lúc
+ * import nên không liên quan tới ý nghĩa cột (từng lấy nhầm cột Email làm tên hiển thị). Chỉ còn `Title` làm dự phòng cho email
+ * của list cũ để cột Email nằm ở cột Title.
  */
 /** Cột Active: Yes/No (true/false) hoặc chữ yes/y/1/active…; để trống hoặc không có cột = đang hoạt động. */
 export function parseProfileActive(raw: unknown): boolean {
@@ -47,33 +44,28 @@ export function parseProfileActive(raw: unknown): boolean {
 }
 
 export function mapSharePointUserProfile(raw: Record<string, unknown>): UserProfileRecord {
-  // Extract email candidate
-  const rawEmail = String(
-    raw.Email ?? raw.email ?? raw.Mail ?? raw.UserEmail ?? raw.UserPrincipalName ?? raw.field_1 ?? raw.Title ?? ''
-  ).trim();
+  const text = (v: unknown): string => (v === undefined || v === null ? '' : String(v).trim());
+
+  // Email: cột Email (dự phòng cho list cũ: cột Title)
+  const rawEmail = text(raw.Email ?? raw.email ?? raw.Mail ?? raw.UserEmail ?? raw.UserPrincipalName ?? raw.Title);
   const cleanEmail = extractCleanEmail(rawEmail);
+  const emailPrefix = cleanEmail.split('@')[0];
 
-  // Extract username / code
-  const rawUsername = String(
-    raw.Username ?? raw.username ?? raw.field_2 ?? raw.field_1 ?? raw.Title ?? ''
-  ).trim();
+  // Username: cột Username, không có thì phần trước @ của email
+  const rawUsername = text(raw.Username ?? raw.username);
 
-  // Extract display name (fall back to username or email prefix)
-  const rawDisplayName = String(
-    raw.DisplayName ?? raw.Name ?? raw.field_2 ?? rawUsername ?? ''
-  ).trim();
+  // Tên hiển thị: cột DisplayName, không có thì Username, rồi phần trước @ của email
+  const rawDisplayName = text(raw.DisplayName ?? raw.Name);
 
-  // Department code & name
-  const deptCode = String(raw.DepartmentCode ?? raw.Department ?? raw.field_3 ?? '').trim();
-  const deptName = String(raw.DepartmentName ?? raw.field_4 ?? deptCode ?? '').trim();
-
-  // Role
-  const role = String(raw.Role ?? raw.role ?? raw.field_5 ?? 'user').trim().toLowerCase();
+  // Phòng ban và vai trò
+  const deptCode = text(raw.DepartmentCode ?? raw.Department);
+  const deptName = text(raw.DepartmentName);
+  const role = text(raw.Role ?? raw.role).toLowerCase();
 
   return {
     email: cleanEmail,
-    username: rawUsername || cleanEmail.split('@')[0],
-    displayName: rawDisplayName || rawUsername || cleanEmail.split('@')[0],
+    username: rawUsername || emailPrefix,
+    displayName: rawDisplayName || rawUsername || emailPrefix,
     departmentCode: deptCode,
     departmentName: deptName || deptCode,
     role: role || 'user',

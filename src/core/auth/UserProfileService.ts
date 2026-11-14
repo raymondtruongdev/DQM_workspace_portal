@@ -25,9 +25,6 @@ export class UserProfileService {
       console.warn('[UserProfileService] Không tra được tên cột, dùng tên mặc định:', e);
     }
     const wanted = ['Email', 'DisplayName', 'Department', 'DepartmentName', 'Role', 'Active'];
-    if (rawList.length > 0) {
-      console.warn('[UserProfileService] Tên cột nội bộ của dòng đầu:', Object.keys(rawList[0]), 'bản đồ tên cột:', map);
-    }
     return rawList
       .map((raw) => {
         const norm: Record<string, unknown> = { ...raw };
@@ -35,10 +32,16 @@ export class UserProfileService {
           const internal = map[name.toLowerCase()];
           if (internal && raw[internal] !== undefined && raw[internal] !== null) norm[name] = raw[internal];
         });
-        // Dự phòng: không tìm được cột email theo tên thì lấy cột văn bản đầu tiên chứa "@".
-        if (!String(norm.Email ?? '').trim()) {
+        // Dự phòng CHỈ khi list không có cột tên Email: lấy cột văn bản đầu tiên chứa "@" (tránh lấy nhầm cột khi đã có cột Email).
+        if (map.email === undefined && !String(norm.Email ?? '').trim()) {
           const found = Object.keys(raw).find((k) => typeof raw[k] === 'string' && String(raw[k]).indexOf('@') > 0);
           if (found) norm.Email = raw[found];
+        }
+        // Import từ Excel: SharePoint lấy cột chữ đầu tiên (DisplayName) làm cột Title nên list không có cột DisplayName.
+        // Khi đã có cột Email riêng và không có cột DisplayName thì Title chính là tên hiển thị.
+        if (map.displayname === undefined && map.email !== undefined && !String(norm.DisplayName ?? '').trim()) {
+          const title = raw.Title;
+          if (title !== undefined && title !== null && String(title).trim() !== '') norm.DisplayName = title;
         }
         return mapSharePointUserProfile(norm);
       })

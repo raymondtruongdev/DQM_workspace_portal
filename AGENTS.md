@@ -37,11 +37,11 @@
 WebPart tự động nhận diện site hiện hành qua `pageContext.web.absoluteUrl` (hoặc cấu hình `siteUrl` qua Property Pane). Dữ liệu gồm danh sách `UserProfiles` (phân quyền) và thư viện tài liệu `DailyReportLibrary` (module Report):
 
 ### 1. `UserProfiles` (Role & Department Authorization List)
-* `Email` / `Title` / `field_1` (Text): Email tài khoản Microsoft 365 (UPN).
-* `Username` / `field_2` (Text): Mã định danh hoặc Tên người dùng.
-* `DepartmentCode` / `field_3` (Text): Mã phòng ban (VD: ADMIN, DIRC...).
-* `DepartmentName` / `field_4` (Text): Tên phòng ban hiển thị (VD: Admin site, Bộ phận Giao diện...).
-* `Role` / `field_5` (Text): Vai trò người dùng (`admin`, `user`).
+* `Email` (Text): Email tài khoản Microsoft 365 (UPN). Cột đọc theo TÊN HIỂN THỊ (code tra tên nội bộ qua `getListFieldMap`), KHÔNG đọc theo tên nội bộ `field_N` vì SharePoint tự đặt `field_N` theo thứ tự cột lúc import (từng lấy nhầm cột Email làm tên hiển thị). Chỉ `Title` còn là dự phòng cho email của list cũ.
+* `DisplayName` (Text): Tên hiển thị của người dùng (không có thì dùng phần trước `@` của email).
+* `Department` (Text): Mã phòng ban (VD: ADMIN, DIRC...).
+* `DepartmentName` (Text): Tên phòng ban hiển thị (VD: Admin site, Bộ phận Giao diện...).
+* `Role` (Text): Vai trò người dùng (`admin`, `user`).
 * `Active` (Yes/No, tuỳ chọn): `No` = tạm khoá, coi như không có trong list (`UserProfileService` lọc bỏ dòng này nên người đó không vào được portal và không hiện trong bộ chuyển vai trò); trống hoặc không có cột = đang hoạt động (`parseProfileActive`). Khoá nhầm dòng admin cuối cùng thì phải sửa tay trên SharePoint. Vẫn chỉ là kiểm tra ở giao diện, không thay cho phân quyền SharePoint.
 
 ---

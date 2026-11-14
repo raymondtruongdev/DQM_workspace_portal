@@ -80,6 +80,8 @@ Dòng 1: `ActivityID | Unit | Description`; mỗi dòng sau một Activity.
 
 Đủ bốn list: `UserProfiles`, `ReportRole`, `ReportRegistry`, `CatalogItems`. Mỗi file `docs/sharepoint_setup/*_list.xlsx` có sẵn sheet `Huong_dan` mô tả từng bước và kiểu cột; phần dưới tóm tắt những điểm bắt buộc.
 
+> **Lưu ý khi tạo list từ Excel (UserProfiles và ReportRole):** SharePoint lấy **cột chữ đầu tiên** của bảng làm cột `Title` và đặt tên hiển thị là `Title`, nên tên tiêu đề của cột đó (thường là `DisplayName`) biến mất khỏi list; các cột còn lại giữ nguyên tên. Web part đã xử lý: không có cột `DisplayName` thì dùng `Title` làm tên hiển thị. Vì vậy trong file Excel, cột chữ đầu tiên phải là `DisplayName` (không phải `Email`), và tiêu đề từng cột phải đúng dữ liệu bên dưới; nếu `Email` bị lấy làm `Title` thì web part không tìm thấy cột `Email`.
+
 ### 3.1 `UserProfiles` (từ `docs/sharepoint_setup/UserProfiles_list.xlsx`)
 - Tạo list: New > List > From Excel > chọn bảng `UserProfiles`. Thay dữ liệu mẫu bằng danh sách người dùng thật.
 - Cột quan trọng nhất: `Email` (UPN M365), `Role` (`ADMIN` hoặc `USER`).

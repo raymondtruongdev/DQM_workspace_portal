@@ -38,6 +38,8 @@ export class ReportRoleService {
     const rows = await this._client.getItems<Record<string, unknown>>(this._siteUrl, REPORT_ROLE_LIST, 5000);
     const valid = new Set<string>(REPORT_CONFIG.VALID_DOC_IDS.map((d) => d.toLowerCase()));
     const all = parseRoleRows(rows, names).filter((r) => valid.has(r.docId.toLowerCase()));
-    return RoleResolutionService.resolveRoles(all, rawUserEmail, isAdmin);
+    const result = RoleResolutionService.resolveRoles(all, rawUserEmail, isAdmin);
+
+    return result;
   }
 }
