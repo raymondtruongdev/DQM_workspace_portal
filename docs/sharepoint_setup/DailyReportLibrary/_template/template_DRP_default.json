@@ -372,8 +372,8 @@
         {
           "id": "category",
           "label": {
-            "vi": "Loại",
-            "en": "Category"
+            "vi": "Tên tài nguyên",
+            "en": "Resource Name"
           }
         },
         {

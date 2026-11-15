@@ -127,6 +127,11 @@ export function parseCatalogFromWorkbook(XLSX: typeof XLSXTypes, wb: XLSXTypes.W
   return catalog;
 }
 
+/** Giá trị mã cung cấp cho cột phụ thuộc `col` (có `from`): `Link` mặc định, hoặc `Note` / `NameVN` theo `fromField`. */
+export function catalogLinkOf(item: CatalogItem, col: TableColumn): string | undefined {
+  return col.fromField === 'note' ? item.note : col.fromField === 'nameVn' ? item.nameVn : item.link;
+}
+
 /** Mã trong bảng `ref` (không phân biệt hoa thường); undefined nếu là "---", trống hoặc không có. */
 export function findCatalogItem(catalog: ReportCatalog | undefined, ref: string, id: string): CatalogItem | undefined {
   if (!catalog || !id || id === CATALOG_NONE) return undefined;
@@ -202,7 +207,7 @@ export function linkedValue(
   const cur = String(values[src.code] ?? '');
   if (src.optionsBy) return findCatalogItemByLink(catalog, src.optionsRef, cur)?.id || undefined;
   const item = findCatalogItem(catalog, src.optionsRef, cur);
-  const v = item ? (col.fromNote ? item.note : item.link) : undefined;
+  const v = item ? catalogLinkOf(item, col) : undefined;
   return v || undefined;
 }
 
@@ -226,7 +231,7 @@ export function applyCatalogLinks(
     if (c.from && c.from.toLowerCase() === changed.toLowerCase()) {
       const linkValue = src.optionsBy
         ? findCatalogItemByLink(catalog, src.optionsRef!, current)?.id
-        : item && (c.fromNote ? item.note : item.link);
+        : item && catalogLinkOf(item, c);
       values[c.code] = linkValue || (c.type === 'select' ? CATALOG_NONE : '');
     }
   });

@@ -110,8 +110,8 @@ export interface TemplateColumnJson {
   catalogBy?: 'link';
   /** Chọn mã ở cột này thì ô này tự điền giá trị ràng buộc của mã và bị khoá. */
   from?: string;
-  /** Với `from`: lấy cột `Note` của mã (thay vì `Link`) và ghi giá trị người dùng nhập cho mã mới vào `Note`. */
-  fromNote?: boolean;
+  /** Với `from`: lấy cột này của mã (mặc định `link`) và ghi giá trị người dùng nhập cho mã mới vào cột đó. */
+  fromField?: 'note' | 'nameVn';
   /** Danh sách chọn cố định (nếu không dùng danh mục). */
   options?: string[];
   /** true = không có mục "---" ở đầu danh sách (danh mục cố định như thời tiết). */

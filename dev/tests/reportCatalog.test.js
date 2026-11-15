@@ -74,14 +74,14 @@ test('chọn theo mã: nhãn "Code — Note", không có Note thì chỉ hiện 
   assert.deepEqual(C.catalogOptions(cat, 'event_type', false, true), ['KIEM_TRA_ATLD', 'NGHIEM_THU']);
 });
 
-test('fromNote: cột Loại tự điền theo Note của mã (không dùng Link)', () => {
+test('fromField: cột Tên tài nguyên tự điền theo NameVN của mã (không dùng Link)', () => {
   const cat = C.mergeCatalogRows({ unit: 'ST01', tables: {}, warnings: [] }, [
-    { table: 'reshuman_id', code: 'SEG', link: 'Tên cũ', note: 'Bảo vệ' },
+    { table: 'reshuman_id', code: 'SEG', link: 'Tên cũ', note: 'ghi chú', nameVn: 'Bảo vệ' },
     { table: 'reshuman_id', code: 'XXX', link: '' }
   ]);
   const columns = [
     { code: 'resId', label: 'Mã', type: 'select', optionsRef: 'reshuman_id' },
-    { code: 'category', label: 'Loại', type: 'text', from: 'resId', fromNote: true }
+    { code: 'category', label: 'Loại', type: 'text', from: 'resId', fromField: 'nameVn' }
   ];
   const values = { resId: 'SEG', category: '' };
   C.applyCatalogLinks(columns, values, 'resId', cat);

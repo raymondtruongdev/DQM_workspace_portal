@@ -189,15 +189,15 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     if (await onCheckMaintenance()) return undefined;
     // Mục mới theo mã: hỏi luôn giá trị liên kết (vd Activity của cấu kiện), bỏ trống được; huỷ thì không thêm
     let link = '';
-    let asNote = false;
+    let field: 'note' | 'nameVn' | undefined;
     if (!byLink && askLink) {
       const asked = await askLink();
       if (!asked) return { cancelled: true };
       link = asked.link.trim();
-      asNote = Boolean(asked.asNote);
+      field = asked.field;
     }
     try {
-      const res = await dataService.addCatalogItem(role.unit, { table: ref, code: byLink ? '' : clean, link: byLink ? clean : asNote ? '' : link, ...(asNote && link ? { note: link } : {}) });
+      const res = await dataService.addCatalogItem(role.unit, { table: ref, code: byLink ? '' : clean, link: byLink ? clean : field ? '' : link, ...(field && link ? { [field]: link } : {}) });
       const saved = byLink ? res.row.link : res.row.code;
       const next = catalogWithRow(catalog, role.unit, res.row);
       catalogStamp.current.version++;

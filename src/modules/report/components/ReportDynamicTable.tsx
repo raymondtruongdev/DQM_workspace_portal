@@ -22,8 +22,8 @@ import {
 } from '../utils/reportTable';
 
 /** Hỏi giá trị liên kết của mục mới; `undefined` = người dùng huỷ. */
-/** `asNote` = giá trị nhập là Note của mã (cột phụ thuộc có `fromNote`), ghi vào cột Note thay vì Link. */
-export type AskCatalogLink = () => Promise<{ link: string; asNote?: boolean } | undefined>;
+/** `field` = cột của danh mục mà giá trị nhập được ghi vào (cột phụ thuộc có `fromField`); không có = Link. */
+export type AskCatalogLink = () => Promise<{ link: string; field?: 'note' | 'nameVn' } | undefined>;
 
 /** Kết quả thêm mục danh mục: giá trị gán cho ô + danh mục mới, hoặc người dùng đã huỷ. */
 export type CatalogAddResult = { value: string; catalog: ReportCatalog; cancelled?: false } | { cancelled: true };
@@ -81,7 +81,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
 
   // Hộp thoại hỏi liên kết khi thêm mã mới (bước 2 của "Khác…")
   const [linkAsk, setLinkAsk] = React.useState<
-    { title: string; label: string; options?: string[]; asNote?: boolean; resolve: (v: { link: string; asNote?: boolean } | undefined) => void } | undefined
+    { title: string; label: string; options?: string[]; field?: 'note' | 'nameVn'; resolve: (v: { link: string; field?: 'note' | 'nameVn' } | undefined) => void } | undefined
   >(undefined);
 
   /** Cột phụ thuộc vào cột mã `col` (có from=<col>) mà mục mới cần liên kết; hỏi người dùng giá trị (có thể bỏ qua). */
@@ -94,12 +94,14 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
         : undefined;
     if (options && options.length === 0) return undefined; // chưa có gì để chọn: bỏ qua bước hỏi
     return () =>
-      new Promise<{ link: string; asNote?: boolean } | undefined>((resolve) =>
+      new Promise<{ link: string; field?: 'note' | 'nameVn' } | undefined>((resolve) =>
         setLinkAsk({
           title: `Thêm "${value}"`,
-          label: `${splitLabel(dep.label).vi} của "${value}" (không bắt buộc, bỏ trống nếu chưa có)`,
+          label: dep.fromField
+            ? `${splitLabel(dep.label).vi} của mã "${value}"`
+            : `${splitLabel(dep.label).vi} của "${value}" (không bắt buộc, bỏ trống nếu chưa có)`,
           options,
-          asNote: dep.fromNote,
+          field: dep.fromField,
           resolve
         })
       );
@@ -372,9 +374,9 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           title={linkAsk.title}
           label={linkAsk.label}
           options={linkAsk.options}
-          allowEmpty
+          allowEmpty={!linkAsk.field}
           onSubmit={(v) => {
-            linkAsk.resolve({ link: v, asNote: linkAsk.asNote });
+            linkAsk.resolve({ link: v, field: linkAsk.field });
             setLinkAsk(undefined);
           }}
           onCancel={() => {
