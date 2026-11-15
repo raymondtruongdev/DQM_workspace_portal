@@ -61,7 +61,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   workQty: {
     columns: {
       activityId: { type: 'select', catalog: 'ActivityP6_ID', from: 'element', default: '---', align: 'center', width: 14 },
-      element: { type: 'select', catalog: 'Element_ID', default: '---', align: 'center', width: 18 },
+      element: { type: 'select', catalog: 'Element_ID', noNone: true, align: 'center', width: 18 },
       step: { width: 22 },
       unit: { default: 'm³', align: 'center', width: 6 },
       start: { type: 'date', width: 10 },

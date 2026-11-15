@@ -191,8 +191,15 @@
 }
 :where(.app-layout) .select select:disabled { cursor: not-allowed; }
 /* compactSelected: chữ của <select> trong suốt, dòng .select__shown phủ lên chỉ hiện giá trị lưu; danh sách xổ vẫn hiện nhãn đầy đủ */
-:where(.app-layout) .select--compact select { color: transparent; }
-:where(.app-layout) .select--compact option { color: var(--color-text); }
+/* -webkit-text-fill-color thắng cả `color` của .input:disabled / .input--locked (specificity cao hơn), tránh chữ chồng lên chữ phủ */
+:where(.app-layout) .select--compact select {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+:where(.app-layout) .select--compact option {
+  color: var(--color-text);
+  -webkit-text-fill-color: var(--color-text);
+}
 :where(.app-layout) .select__shown {
   position: absolute;
   inset: 0;
