@@ -65,13 +65,14 @@ test('chọn theo tên: nhãn "Tên Việt (mã) — ghi chú" cho mục có Nam
   });
 });
 
-test('chọn theo mã: nhãn "Code — Note", không có Note thì chỉ hiện mã', () => {
+test('chọn theo mã: nhãn "Code — Note", không có Note thì "Code — NameVN", không có cả hai thì chỉ hiện mã', () => {
   const cat = C.mergeCatalogRows({ unit: 'ST01', tables: {}, warnings: [] }, [
     { table: 'event_type', code: 'KIEM_TRA_ATLD', link: '', nameVn: 'Kiểm tra ATLĐ hiện trường', nameEn: 'HSE inspection', note: 'Kiểm tra ATLĐ' },
-    { table: 'event_type', code: 'NGHIEM_THU', link: '', nameVn: 'Nghiệm thu', nameEn: 'Inspection request' }
+    { table: 'event_type', code: 'NGHIEM_THU', link: '', nameVn: 'Nghiệm thu', nameEn: 'Inspection request' },
+    { table: 'event_type', code: 'KHAC', link: '' }
   ]);
-  assert.deepEqual(C.catalogOptionLabels(cat, 'event_type'), { KIEM_TRA_ATLD: 'KIEM_TRA_ATLD — Kiểm tra ATLĐ' });
-  assert.deepEqual(C.catalogOptions(cat, 'event_type', false, true), ['KIEM_TRA_ATLD', 'NGHIEM_THU']);
+  assert.deepEqual(C.catalogOptionLabels(cat, 'event_type'), { KIEM_TRA_ATLD: 'KIEM_TRA_ATLD — Kiểm tra ATLĐ', NGHIEM_THU: 'NGHIEM_THU — Nghiệm thu' });
+  assert.deepEqual(C.catalogOptions(cat, 'event_type', false, true), ['KIEM_TRA_ATLD', 'NGHIEM_THU', 'KHAC']);
 });
 
 test('fromField: cột Tên tài nguyên tự điền theo NameVN của mã (không dùng Link)', () => {

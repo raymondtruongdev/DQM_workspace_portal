@@ -75,8 +75,8 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   },
   materials: {
     columns: {
-      matId: { type: 'select', catalog: 'Material_ID', readonly: true, from: 'material', default: '---', align: 'center', width: 16 },
-      material: { type: 'select', catalog: 'Material_ID', catalogBy: 'link', width: 30 },
+      matId: { type: 'select', catalog: 'Material_ID', noNone: true, align: 'center', width: 16 },
+      material: { readonly: true, from: 'matId', fromField: 'nameVn', width: 30 },
       unit: { default: 'm³', align: 'center', width: 8 },
       recv: { type: 'number', default: 0, width: 14 },
       supplier: { type: 'select', catalog: 'supplier', noNone: true, width: 20, default: 'Thiên An' },

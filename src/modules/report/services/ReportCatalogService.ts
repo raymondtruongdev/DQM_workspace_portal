@@ -13,7 +13,7 @@ type Col = (typeof COLS)[number];
 export const CATALOG_SHARED_UNIT = 'ALL';
 
 /** Danh sách chọn dùng chung mọi nhà ga: giá trị người dùng thêm bằng "Khác…" ghi với `Unit = ALL` để nhà ga khác cũng thấy. */
-export const SHARED_LIST_TABLES = ['weather', 'event_type', 'event_status', 'supplier', 'equipment_status', 'issue_severity', 'issue_status', 'subcontractor'];
+export const SHARED_LIST_TABLES = ['weather', 'event_type', 'event_status', 'supplier', 'equipment_status', 'issue_severity', 'issue_status', 'subcontractor', 'material_id'];
 
 const esc = (v: string): string => v.replace(/'/g, "''");
 

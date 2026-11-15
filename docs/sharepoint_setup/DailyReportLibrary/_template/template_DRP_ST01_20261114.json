@@ -460,7 +460,7 @@
         {
           "id": "r1",
           "cells": {
-            "matId": "MAT-ST01-00001",
+            "matId": "MAT-00001",
             "material": "Bê tông C35/45",
             "unit": "m³",
             "recv": 214,
@@ -470,7 +470,7 @@
         {
           "id": "r2",
           "cells": {
-            "matId": "MAT-ST01-00002",
+            "matId": "MAT-00002",
             "material": "Thép D32",
             "unit": "tấn",
             "recv": 32,
@@ -480,7 +480,7 @@
         {
           "id": "r3",
           "cells": {
-            "matId": "---",
+            "matId": "MAT-00003",
             "material": "Bentonite",
             "unit": "tấn",
             "recv": 4,

@@ -166,8 +166,9 @@ export function catalogOptions(catalog: ReportCatalog | undefined, ref: string, 
  * Nhãn hiển thị trong dropdown (giá trị lưu không đổi):
  *  - chọn theo tên (`byLink`, vd thiết bị, loại nhân lực, vật tư): mục có `nameVn`/`nameEn`/`note` hiện "Link (Code) — Note"
  *    (thiếu mã hoặc ghi chú thì bỏ phần đó); mục khác giữ tên;
- *  - chọn theo mã: mục có mô tả Activity hiện "mã – mô tả"; mục có `note` hiện "Code — Note"; còn lại chỉ hiện mã.
- * `nameVn`/`nameEn` chỉ lưu trong danh mục; muốn hiện thêm gợi ý thì admin ghi vào cột `Note`.
+ *  - chọn theo mã: mục có mô tả Activity hiện "mã – mô tả"; mục có `note` hiện "Code — Note"; mục không có `note` mà có `nameVn`
+ *    hiện "Code — NameVN"; còn lại chỉ hiện mã. Nhãn không đổi giá trị lưu (chọn xong ô chỉ hiện mã).
+ * `nameEn` chỉ lưu trong danh mục; muốn nhãn khác `NameVN` thì admin ghi vào cột `Note` (Note được ưu tiên).
  */
 export function catalogOptionLabels(catalog: ReportCatalog | undefined, ref: string, byLink = false): Record<string, string> | undefined {
   const table = catalog ? catalog.tables[ref.toLowerCase()] : undefined;
@@ -183,8 +184,8 @@ export function catalogOptionLabels(catalog: ReportCatalog | undefined, ref: str
     } else if (i.id && i.description) {
       out[i.id] = `${i.id} – ${i.description}`;
       any = true;
-    } else if (i.id && i.note) {
-      out[i.id] = `${i.id} — ${i.note}`;
+    } else if (i.id && (i.note || i.nameVn)) {
+      out[i.id] = `${i.id} — ${i.note || i.nameVn}`;
       any = true;
     }
   });
