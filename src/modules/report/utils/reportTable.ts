@@ -373,7 +373,8 @@ export function carryForwardTable(table: ReportTable): ReportTable {
 
 /** Bề rộng tối thiểu (px) của cột để không bị bóp chữ; bảng rộng hơn khung thì cuộn ngang. */
 export function columnMinPx(col: TableColumn): number {
-  // Cột mã danh mục (CV-ST01-00001, RES-HUM-00001…) cần đủ rộng để hiện trọn mã cùng mũi tên dropdown
+  if (col.minPx) return Math.max(col.minPx, Math.round((col.width || 0) * 9)); // khai báo minPx: bỏ mức sàn mặc định theo kiểu cột
+  // Cột mã danh mục (CON-ST01-ARC-TBD-00010, RES-EQM-AWP-00001…) cần đủ rộng để hiện trọn mã cùng mũi tên dropdown
   // (ô mã + mũi tên dropdown + lề: cần khoảng 210px để không bị cắt thành "MAT-ST01-000…")
   const floor = col.optionsRef && !col.optionsBy
     ? 210

@@ -343,8 +343,8 @@
           "id": "r1",
           "locked": false,
           "cells": {
-            "activityId": "CV-ST01-00001",
-            "element": "Tấm tường vây số 01",
+            "activityId": "CON-ST01-ARC-TBD-00010",
+            "element": "Demo cấu kiện 1 -  ST1",
             "step": "DWL-01 Đào",
             "unit": "m³",
             "start": "2026-11-22",
@@ -358,8 +358,8 @@
         {
           "id": "r2",
           "cells": {
-            "activityId": "CV-ST01-00001",
-            "element": "Tấm tường vây số 01",
+            "activityId": "CON-ST01-ARC-TBD-00010",
+            "element": "Demo cấu kiện 1 -  ST1",
             "step": "DWL-02 Hạ lồng thép",
             "unit": "tấn",
             "start": "2026-11-22",
@@ -373,8 +373,8 @@
         {
           "id": "r3",
           "cells": {
-            "activityId": "CV-ST01-00001",
-            "element": "Tấm tường vây số 02",
+            "activityId": "CON-ST01-ARC-TBD-00020",
+            "element": "Demo cấu kiện 2 -  ST1",
             "step": "DWL-03 Đổ bê tông",
             "unit": "m³",
             "start": "2026-11-12",
@@ -389,8 +389,8 @@
         {
           "id": "r4",
           "cells": {
-            "activityId": "---",
-            "element": "Đường dẫn",
+            "activityId": "CON-ST01-ARC-TBD-00030",
+            "element": "Demo cấu kiện 3 -  ST1",
             "step": "GWL-01 Tường dẫn",
             "unit": "m",
             "start": "2026-11-12",
@@ -546,7 +546,7 @@
         {
           "id": "r1",
           "cells": {
-            "resId": "RES-HUM-00001",
+            "resId": "SCM",
             "category": "Chỉ huy trưởng",
             "daily": 8,
             "prevCum": 100,
@@ -556,7 +556,7 @@
         {
           "id": "r2",
           "cells": {
-            "resId": "RES-HUM-00002",
+            "resId": "SSV",
             "category": "Giám sát hiện trường",
             "daily": 14,
             "prevCum": 0,
@@ -566,7 +566,7 @@
         {
           "id": "r3",
           "cells": {
-            "resId": "RES-HUM-00003",
+            "resId": "SKW",
             "category": "Công nhân kỹ thuật",
             "daily": 52,
             "prevCum": 0,
@@ -576,7 +576,7 @@
         {
           "id": "r4",
           "cells": {
-            "resId": "RES-HUM-00004",
+            "resId": "GLB",
             "category": "Lao động phổ thông",
             "daily": 30,
             "prevCum": 0,
@@ -586,7 +586,7 @@
         {
           "id": "r5",
           "cells": {
-            "resId": "RES-HUM-00005",
+            "resId": "SFO",
             "category": "An toàn viên",
             "daily": 6,
             "prevCum": 0,
@@ -596,7 +596,7 @@
         {
           "id": "r6",
           "cells": {
-            "resId": "RES-HUM-00006",
+            "resId": "MOP",
             "category": "Vận hành máy",
             "daily": 4,
             "prevCum": 0,
@@ -659,9 +659,9 @@
         {
           "id": "r1",
           "cells": {
-            "activityId": "CV-ST01-00001",
-            "resId": "RES-EQP-00001",
-            "equipment": "Cẩu bánh xích 80T",
+            "activityId": "CON-ST01-ARC-TBD-00010",
+            "resId": "RES-EQM-CRC-00003",
+            "equipment": "Cẩu bánh xích",
             "qty": 1,
             "status": "Active"
           }
@@ -669,9 +669,9 @@
         {
           "id": "r2",
           "cells": {
-            "activityId": "CV-ST01-00001",
-            "resId": "RES-EQP-00003",
-            "equipment": "Gầu ngoạm tường vây",
+            "activityId": "CON-ST01-ARC-TBD-00010",
+            "resId": "RES-EQM-GRB-00001",
+            "equipment": "Gầu ngoạm",
             "qty": 1,
             "status": "Active"
           }
@@ -679,8 +679,8 @@
         {
           "id": "r3",
           "cells": {
-            "activityId": "CV-ST01-00002",
-            "resId": "RES-EQP-00004",
+            "activityId": "CON-ST01-ARC-TBD-00020",
+            "resId": "RES-EQM-BSP-00001",
             "equipment": "Trạm trộn / tái sinh bentonite",
             "qty": 1,
             "status": "Active"
@@ -689,9 +689,9 @@
         {
           "id": "r4",
           "cells": {
-            "activityId": "CV-ST01-00002",
-            "resId": "RES-EQP-00005",
-            "equipment": "Máy đào 0,7 m³",
+            "activityId": "CON-ST01-ARC-TBD-00020",
+            "resId": "RES-EQM-EXV-00005",
+            "equipment": "Máy đào",
             "qty": 2,
             "status": "Active"
           }
@@ -700,8 +700,8 @@
           "id": "r5",
           "cells": {
             "activityId": "---",
-            "resId": "RES-EQP-00002",
-            "equipment": "Xe bồn bê tông 7 m³",
+            "resId": "RES-EQM-MIX-00002",
+            "equipment": "Xe bồn trộn bê tông",
             "qty": 6,
             "status": "Active"
           }
@@ -710,8 +710,8 @@
           "id": "r6",
           "cells": {
             "activityId": "---",
-            "resId": "RES-EQP-00006",
-            "equipment": "Máy phát điện 250 kVA",
+            "resId": "RES-EQM-GNS-00001",
+            "equipment": "Máy phát điện",
             "qty": 1,
             "status": "Pending"
           }
@@ -795,7 +795,7 @@
         {
           "id": "r1",
           "cells": {
-            "activityId": "CV-ST01-00001",
+            "activityId": "CON-ST01-ARC-TBD-00010",
             "issueId": "ISS-ST01-00001",
             "description": "Cọc secant lấn ranh 300–450 mm cạnh Đông – chờ phương án thiết kế",
             "severity": "Cao",
@@ -809,7 +809,7 @@
         {
           "id": "r2",
           "cells": {
-            "activityId": "CV-ST01-00002",
+            "activityId": "CON-ST01-ARC-TBD-00020",
             "issueId": "ISS-ST01-00002",
             "description": "Phê duyệt NCC bentonite mới – tồn 4 ngày",
             "severity": "Cao",
@@ -823,7 +823,7 @@
         {
           "id": "r3",
           "cells": {
-            "activityId": "CV-ST01-00001",
+            "activityId": "CON-ST01-ARC-TBD-00010",
             "issueId": "ISS-ST01-00003",
             "description": "Cáp ngầm chưa xác định tại trục 9 – dò tìm trước khi đào tường dẫn",
             "severity": "Thấp",

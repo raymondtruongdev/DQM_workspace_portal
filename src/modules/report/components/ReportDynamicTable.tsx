@@ -340,7 +340,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
       </div>
 
       <div className="table-responsive">
-        <table className="portal-table report-grid-table" style={{ minWidth: tableMinWidth }}>
+        <table className={`portal-table report-grid-table${table.single ? ' report-grid-table--fixed' : ''}`} style={{ minWidth: tableMinWidth }}>
           <thead>
             <tr>
               {columns.map((col) => {
@@ -348,7 +348,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                 return (
                   <th
                     key={col.code}
-                    style={{ minWidth: columnMinPx(col), textAlign: columnAlign(col) }}
+                    style={{ minWidth: columnMinPx(col), ...(table.single || col.fit ? { width: columnMinPx(col) } : {}), textAlign: columnAlign(col) }}
                   >
                     <span className="report-th-vi">{lbl.vi}</span>
                     {lbl.en && <span className="report-th-en">{lbl.en}</span>}

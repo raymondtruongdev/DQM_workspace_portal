@@ -47,6 +47,8 @@ export interface TableColumn {
   total?: boolean;                    // có dòng Tổng
   align?: 'left' | 'center' | 'right';
   width?: number;                     // % bề rộng (tuỳ chọn)
+  minPx?: number;                     // bề rộng tối thiểu (px), thay mức mặc định theo kiểu cột
+  fit?: boolean;                      // giữ đúng bề rộng minPx/width, không giãn theo phần dư của bảng
   defaultValue?: string;              // giá trị khi thêm dòng; {unit}, {n5}
   tones?: Record<string, ColumnTone>; // tô màu theo giá trị (select)
   carry?: string;                     // công thức tính trên dòng của ngày trước (luỹ kế)

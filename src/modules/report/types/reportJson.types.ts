@@ -125,6 +125,10 @@ export interface TemplateColumnJson {
   total?: boolean;
   align?: 'left' | 'center' | 'right';
   width?: number;
+  /** Bề rộng tối thiểu (px) của cột, thay cho mức mặc định theo kiểu cột (vd ô chọn mặc định tối thiểu 140px); dùng để thu nhỏ cột. */
+  minPx?: number;
+  /** true = cột giữ đúng bề rộng `minPx`/`width` (vừa chữ); phần dư của bảng dồn cho các cột không đặt `fit`. */
+  fit?: boolean;
   default?: string | number;
   /** Khi tạo từ báo cáo ngày trước: về giá trị mặc định. */
   reset?: boolean;

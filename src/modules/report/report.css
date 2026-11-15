@@ -2202,3 +2202,7 @@
 @media (max-width: 640px) {
   .report-row-pdf__name { max-width: 180px; }
 }
+
+/* Bảng một dòng (thời tiết, HSE): bề rộng cột theo tỉ lệ bề rộng tối thiểu của từng cột (minPx/width trong reportUiSchema),
+   phần dư của khung chia theo tỉ lệ đó nên cột có minPx/width lớn hơn (vd Giá trị) rộng hơn các ô nhỏ */
+.report-grid-table--fixed { table-layout: fixed; }

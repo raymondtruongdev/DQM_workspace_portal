@@ -75,6 +75,8 @@ export function templateColumn(tc: TemplateColumnJson): TableColumn {
   if (tc.total) col.total = true;
   if (tc.align) col.align = tc.align;
   if (tc.width) col.width = tc.width;
+  if (tc.minPx) col.minPx = tc.minPx;
+  if (tc.fit) col.fit = true;
   if (tc.default !== undefined) col.defaultValue = String(tc.default);
   if (tc.reset) col.reset = true;
   if (tc.carry) col.carry = tc.carry;

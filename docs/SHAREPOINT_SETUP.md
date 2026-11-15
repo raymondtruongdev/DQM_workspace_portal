@@ -59,7 +59,7 @@ DailyReportLibrary/
 
 Dòng 1: `ActivityID | Unit | Description | Active`; mỗi dòng sau một Activity.
 - `Unit` = mã đơn vị (vd `ST01`), hoặc `ALL` = dùng chung mọi đơn vị. Thêm đơn vị mới chỉ cần thêm dòng.
-- `Description` không bắt buộc, hiện kèm mã trong dropdown ("CV-ST01-00001 – Thi công tường vây"); giá trị lưu vẫn là mã.
+- `Description` không bắt buộc, hiện kèm mã trong dropdown ("CON-ST01-ARC-TBD-00010 – Mobilization Date for Architectural Finishes and MEP Installation"); giá trị lưu vẫn là mã.
 - `Active` (1/0) không bắt buộc: `0` = ẩn Activity khỏi dropdown, `1` hoặc trống = hiện (xem mục 3.5). Cột `No` (nếu có) chỉ để đánh số, web bỏ qua.
 - Cột tìm theo tên tiêu đề nên thứ tự cột tuỳ ý. Mã trùng trong cùng một đơn vị bị báo cảnh báo. Muốn bỏ mã thì xoá dòng (báo cáo cũ giữ nguyên giá trị đã lưu).
 - Người dùng không thêm được Activity từ giao diện; chỉ admin sửa file. Web nhớ nội dung file 5 phút trong bộ nhớ trang (sửa xong, tải lại trang hoặc chờ 5 phút).

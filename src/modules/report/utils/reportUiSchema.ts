@@ -20,17 +20,20 @@ export interface SectionUi extends Pick<TemplateSectionJson, 'kind' | 'single' |
   fields?: Record<string, FieldUi>;
 }
 
+/** Bề rộng tối thiểu (px) của cột Activity ID (P6): đủ hiện trọn mã dài nhất như CON-ST01-ARC-TBD-00010 cùng mũi tên dropdown. */
+const ACTIVITY_COL_PX = 270;
+
 /** Daily Report (`docId = DailyReport`). */
 const DAILY_REPORT_UI: Record<string, SectionUi> = {
   weather: {
     single: true,
     showSummary: false,
     columns: {
-      am: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', width: 13 },
-      pm: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', width: 13 },
-      night: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', width: 13 },
-      hrsLost: { type: 'number', reset: true, default: 0, align: 'center', width: 15 },
-      value: { reset: true, default: 'SV | EV | AC', align: 'center', width: 30 },
+      am: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', minPx: 110 },
+      pm: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', minPx: 110 },
+      night: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', minPx: 110 },
+      hrsLost: { type: 'number', reset: true, default: 0, align: 'center', minPx: 110 },
+      value: { reset: true, default: 'SV | EV | AC', align: 'center', width: 40 },
     },
   },
   hse: {
@@ -52,17 +55,17 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   events: {
     rowPdf: REPORT_FEATURES.EVENT_PDF, // cờ trong constants/reportFeatures.ts
     columns: {
-      eventId: { readonly: true, default: 'EVT-{unit}-{n5}', align: 'center', width: 20 },
-      type: { type: 'select', catalog: 'event_type', noNone: true, width: 18, default: 'KIEM_TRA_ATLD' },
+      eventId: { readonly: true, default: 'EVT-{unit}-{n5}', align: 'center', minPx: 150, fit: true },
+      type: { type: 'select', catalog: 'event_type', noNone: true, minPx: 180, fit: true, default: 'KIEM_TRA_ATLD' },
       description: { width: 40 },
       due: { type: 'date', width: 10 },
-      status: { type: 'select', catalog: 'event_status', noNone: true, default: 'Không Đạt', align: 'center', width: 10 },
+      status: { type: 'select', catalog: 'event_status', noNone: true, default: 'Không Đạt', align: 'center', minPx: 140, fit: true },
       remark: { width: 20 },
     },
   },
   workQty: {
     columns: {
-      activityId: { type: 'select', catalog: 'ActivityP6_ID', from: 'element', default: '---', align: 'center', width: 14 },
+      activityId: { type: 'select', catalog: 'ActivityP6_ID', from: 'element', default: '---', align: 'center', minPx: ACTIVITY_COL_PX },
       element: { type: 'select', catalog: 'Element_ID', noNone: true, align: 'center', width: 18 },
       step: { width: 22 },
       unit: { default: 'm³', align: 'center', width: 6 },
@@ -77,27 +80,27 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   },
   materials: {
     columns: {
-      matId: { type: 'select', catalog: 'Material_ID', noNone: true, align: 'center', width: 16 },
-      material: { readonly: true, from: 'matId', fromField: 'nameVn', width: 30 },
-      unit: { default: 'm³', align: 'center', width: 8 },
-      recv: { type: 'number', default: 0, width: 14 },
-      supplier: { type: 'select', catalog: 'supplier', noNone: true, width: 20, default: 'Thiên An' },
-      remark: { width: 20 },
+      matId: { type: 'select', catalog: 'Material_ID', noNone: true, align: 'center', minPx: 150, fit: true },
+      material: { readonly: true, from: 'matId', fromField: 'nameVn', minPx: 190, fit: true },
+      unit: { default: 'm³', align: 'center', minPx: 70, fit: true },
+      recv: { type: 'number', default: 0, minPx: 140, fit: true },
+      supplier: { type: 'select', catalog: 'supplier', noNone: true, default: 'Thiên An', minPx: 130, fit: true },
+      remark: { minPx: 240 },
     },
   },
   manpower: {
     columns: {
-      resId: { type: 'select', catalog: 'ResHuman_ID', noNone: true, align: 'center', width: 16 },
-      category: { readonly: true, from: 'resId', fromField: 'nameVn', width: 28 },
-      daily: { type: 'number', reset: true, total: true, default: 0, width: 13 },
-      prevCum: { type: 'number', readonly: true, total: true, default: 0, carry: 'daily+prevCum', width: 13 },
-      cumTotal: { type: 'calc', formula: 'daily+prevCum', total: true, width: 13 },
-      remark: { width: 20 },
+      resId: { type: 'select', catalog: 'ResHuman_ID', noNone: true, align: 'center', minPx: 100, fit: true },
+      category: { readonly: true, from: 'resId', fromField: 'nameVn', minPx: 240, fit: true },
+      daily: { type: 'number', reset: true, total: true, default: 0, minPx: 130, fit: true },
+      prevCum: { type: 'number', readonly: true, total: true, default: 0, carry: 'daily+prevCum', minPx: 130, fit: true },
+      cumTotal: { type: 'calc', formula: 'daily+prevCum', total: true, minPx: 130, fit: true },
+      remark: { minPx: 240 },
     },
   },
   equipment: {
     columns: {
-      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', width: 16 },
+      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', minPx: ACTIVITY_COL_PX },
       resId: { type: 'select', catalog: 'ResEquip_ID', noNone: true, align: 'center', width: 22 },
       equipment: { readonly: true, from: 'resId', fromField: 'nameVn', width: 34 },
       qty: { type: 'number', default: 1, width: 10 },
@@ -106,7 +109,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   },
   issues: {
     columns: {
-      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', width: 14 },
+      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', minPx: ACTIVITY_COL_PX },
       issueId: { readonly: true, default: 'ISS-{unit}-{n5}', align: 'center', width: 20 },
       description: { width: 34 },
       severity: { type: 'select', catalog: 'issue_severity', noNone: true, default: 'Trung bình', align: 'center', width: 9 },
