@@ -193,7 +193,7 @@ export class ReportDataService {
 
     if (!latest) {
       if (!this.isDaily(docId)) return { doc: this.emptyWeeklyDoc(docId, unit, dateStr, currentUserEmail), isExisting: false };
-      throw new Error(`Chưa có template cho ${unit} trong thư mục _template/ (template_DRP_${unit}_<yyyyMMdd>.json). Vui lòng tải template lên SharePoint.`);
+      throw new Error(`Chưa có template cho ${unit} trong thư mục _template/ (template_DRP_${unit}_<yyyyMMdd>.json) và cũng chưa có template chung template_DRP_default.json. Vui lòng tải template lên SharePoint.`);
     }
     let doc = docFromTemplate(latest.template, { docId, unit, dateStr, email: currentUserEmail, siteManager, version: latest.info.version });
     doc = { ...doc, latestTemplateInfo: latest.info };

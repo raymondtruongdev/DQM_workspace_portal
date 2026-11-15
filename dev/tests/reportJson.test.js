@@ -138,6 +138,37 @@ test('báo cáo đã lưu dùng thẳng làm template: mã tài liệu tính l�
   assert.equal(next.sections.find((s) => s.key === 'signOff').fields.find((f) => f.key === 'preparedBy').value, '');
 });
 
+test('không có template riêng của đơn vị thì dùng template_DRP_default.json; template riêng luôn ưu tiên', async () => {
+  const { ReportFileService } = require(path.join(js, '..', 'services', 'ReportFileService'));
+  const N = require(path.join(js, 'reportFileNaming'));
+  assert.equal(N.matchDefaultTemplateFileName('template_DRP_default.json', 'DailyReport').version, 'template_DRP_default');
+  assert.equal(N.matchDefaultTemplateFileName('template_DRP_default_20261120.json', 'DailyReport').versionDate, '20261120');
+  assert.equal(N.matchDefaultTemplateFileName('template_WRP_default.json', 'DailyReport'), undefined);
+  assert.equal(N.matchDefaultTemplateFileName('template_DRP_ST01_20261114.json', 'DailyReport'), undefined);
+  const make = (names) => new ReportFileService({
+    getFolderFiles: async () => names.map((n) => ({ name: n, serverRelativeUrl: '/' + n, timeLastModified: '2026-11-15T00:00:00Z' })),
+    getFileBuffer: async (_site, url) => Buffer.from(url.slice(1))
+  }, 'https://x.sharepoint.com/sites/s');
+  const pick = async (names, unit) => { const r = await make(names).findLatestTemplateForUnit(unit, 'DailyReport'); return r.info && r.info.fileName; };
+  assert.equal(await pick(['template_DRP_ST01_20261114.json', 'template_DRP_default.json'], 'ST02'), 'template_DRP_default.json');
+  assert.equal(await pick(['template_DRP_ST01_20261114.json', 'template_DRP_default_20271231.json'], 'ST01'), 'template_DRP_ST01_20261114.json'); // riêng thắng dù chung mới hơn
+  assert.equal(await pick(['template_DRP_ST01_20261114.json'], 'ST02'), undefined);
+});
+
+test('template_DRP_default.json: sạch dữ liệu riêng của ST01, tạo báo cáo cho đơn vị khác dùng được', () => {
+  const text = read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_default.json');
+  const t = J.parseTemplateJson(text);
+  const doc = J.docFromTemplate(t, { docId: 'DailyReport', unit: 'ST02', dateStr: '2026-11-15', email: 'a@b.c', siteManager: 'Sếp', version: 'template_DRP_default' });
+  assert.equal(doc.metadata.docCode, 'HCM2_1-23_CS-THAC_DCEM-CPZZ-ST02-CWS-DRP-00001');
+  const rows = doc.sections.filter((s) => s.kind === 'table').reduce((a, s) => a.concat(s.rows), []);
+  assert.ok(!rows.some((r) => r.isLocked), 'không có dòng khoá');
+  assert.ok(!rows.some((r) => Object.values(r.values).some((v) => /ST01/.test(String(v)))), 'không còn mã riêng ST01');
+  assert.equal(doc.sections.find((s) => s.key === 'weather').rows[0].values.am, 'Nắng');
+  assert.equal(doc.sections.find((s) => s.key === 'manpower').rows.length, 6);
+  assert.equal(doc.sections.find((s) => s.key === 'signOff').fields.find((f) => f.key === 'preparedBy').value, 'a@b.c');
+  assert.equal(doc.sections.find((s) => s.key === 'hse').fields.find((f) => f.key === 'engineerInstructions').value, '');
+});
+
 test('mã dòng mới = số lớn nhất + 1, không trùng', () => {
   const doc = J.jsonToDoc(J.parseReportJson(sampleText), tpl());
   const ev = doc.sections.find((s) => s.key === 'events');

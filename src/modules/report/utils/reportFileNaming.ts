@@ -181,6 +181,24 @@ export function matchUnitTemplateFileName(
 }
 
 /**
+ * Template dùng chung khi đơn vị không có template riêng: template_<DRP|WRP>_default.json
+ * (có thể kèm ngày để báo cập nhật: template_DRP_default_20261114.json).
+ */
+export function matchDefaultTemplateFileName(
+  fileName: string,
+  docId?: string
+): { version: string; versionDate: string; fileName: string } | undefined {
+  const trimmed = fileName.trim();
+  if (!/\.json$/i.test(trimmed)) return undefined;
+
+  const base = trimmed.replace(/\.json$/i, '');
+  const match = base.match(/^template_([a-z]+)_default(?:_(\d{8}))?$/i);
+  if (!match) return undefined;
+  if (match[1].toUpperCase() !== getDocShortPrefix(docId)) return undefined;
+  return { fileName: trimmed, version: base, versionDate: match[2] || '' };
+}
+
+/**
  * Check if a report's templateVersion is outdated compared to the latest TemplateVersionInfo in _template/
  */
 export function isTemplateVersionOutdated(

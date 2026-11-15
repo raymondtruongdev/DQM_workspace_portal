@@ -357,7 +357,6 @@
         },
         {
           "id": "r2",
-          "locked": true,
           "cells": {
             "activityId": "CV-ST01-00001",
             "element": "Tấm tường vây số 01",
@@ -373,7 +372,6 @@
         },
         {
           "id": "r3",
-          "locked": true,
           "cells": {
             "activityId": "CV-ST01-00001",
             "element": "Tấm tường vây số 02",
@@ -390,7 +388,6 @@
         },
         {
           "id": "r4",
-          "locked": true,
           "cells": {
             "activityId": "---",
             "element": "Đường dẫn",

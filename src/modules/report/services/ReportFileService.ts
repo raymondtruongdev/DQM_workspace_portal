@@ -9,6 +9,7 @@ import {
   getReportFileRelativePath,
   getReportPhotosFolderRelativePath,
   getUnitFolderRelativePath,
+  matchDefaultTemplateFileName,
   matchUnitTemplateFileName,
   getReportFolderName,
   getDocShortPrefix,
@@ -83,7 +84,8 @@ export class ReportFileService {
 
   /**
    * Template mới nhất của đơn vị trong _template/ (template_<DRP|WRP>_<Unit>_<yyyyMMdd>.json): ngày trong tên file lớn nhất thắng.
-   * Không có thì trả {}.
+   * Đơn vị không có template riêng thì dùng template chung template_<DRP|WRP>_default.json (hoặc template_<DRP|WRP>_default_<yyyyMMdd>.json).
+   * Template riêng luôn được ưu tiên hơn template chung, dù template chung mới hơn. Không có cả hai thì trả {}.
    */
   public async findLatestTemplateForUnit(
     unit: string,
@@ -95,25 +97,28 @@ export class ReportFileService {
     } catch {
       files = [];
     }
-    const candidates: TemplateVersionInfo[] = [];
-    files.forEach((f) => {
-      const match = matchUnitTemplateFileName(f.name, unit, docId);
-      if (match) {
-        candidates.push({
-          fileName: match.fileName,
-          version: match.version,
-          versionDate: match.versionDate,
-          serverRelativeUrl: f.serverRelativeUrl,
-          timeLastModified: f.timeLastModified
-        });
-      }
-    });
-    candidates.sort((a, b) =>
-      a.versionDate !== b.versionDate
-        ? b.versionDate.localeCompare(a.versionDate)
-        : (b.timeLastModified || '').localeCompare(a.timeLastModified || '')
-    );
-    const best = candidates[0];
+    const collect = (match: (name: string) => { version: string; versionDate: string; fileName: string } | undefined): TemplateVersionInfo[] => {
+      const list: TemplateVersionInfo[] = [];
+      files.forEach((f) => {
+        const m = match(f.name);
+        if (m) {
+          list.push({
+            fileName: m.fileName,
+            version: m.version,
+            versionDate: m.versionDate,
+            serverRelativeUrl: f.serverRelativeUrl,
+            timeLastModified: f.timeLastModified
+          });
+        }
+      });
+      list.sort((a, b) =>
+        a.versionDate !== b.versionDate
+          ? b.versionDate.localeCompare(a.versionDate)
+          : (b.timeLastModified || '').localeCompare(a.timeLastModified || '')
+      );
+      return list;
+    };
+    const best = collect((name) => matchUnitTemplateFileName(name, unit, docId))[0] || collect((name) => matchDefaultTemplateFileName(name, docId))[0];
     if (!best) return {};
     const buffer = await this._client.getFileBuffer(this._siteUrl, best.serverRelativeUrl);
     return buffer ? { info: best, text: new TextDecoder('utf-8').decode(buffer) } : {};
