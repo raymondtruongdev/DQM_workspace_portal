@@ -23,6 +23,10 @@ export interface IReportLandingViewProps {
   onChangeView: (view: 'mine' | 'overview') => void;
   /** Mở form báo cáo của một đơn vị ở một ngày (từ tab Tổng quan). */
   onOpenReportDate: (role: RoleEntry, dateStr: string) => void;
+  /** Được khoá/mở khoá (admin thật và đang xem bằng hồ sơ admin) báo cáo ở tab Tổng quan. */
+  canManageLock?: boolean;
+  /** true = portal đang bảo trì, không được ghi lên SharePoint. */
+  onCheckMaintenance?: () => Promise<boolean>;
 }
 
 export const ReportLandingView: React.FC<IReportLandingViewProps> = ({
@@ -39,7 +43,9 @@ export const ReportLandingView: React.FC<IReportLandingViewProps> = ({
   dataService,
   view,
   onChangeView,
-  onOpenReportDate
+  onOpenReportDate,
+  canManageLock = false,
+  onCheckMaintenance
 }) => {
   const [searchTerm, setSearchTerm] = React.useState<string>('');
 
@@ -149,6 +155,8 @@ export const ReportLandingView: React.FC<IReportLandingViewProps> = ({
           dataService={dataService}
           onOpenUnit={onSelectReport}
           onOpenDate={onOpenReportDate}
+          canManageLock={canManageLock}
+          onCheckMaintenance={onCheckMaintenance}
         />
       </div>
     );

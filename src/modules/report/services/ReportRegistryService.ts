@@ -9,6 +9,39 @@ export const REPORT_REGISTRY_LIST = 'DRPRegistry';
 
 export type RegistryStatus = 'unsigned' | 'done';
 
+/** Báo cáo đang bị khoá: người dùng chỉ được xem, không sửa/lưu/upload/xoá. Admin mở khoá để cho sửa lại. */
+export class ReportLockedError extends Error {
+  constructor(message = 'Báo cáo này đã bị khoá. Vui lòng liên hệ admin để được mở khoá.') {
+    super(message);
+    this.name = 'ReportLockedError';
+  }
+}
+
+/**
+ * Dòng "giữ chỗ": admin khoá một ngày CHƯA nhập báo cáo nên sổ có dòng nhưng chưa có báo cáo (chưa lưu lần nào, số báo cáo 0).
+ * Dòng này vẫn tính là "Chưa nhập"; khi báo cáo được lưu (sau khi admin mở khoá) dòng được điền tiếp như dòng mới.
+ */
+export function isPlaceholderRow(savedAt: string, reportNo: number, status: RegistryStatus): boolean {
+  return !savedAt && reportNo === 0 && status === 'unsigned';
+}
+
+/** Trạng thái khoá của một báo cáo trong sổ. */
+export interface IReportLock {
+  /** Đã có dòng trong sổ (báo cáo chưa lưu lần nào thì chưa có dòng, không khoá được). */
+  exists: boolean;
+  locked: boolean;
+  /** List có cột `Locked` (chưa có thì không bật/tắt khoá được). */
+  canToggle: boolean;
+}
+
+/**
+ * Khoá hiệu lực của một dòng sổ: cột `Locked` = 1 → khoá, = 0 → mở (admin đã mở khoá); cột trống hoặc không có
+ * cột → khoá khi đã upload bản ký (`Status = done`), nên báo cáo đã ký từ trước khi có tính năng này cũng được khoá.
+ */
+export function isRegistryRowLocked(locked: boolean | undefined, status: RegistryStatus): boolean {
+  return locked === undefined ? status === 'done' : locked;
+}
+
 /** Dấu vết bản đã ký: ai upload bản hiện tại, ai xoá và lúc nào (lần xoá gần nhất). */
 export interface ISignedTrail {
   uploadBy: string;
@@ -17,7 +50,7 @@ export interface ISignedTrail {
 }
 
 /** Tên (tiêu đề) các cột của list; tên nội bộ thật được tra từ list vì có thể khác (vd Unit -> Unit0). */
-const COLS = ['No', 'Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy'] as const;
+const COLS = ['No', 'Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy', 'Locked'] as const;
 type Col = (typeof COLS)[number];
 
 /** Một dòng của list (khoá = tên cột chuẩn ở trên, đã đổi từ tên nội bộ). */
@@ -41,6 +74,8 @@ interface IRegistryRow {
   /** Lần xoá bản đã ký gần nhất: thời điểm ISO và người xoá (cột không bắt buộc). */
   SignedRemovedAt: string;
   SignedRemovedBy: string;
+  /** Cột `Locked` (Number 1/0, tuỳ chọn): 1 = khoá, 0 = admin đã mở khoá, trống = theo trạng thái (xem isRegistryRowLocked). */
+  Locked: boolean | undefined;
 }
 
 const esc = (v: string): string => v.replace(/'/g, "''");
@@ -62,6 +97,8 @@ export class ReportRegistryService {
   private _hasUploadBy = false;
   /** List đã có cột No chưa (có thì tự đánh số thứ tự khi tạo dòng mới). */
   private _hasNo = false;
+  /** List đã có cột Locked chưa (chưa có thì không bật/tắt khoá được; báo cáo đã ký vẫn coi là khoá). */
+  private _hasLocked = false;
 
   constructor(client: ISharePointClient, siteUrl: string, libraryPath: () => string) {
     this._client = client;
@@ -84,6 +121,7 @@ export class ReportRegistryService {
           this._hasCounters = map.counters !== undefined;
           this._hasUploadBy = map.signeduploadby !== undefined;
           this._hasNo = map.no !== undefined;
+          this._hasLocked = map.locked !== undefined;
           this._hasRemoval = map.signedremovedat !== undefined && map.signedremovedby !== undefined;
           COLS.forEach((c) => {
             out[c] = map[c.toLowerCase()] || c;
@@ -103,7 +141,7 @@ export class ReportRegistryService {
   private toInternal(n: Record<Col, string>, data: Partial<Omit<IRegistryRow, 'id'>>): Record<string, unknown> {
     const out: Record<string, unknown> = {};
     (Object.keys(data) as Col[]).forEach((k) => {
-      out[n[k]] = data[k];
+      out[n[k]] = k === 'Locked' ? (data.Locked ? 1 : 0) : data[k]; // cột Locked là Number 1/0
     });
     return out;
   }
@@ -125,7 +163,8 @@ export class ReportRegistryService {
       Counters: str('Counters'),
       SignedUploadBy: str('SignedUploadBy'),
       SignedRemovedAt: str('SignedRemovedAt'),
-      SignedRemovedBy: str('SignedRemovedBy')
+      SignedRemovedBy: str('SignedRemovedBy'),
+      Locked: str('Locked') === '' ? undefined : /^(1|true|yes)$/i.test(str('Locked'))
     };
   }
 
@@ -202,7 +241,12 @@ export class ReportRegistryService {
         this._siteUrl,
         REPORT_REGISTRY_LIST,
         existing.id,
-        this.toInternal(n, { Reporter: reporter, SavedAt: now, ...extra })
+        this.toInternal(n, {
+          Reporter: reporter,
+          SavedAt: now,
+          ...(existing.ReportNo === 0 ? { ReportNo: parseInt(reportNo, 10) || 0 } : {}), // dòng giữ chỗ do admin khoá trước
+          ...extra
+        })
       );
       return;
     }
@@ -252,7 +296,8 @@ export class ReportRegistryService {
       this.toInternal(n, {
         Status: 'done',
         SignedAt: new Date().toISOString(),
-        ...(this._hasUploadBy ? { SignedUploadBy: uploader || reporter } : {})
+        ...(this._hasUploadBy ? { SignedUploadBy: uploader || reporter } : {}),
+        ...(this._hasLocked ? { Locked: true } : {})
       })
     );
   }
@@ -272,9 +317,52 @@ export class ReportRegistryService {
       this._siteUrl,
       REPORT_REGISTRY_LIST,
       item.id,
-      this.toInternal(n, { Status: 'unsigned', SignedAt: '', ...(this._hasUploadBy ? { SignedUploadBy: '' } : {}), ...removal })
+      this.toInternal(n, { Status: 'unsigned', SignedAt: '', ...(this._hasUploadBy ? { SignedUploadBy: '' } : {}), ...(this._hasLocked ? { Locked: false } : {}), ...removal })
     );
     return this._hasRemoval;
+  }
+
+  /** Trạng thái khoá của báo cáo một ngày (chưa có dòng trong sổ = chưa khoá). Lỗi đọc sổ thì ném ra. */
+  public async getLock(unit: string, docId: string, dateStr: string): Promise<IReportLock> {
+    await this.names();
+    const item = await this.findItem(unit, docId, dateStr);
+    return {
+      exists: Boolean(item),
+      locked: item ? isRegistryRowLocked(item.Locked, item.Status) : false,
+      canToggle: this._hasLocked
+    };
+  }
+
+  /** Admin bật/tắt khoá một báo cáo; ngày chưa nhập thì tạo dòng giữ chỗ để khoá trước (xem `isPlaceholderRow`). Ném lỗi nếu list chưa có cột `Locked`. */
+  public async setLocked(unit: string, docId: string, dateStr: string, locked: boolean): Promise<void> {
+    const n = await this.names();
+    if (!this._hasLocked) throw new Error('List DRPRegistry chưa có cột Locked (Number 1/0) nên chưa bật/tắt khoá được.');
+    const item = await this.findItem(unit, docId, dateStr);
+    if (item) {
+      await this._client.updateItem<Record<string, unknown>>(this._siteUrl, REPORT_REGISTRY_LIST, item.id, this.toInternal(n, { Locked: locked }));
+      return;
+    }
+    if (!locked) return; // chưa có dòng nghĩa là chưa khoá, không cần mở
+    // Ngày chưa nhập báo cáo: tạo dòng giữ chỗ để khoá trước (người dùng chỉ xem, chưa lưu được)
+    let no: Partial<Omit<IRegistryRow, 'id'>> = {};
+    if (this._hasNo) {
+      const last = await this.query((c) => `$orderby=${c.No} desc&$top=1`);
+      no = { No: (last[0] ? last[0].No : 0) + 1 };
+    }
+    await this._client.createItem<Record<string, unknown>>(
+      this._siteUrl,
+      REPORT_REGISTRY_LIST,
+      this.toInternal(n, {
+        ...no,
+        Title: ReportRegistryService.keyOf(unit, docId, dateStr),
+        Unit: unit,
+        DocID: getDocShortPrefix(docId),
+        ReportDate: dateStr,
+        ReportNo: 0,
+        Status: 'unsigned',
+        Locked: true
+      })
+    );
   }
 
   /** Dấu vết bản đã ký của một ngày: người upload hiện tại và lần xoá gần nhất (cột chưa có thì trường tương ứng trống). */
@@ -309,12 +397,14 @@ export class ReportRegistryService {
       const key = `${it.Unit}|${it.DocID}`.toLowerCase();
       const folder = getReportFolderRelativePath(this._libraryPath(), it.Unit, it.DocID, it.ReportDate);
       const done = it.Status === 'done';
+      const placeholder = isPlaceholderRow(it.SavedAt, it.ReportNo, it.Status);
       const info: ReportDayInfo = {
         dateStr: it.ReportDate,
-        status: done ? 'done' : 'unsigned',
+        status: done ? 'done' : placeholder ? 'missing' : 'unsigned',
         savedAt: it.SavedAt || undefined,
         reporter: it.Reporter || undefined,
         reportNo: it.ReportNo > 0 ? formatReportNo(it.ReportNo) : undefined,
+        locked: isRegistryRowLocked(it.Locked, it.Status),
         signed: done
           ? {
               // Tên file = <DocCode>_signed.pdf: sổ không lưu Doc. code nên chỉ biết khi mở (openSignedDocument)

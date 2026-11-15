@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { RoleEntry, ToastState } from '../../../core/types';
 import {
+  ConfirmDialog,
   FilterChips,
   Icon,
   LoadingState,
@@ -37,6 +38,8 @@ export interface IReportCalendarViewProps {
   onOpenDate: (dateStr: string) => void;
   /** Email người đang đăng nhập (ghi vào sổ khi upload bản ký). */
   currentUserEmail: string;
+  /** Được khoá/mở khoá (admin thật và đang xem bằng hồ sơ admin) báo cáo từng ngày. */
+  canManageLock?: boolean;
 }
 
 type CalendarMode = 'cal' | 'list';
@@ -56,7 +59,8 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   onCheckMaintenance,
   onBack,
   onOpenDate,
-  currentUserEmail
+  currentUserEmail,
+  canManageLock = false
 }) => {
   const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS), []);
   const todayStr = dates[dates.length - 1];
@@ -67,6 +71,8 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   const [mode, setMode] = React.useState<CalendarMode>('cal');
   const [selected, setSelected] = React.useState<string>(todayStr);
   const [toast, setToast] = React.useState<ToastState | null>(null);
+  const [lockConfirm, setLockConfirm] = React.useState<'lock' | 'unlock' | null>(null);
+  const [isTogglingLock, setIsTogglingLock] = React.useState<boolean>(false);
   const fileRef = React.useRef<HTMLInputElement | null>(null);
   const uploadTarget = React.useRef<string>(todayStr);
 
@@ -106,6 +112,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
 
   const selInfo = byDate[selected];
   const selStatus = statusOf(selected);
+  const selLocked = Boolean(selInfo && selInfo.locked);
   // Sổ DRPRegistry không lưu tên file đã ký (<DocCode>_signed.pdf): đọc thư mục khi chọn ngày đã hoàn tất
   const [resolvedName, setResolvedName] = React.useState<{ date: string; name: string } | null>(null);
   const needName = selStatus === 'done' && !!selInfo && !!selInfo.signed && !selInfo.signed.name;
@@ -155,7 +162,32 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   };
   const folderLabel = `data/${role.unit}/${getReportFolderName(role.docId, role.unit, selected)}/`;
 
+  // Admin bật/tắt khoá báo cáo của ngày đang chọn (cần list DRPRegistry có cột Locked)
+  const toggleLock = async (): Promise<void> => {
+    const target = lockConfirm === 'lock';
+    setLockConfirm(null);
+    if (await onCheckMaintenance()) return;
+    setIsTogglingLock(true);
+    try {
+      await dataService.setReportLocked(role.unit, role.docId, selected, target);
+      setToast({
+        type: 'success',
+        text: target ? `Đã khoá báo cáo ngày ${formatDM(selected)}: người dùng chỉ xem được.` : `Đã mở khoá báo cáo ngày ${formatDM(selected)}: người dùng có thể chỉnh sửa lại.`
+      });
+      await load();
+    } catch (err: unknown) {
+      console.error('Error toggling report lock:', err);
+      setToast({ type: 'error', text: err instanceof Error ? err.message : 'Chưa bật/tắt được khoá báo cáo.' });
+    } finally {
+      setIsTogglingLock(false);
+    }
+  };
+
   const pickFile = (dateStr: string): void => {
+    if (byDate[dateStr] && byDate[dateStr].locked) {
+      setToast({ type: 'error', text: 'Báo cáo ngày này đã khoá. Liên hệ admin để mở khoá nếu cần thay bản ký.' });
+      return;
+    }
     uploadTarget.current = dateStr;
     setSelected(dateStr);
     if (fileRef.current) {
@@ -215,6 +247,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
         <span className="report-cal-day__status">
           <StatusIcon status={st} />
           {DAY_STATUS_LABEL[st]}
+          {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
         </span>
         {info && info.savedAt && <span className="report-cal-day__note">{formatSavedAt(info.savedAt)}</span>}
       </button>
@@ -380,12 +413,13 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                                   <StatusIcon status={st} />
                                   {DAY_STATUS_LABEL[st]}
                                 </span>
+                                {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
                               </td>
                               <td>{info ? formatSavedAt(info.savedAt) : '—'}</td>
                               <td>{info && info.signed ? 'Có' : '—'}</td>
                               <td>
                                 {st === 'unsigned' ? (
-                                  <button type="button" className="btn btn--primary btn--sm" onClick={(e) => { e.stopPropagation(); pickFile(d); }} disabled={isUploading}>
+                                  <button type="button" className="btn btn--primary btn--sm" onClick={(e) => { e.stopPropagation(); pickFile(d); }} disabled={isUploading || Boolean(info && info.locked)}>
                                     Upload bản ký
                                   </button>
                                 ) : (
@@ -406,6 +440,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--missing" />Chưa nhập: chưa bấm Lưu</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--unsigned" />Chưa upload bản ký: đã lưu, thiếu file PDF đã ký</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--done" />Hoàn tất: có file PDF trong thư mục báo cáo</span>
+                <span><Icon name="lock" size={14} /> Đã khoá: chỉ xem, admin mới mở khoá được</span>
               </div>
             </div>
           </div>
@@ -426,6 +461,12 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                     <StatusIcon status={selStatus} />
                     {DAY_STATUS_LABEL[selStatus]}
                   </span>
+                  {selLocked && (
+                    <span className="badge badge--danger" title="Báo cáo đã khoá: chỉ xem, không chỉnh sửa được">
+                      <Icon name="lock" size={14} />
+                      Đã khoá
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="report-day-panel__actions">
@@ -437,7 +478,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 )}
                 {selStatus === 'unsigned' && (
                   <>
-                    <button type="button" className="btn btn--primary" onClick={() => pickFile(selected)} disabled={isUploading}>
+                    <button type="button" className="btn btn--primary" onClick={() => pickFile(selected)} disabled={isUploading || selLocked}>
                       <Icon name="upload" />
                       <span>{isUploading ? 'Đang tải lên...' : 'Upload bản ký'}</span>
                     </button>
@@ -463,6 +504,19 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                       </button>
                     )}
                   </>
+                )}
+                {canManageLock && (
+                  <button
+                    type="button"
+                    className={`btn btn--secondary report-lock-toggle report-lock-toggle--${selLocked ? 'locked' : 'open'}`}
+                    onClick={() => setLockConfirm(selLocked ? 'unlock' : 'lock')}
+                    disabled={isTogglingLock || isUploading}
+                    title={selLocked ? 'Đang khoá (người dùng chỉ xem). Bấm để mở khoá cho phép chỉnh sửa lại' : 'Đang mở (người dùng sửa được). Bấm để khoá: người dùng chỉ xem được'}
+                    aria-label={selLocked ? 'Trạng thái LOCKED, bấm để mở khoá' : 'Trạng thái OPEN, bấm để khoá'}
+                  >
+                    <Icon name={selLocked ? 'lock' : 'lock-open'} />
+                    <span>{selLocked ? 'LOCKED' : 'OPEN'}</span>
+                  </button>
                 )}
               </div>
             </div>
@@ -497,12 +551,33 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 <span>
                   {selStatus === 'missing' && 'Chưa có báo cáo ngày này. Biểu mẫu mới sẽ điền sẵn từ báo cáo gần nhất (không sao chép ảnh).'}
                   {selStatus === 'unsigned' && 'Báo cáo đã lưu. In PDF, ký tên rồi upload bản đã ký để hoàn tất.'}
-                  {selStatus === 'done' && 'Đã có PDF đã ký nên ngày này hoàn tất.'}
+                  {selLocked
+                    ? canManageLock
+                      ? 'Báo cáo đã khoá: người dùng chỉ xem được. Bấm nút LOCKED để mở khoá, cho phép chỉnh sửa lại.'
+                      : 'Báo cáo đã khoá: chỉ xem, không chỉnh sửa được. Cần sửa thì liên hệ admin để mở khoá.'
+                    : selStatus === 'done' && 'Đã có PDF đã ký nên ngày này hoàn tất.'}
                 </span>
               </span>
             </div>
           </div>
         </>
+      )}
+
+      {lockConfirm && (
+        <ConfirmDialog
+          danger={lockConfirm === 'lock'}
+          title={lockConfirm === 'lock' ? 'Khoá báo cáo?' : 'Mở khoá báo cáo?'}
+          message={
+            lockConfirm === 'lock'
+              ? `Báo cáo ${role.unit} ngày ${formatDMY(selected)} sẽ chuyển sang chỉ xem: người dùng không sửa/lưu/upload được cho tới khi admin mở khoá.`
+              : `Người dùng sẽ chỉnh sửa lại được báo cáo ${role.unit} ngày ${formatDMY(selected)}. Báo cáo tự khoá lại khi có bản đã ký mới được upload.`
+          }
+          confirmLabel={lockConfirm === 'lock' ? 'Khoá' : 'Mở khoá'}
+          onConfirm={() => {
+            toggleLock().catch((err) => console.error(err));
+          }}
+          onCancel={() => setLockConfirm(null)}
+        />
       )}
 
       <input

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ReportReadOnlyContext } from './ReportReadOnlyContext';
 import { FormField } from '../types/report.types';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
 import { fieldWithOption } from '../utils/reportForm';
@@ -31,12 +32,13 @@ export const ReportFieldsGrid: React.FC<IReportFieldsGridProps> = ({
   showErrors = false,
   onChange
 }) => {
+  const readOnlyMode = React.useContext(ReportReadOnlyContext);
   const setValue = (key: string, value: FormField['value']): void =>
     onChange(fields.map((f) => (f.key === key ? { ...f, value } : f)));
 
   const renderControl = (f: FormField, bad: boolean): React.ReactNode => {
     const id = `${anchor}-${f.key}`;
-    const common = { id, disabled, 'aria-invalid': bad || undefined };
+    const common = { id, disabled: disabled && !readOnlyMode, readOnly: readOnlyMode, 'aria-invalid': bad || undefined };
     if (f.type === 'textarea') {
       return (
         <textarea

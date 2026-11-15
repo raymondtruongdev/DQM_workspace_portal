@@ -191,4 +191,5 @@ export interface ReportDayInfo {
   signed?: SignedDocInfo;     // file PDF đã ký (nếu có)
   reporter?: string;          // người lập (email) – từ sổ DRPRegistry
   reportNo?: string;          // số báo cáo – từ sổ DRPRegistry
+  locked?: boolean;           // báo cáo đang khoá (đã upload bản ký hoặc admin khoá): người dùng chỉ xem – từ sổ DRPRegistry
 }

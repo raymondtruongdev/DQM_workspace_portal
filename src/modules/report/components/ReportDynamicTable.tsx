@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ReportReadOnlyContext } from './ReportReadOnlyContext';
 import { CellValue, FormField, ReportTable, TableColumn, TableRow } from '../types/report.types';
 import { ReportFieldsGrid } from './ReportFieldsGrid';
 import { ReportCatalog, applyCatalogLinks, canAddToTable, catalogOptionLabels, catalogOptions, findCatalogItem, linkedValue } from '../utils/reportCatalog';
@@ -81,6 +82,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   showErrors = false,
   onChange
 }) => {
+  const readOnlyMode = React.useContext(ReportReadOnlyContext);
   const { columns, rows } = table;
 
   const setRows = (next: TableRow[]): void => onChange({ ...table, rows: next });
@@ -212,8 +214,8 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
             className={`input input--cell${locked ? ' input--locked' : ''}${align}`}
             value={typeof value === 'number' ? value : ''}
             onChange={(e) => updateCell(idx, col.code, parseInputNum(e.target.value))}
-            disabled={disabled}
-            readOnly={locked}
+            disabled={disabled && !readOnlyMode}
+            readOnly={locked || readOnlyMode}
           />
         </td>
       );
@@ -227,7 +229,8 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
             className={`input input--cell${locked ? ' input--locked' : ''}${align}`}
             value={text}
             onChange={(e) => updateCell(idx, col.code, e.target.value)}
-            disabled={disabled || locked}
+            disabled={(disabled && !readOnlyMode) || locked}
+            readOnly={readOnlyMode}
             title={splitLabel(col.label).vi}
           />
         </td>
@@ -268,8 +271,8 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           className={`input input--cell${locked ? ' input--locked' : ''}${align}`}
           value={typeof value === 'string' ? value : value === undefined ? '' : String(value)}
           onChange={(e) => updateCell(idx, col.code, e.target.value)}
-          disabled={disabled}
-          readOnly={locked}
+          disabled={disabled && !readOnlyMode}
+          readOnly={locked || readOnlyMode}
           title={splitLabel(col.label).vi}
         />
       </td>
@@ -378,7 +381,8 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
             placeholder="Nhập tóm tắt (nếu có)..."
             value={table.summary}
             onChange={(e) => onChange({ ...table, summary: e.target.value })}
-            disabled={disabled}
+            disabled={disabled && !readOnlyMode}
+            readOnly={readOnlyMode}
           />
         </div>
       </div>

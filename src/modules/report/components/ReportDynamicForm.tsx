@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ReportReadOnlyContext } from './ReportReadOnlyContext';
 import { FormField, ReportForm } from '../types/report.types';
 import { effectiveColumns } from '../utils/reportForm';
 import { resolveTitle } from '../utils/reportTable';
@@ -25,6 +26,7 @@ export const ReportDynamicForm: React.FC<IReportDynamicFormProps> = ({
   showErrors = false,
   onChange
 }) => {
+  const readOnlyMode = React.useContext(ReportReadOnlyContext);
   const setFields = (fields: FormField[]): void => onChange({ ...form, fields });
 
   return (
@@ -57,7 +59,8 @@ export const ReportDynamicForm: React.FC<IReportDynamicFormProps> = ({
               placeholder="Nhập tóm tắt (nếu có)..."
               value={form.summary}
               onChange={(e) => onChange({ ...form, summary: e.target.value })}
-              disabled={disabled}
+              disabled={disabled && !readOnlyMode}
+              readOnly={readOnlyMode}
             />
           </div>
         </div>

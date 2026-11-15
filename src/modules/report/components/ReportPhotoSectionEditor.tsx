@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ReportReadOnlyContext } from './ReportReadOnlyContext';
 import { PhotoGroup, ReportPhotoSection } from '../types/report.types';
 import { Icon, EmptyState } from '../../../core/components';
 import { ReportPhotoManager } from './ReportPhotoManager';
@@ -30,6 +31,7 @@ export const ReportPhotoSectionEditor: React.FC<IReportPhotoSectionEditorProps> 
   onDeletePhoto,
   onDeleteGroup
 }) => {
+  const readOnlyMode = React.useContext(ReportReadOnlyContext);
   const updateGroup = (id: string, patch: Partial<PhotoGroup>): void =>
     onChange({ ...section, groups: section.groups.map((g) => (g.id === id ? { ...g, ...patch } : g)) });
 
@@ -70,7 +72,8 @@ export const ReportPhotoSectionEditor: React.FC<IReportPhotoSectionEditorProps> 
                     aria-label="Tên bộ phận"
                     value={g.department}
                     onChange={(e) => updateGroup(g.id, { department: e.target.value })}
-                    disabled={disabled}
+                    disabled={disabled && !readOnlyMode}
+                    readOnly={readOnlyMode}
                   />
                   <button
                     type="button"
@@ -101,7 +104,8 @@ export const ReportPhotoSectionEditor: React.FC<IReportPhotoSectionEditorProps> 
                       placeholder="Nhập tóm tắt nội dung ảnh của bộ phận..."
                       value={g.summary}
                       onChange={(e) => updateGroup(g.id, { summary: e.target.value })}
-                      disabled={disabled}
+                      disabled={disabled && !readOnlyMode}
+                      readOnly={readOnlyMode}
                     />
                   </div>
                 </div>
@@ -120,7 +124,8 @@ export const ReportPhotoSectionEditor: React.FC<IReportPhotoSectionEditorProps> 
               rows={2}
               value={section.summary}
               onChange={(e) => onChange({ ...section, summary: e.target.value })}
-              disabled={disabled}
+              disabled={disabled && !readOnlyMode}
+              readOnly={readOnlyMode}
             />
           </div>
         </div>

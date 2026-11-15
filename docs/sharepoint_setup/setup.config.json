@@ -67,7 +67,8 @@
         { "name": "Counters", "type": "Text" },
         { "name": "SignedUploadBy", "type": "Text" },
         { "name": "SignedRemovedAt", "type": "Text" },
-        { "name": "SignedRemovedBy", "type": "Text" }
+        { "name": "SignedRemovedBy", "type": "Text" },
+        { "name": "Locked", "type": "Number", "decimals": 0 }
       ],
       "seed": { "mode": "none" }
     },

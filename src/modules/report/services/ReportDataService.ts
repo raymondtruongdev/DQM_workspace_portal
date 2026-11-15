@@ -10,7 +10,7 @@ import { buildStandaloneHtml, ReportHtmlAssets } from '../utils/reportHtml';
 import { bufferToDataUrl, embeddableImage, mimeOfFile } from '../utils/reportImage';
 import { ReportFileService } from './ReportFileService';
 import { LoadedTemplate, ReportTemplateService } from './ReportTemplateService';
-import { ISignedTrail, ReportRegistryService } from './ReportRegistryService';
+import { IReportLock, ISignedTrail, ReportLockedError, ReportRegistryService } from './ReportRegistryService';
 import { ReportCatalogService } from './ReportCatalogService';
 
 export interface LoadedReportResult {
@@ -94,6 +94,31 @@ export class ReportDataService {
   }
 
   /** Báo cáo ngày mới có số báo cáo theo sổ DRPRegistry (báo cáo tuần là placeholder nên bỏ qua). */
+  /**
+   * Trạng thái khoá của báo cáo một ngày (chỉ báo cáo ngày). Báo cáo tuần hoặc không đọc được sổ thì undefined
+   * (coi là không khoá, form vẫn dùng được; việc ghi vẫn được kiểm tra lại ở `assertUnlocked`).
+   */
+  public async getLockState(unit: string, docId: string, dateStr: string): Promise<IReportLock | undefined> {
+    if (!this.isDaily(docId)) return undefined;
+    try {
+      return await this._registry.getLock(unit, docId, dateStr);
+    } catch (err: unknown) {
+      console.warn('[DRPRegistry] Could not read lock state:', err);
+      return undefined;
+    }
+  }
+
+  /** Admin bật/tắt khoá báo cáo một ngày. Nơi gọi phải `checkMaintenance()` trước. Lỗi (chưa có dòng, thiếu cột Locked, thiếu quyền) thì ném ra. */
+  public async setReportLocked(unit: string, docId: string, dateStr: string, locked: boolean): Promise<void> {
+    await this._registry.setLocked(unit, docId, dateStr, locked);
+  }
+
+  /** Mọi thao tác ghi vào báo cáo của một ngày phải qua đây: báo cáo đang khoá thì ném `ReportLockedError`. Không đọc được sổ thì cho qua. */
+  private async assertUnlocked(unit: string, docId: string, dateStr: string): Promise<void> {
+    const lock = await this.getLockState(unit, docId, dateStr);
+    if (lock && lock.locked) throw new ReportLockedError();
+  }
+
   private isDaily(docId: string): boolean {
     return !docId.toLowerCase().includes('week');
   }
@@ -245,6 +270,7 @@ export class ReportDataService {
     doc: ReportDoc,
     userEmail: string
   ): Promise<{ serverRelativeUrl: string; eTag?: string; metadata: ReportMetadata; registryWarning?: string; htmlWarning?: string }> {
+    await this.assertUnlocked(doc.unit, doc.docId, doc.dateStr);
     const base = doc.isExisting ? doc : await this.applyRegistryNo(doc);
     const now = new Date().toISOString();
     // updated = người đang lưu; created chỉ ghi ở lần lưu đầu tiên và giữ nguyên các lần sau
@@ -339,6 +365,7 @@ export class ReportDataService {
     fileName: string,
     buffer: ArrayBuffer
   ): Promise<string> {
+    await this.assertUnlocked(unit, docId, dateStr);
     return await this._fileService.uploadReportPhoto(unit, docId, dateStr, groupId, fileName, buffer);
   }
 
@@ -405,6 +432,7 @@ export class ReportDataService {
     docCode = '',
     uploader = ''
   ): Promise<{ info: SignedDocInfo; registryWarning?: string }> {
+    await this.assertUnlocked(unit, docId, dateStr); // đã khoá (đã có bản ký): admin mở khoá mới được thay bản ký
     // Upload từ lịch không biết Doc. code: đọc từ file báo cáo đã lưu
     let code = docCode;
     if (!code) {
@@ -433,6 +461,7 @@ export class ReportDataService {
    * Nơi gọi phải `checkMaintenance()` trước.
    */
   public async removeSignedDocument(unit: string, docId: string, dateStr: string, actor: string): Promise<{ warning?: string }> {
+    await this.assertUnlocked(unit, docId, dateStr); // đang khoá thì admin phải mở khoá trước khi xoá bản ký
     await this._fileService.deleteSignedPdfs(unit, docId, dateStr);
     if (!this.isDaily(docId)) return {};
     try {

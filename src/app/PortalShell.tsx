@@ -184,6 +184,7 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
             currentUser={currentUser ?? undefined}
             spHttpClient={spHttpClient}
             siteUrl={siteUrl}
+            isRealAdmin={isRealAdmin}
             onGoHome={() => setActiveModuleId(null)}
             checkMaintenance={checkMaintenance}
           />

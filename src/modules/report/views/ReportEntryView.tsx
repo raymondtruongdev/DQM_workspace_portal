@@ -4,7 +4,7 @@ import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { formatDateToYYYYMMDD } from '../../../core/utils';
 import { PhotoGroup, ReportDoc, ReportMetadata, ReportPhotoSection, ReportSection, SignedDocInfo } from '../types/report.types';
 import { ReportDataService } from '../services/ReportDataService';
-import type { ISignedTrail } from '../services/ReportRegistryService';
+import { IReportLock, ISignedTrail, ReportLockedError } from '../services/ReportRegistryService';
 import { extractTemplateVersionDate, formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 import { buildSectionNumbering } from '../utils/reportSections';
 import { recalculateAllRates } from '../utils/reportTaskTree';
@@ -14,6 +14,7 @@ import { ReportTaskTable } from '../components/ReportTaskTable';
 import { AskCatalogLink, CatalogAddResult } from '../components/ReportDynamicTable';
 import { ReportCatalog, canAddToTable, catalogOptions, catalogWithLink, catalogWithRow, findDuplicate } from '../utils/reportCatalog';
 import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
+import { ReportReadOnlyContext } from '../components/ReportReadOnlyContext';
 import { ReportSignedDocument } from '../components/ReportSignedDocument';
 import { getReportFolderName } from '../utils/reportFileNaming';
 import { ReportPrintPreviewModal } from '../components/ReportPrintPreviewModal';
@@ -37,6 +38,10 @@ export interface IReportEntryViewProps {
   /** Ngày mở sẵn (YYYY-MM-DD); mặc định là hôm nay. */
   initialDate?: string;
   onBack: () => void;
+  /** Về trang chủ portal (nút trong thông báo báo cáo bị khoá). */
+  onGoHome: () => void;
+  /** Được khoá/mở khoá (admin thật và đang xem bằng hồ sơ admin) báo cáo. */
+  canManageLock?: boolean;
 }
 
 export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
@@ -45,7 +50,9 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   dataService,
   onCheckMaintenance,
   initialDate,
-  onBack
+  onBack,
+  onGoHome,
+  canManageLock = false
 }) => {
   const [dateStr, setDateStr] = React.useState<string>(() => initialDate || formatDateToYYYYMMDD(new Date()));
   const [doc, setDoc] = React.useState<ReportDoc | null>(null);
@@ -62,6 +69,23 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   const [isUploadingSigned, setIsUploadingSigned] = React.useState<boolean>(false);
   const [isRemovingSigned, setIsRemovingSigned] = React.useState<boolean>(false);
   const [removeSignedOpen, setRemoveSignedOpen] = React.useState<boolean>(false);
+  // Khoá báo cáo (đã upload bản ký hoặc admin khoá): người dùng chỉ xem/sao chép, không sửa/lưu; admin bật/tắt
+  const [lock, setLock] = React.useState<IReportLock | undefined>(undefined);
+  const [lockConfirm, setLockConfirm] = React.useState<'lock' | 'unlock' | null>(null);
+  const [isTogglingLock, setIsTogglingLock] = React.useState<boolean>(false);
+  /** Hiện hộp thoại "Báo cáo đã bị khoá" (khi đang làm dở mà admin khoá, lúc lưu bị từ chối). */
+  const [lockedNotice, setLockedNotice] = React.useState<boolean>(false);
+  const isLocked = Boolean(lock && lock.locked);
+
+  /** Lỗi khi ghi: báo cáo đã bị khoá (admin vừa khoá hoặc đã ký) thì hiện hộp thoại và chuyển sang chỉ xem; lỗi khác hiện toast. */
+  const handleWriteError = (err: unknown, fallback: string): void => {
+    if (err instanceof ReportLockedError) {
+      setLock((prev) => ({ exists: true, locked: true, canToggle: prev ? prev.canToggle : false }));
+      setLockedNotice(true);
+      return;
+    }
+    setToast({ type: 'error', text: err instanceof Error ? err.message : fallback });
+  };
 
   // Load report data for selected date
   const loadData = React.useCallback(
@@ -325,10 +349,47 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       );
     } catch (err: unknown) {
       console.error('Error uploading signed document:', err);
-      const msg = err instanceof Error ? err.message : 'Lỗi khi upload file đã ký lên SharePoint';
-      setToast({ type: 'error', text: msg });
+      handleWriteError(err, 'Lỗi khi upload file đã ký lên SharePoint');
     } finally {
       setIsUploadingSigned(false);
+    }
+  };
+
+  // Trạng thái khoá đọc từ sổ DRPRegistry mỗi lần mở ngày, và đọc lại sau khi lưu/upload/xoá bản ký/bật tắt khoá
+  React.useEffect(() => {
+    if (isWeekly) {
+      setLock(undefined);
+      return;
+    }
+    let alive = true;
+    dataService
+      .getLockState(role.unit, role.docId, dateStr)
+      .then((l) => {
+        if (alive) setLock(l);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [dataService, role.unit, role.docId, dateStr, isReportSaved, isWeekly, signedDoc, isRemovingSigned, isUploadingSigned, isTogglingLock]);
+
+  // Admin bật/tắt khoá báo cáo của ngày đang mở
+  const handleToggleLock = async (): Promise<void> => {
+    const target = lockConfirm === 'lock';
+    setLockConfirm(null);
+    if (await onCheckMaintenance()) return;
+    setIsTogglingLock(true);
+    try {
+      await dataService.setReportLocked(role.unit, role.docId, dateStr, target);
+      setToast({
+        type: 'success',
+        text: target ? 'Đã khoá báo cáo: người dùng chỉ xem được.' : 'Đã mở khoá báo cáo: người dùng có thể chỉnh sửa lại.'
+      });
+    } catch (err: unknown) {
+      console.error('Error toggling report lock:', err);
+      setToast({ type: 'error', text: err instanceof Error ? err.message : 'Chưa bật/tắt được khoá báo cáo.' });
+    } finally {
+      setIsTogglingLock(false);
     }
   };
 
@@ -367,8 +428,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       );
     } catch (err: unknown) {
       console.error('Error removing signed document:', err);
-      const msg = err instanceof Error ? err.message : 'Lỗi khi xoá file đã ký trên SharePoint';
-      setToast({ type: 'error', text: msg });
+      handleWriteError(err, 'Lỗi khi xoá file đã ký trên SharePoint');
     } finally {
       setIsRemovingSigned(false);
     }
@@ -420,8 +480,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       setToast({ type: 'success', text: `Đã tải lên ${files.length} ảnh.` });
     } catch (err: unknown) {
       console.error('Error uploading photo:', err);
-      const msg = err instanceof Error ? err.message : 'Lỗi khi tải ảnh lên SharePoint';
-      setToast({ type: 'error', text: msg });
+      handleWriteError(err, 'Lỗi khi tải ảnh lên SharePoint');
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -555,8 +614,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       );
     } catch (err: unknown) {
       console.error('Error saving report:', err);
-      const msg = err instanceof Error ? err.message : 'Lỗi khi lưu báo cáo lên SharePoint';
-      setToast({ type: 'error', text: msg });
+      handleWriteError(err, 'Lỗi khi lưu báo cáo lên SharePoint');
     } finally {
       setIsSaving(false);
     }
@@ -568,6 +626,10 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  // Báo cáo đang khoá thì không bắt Apply template (chỉ xem)
+  const tplRequired = Boolean(doc && doc.templateUpdateRequired) && !isLocked;
+  const editDisabled = isSaving || isLocked;
 
   const reportMainTitle = doc?.metadata.docTitle || (isWeekly ? 'Báo cáo tuần' : 'Báo cáo ngày');
 
@@ -612,6 +674,12 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
                 {signedDoc ? 'Hoàn tất (đã có bản ký)' : 'Chưa upload bản ký'}
               </span>
             )}
+            {isLocked && (
+              <span className="badge badge--danger" title="Báo cáo đã khoá: chỉ xem, không chỉnh sửa được">
+                <Icon name="lock" size={16} />
+                Đã khoá
+              </span>
+            )}
             {doc && (
               <span
                 className={`badge ${doc.templateUpdateRequired ? 'badge--warning' : 'badge--success'}`}
@@ -623,18 +691,31 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
           </>
         }
         actions={
-          doc && doc.templateUpdateRequired ? undefined : (
+          doc && tplRequired ? undefined : (
           <>
             {hasUnsavedChanges && (
               <span className="unsaved-badge" title="Có dữ liệu chưa lưu">
                 Chưa lưu
               </span>
             )}
+            {canManageLock && lock && !isWeekly && (
+              <button
+                type="button"
+                className={`btn btn--secondary report-lock-toggle report-lock-toggle--${isLocked ? 'locked' : 'open'}`}
+                onClick={() => setLockConfirm(isLocked ? 'unlock' : 'lock')}
+                disabled={isLoading || isSaving || isTogglingLock}
+                title={isLocked ? 'Đang khoá (người dùng chỉ xem). Bấm để mở khoá cho phép chỉnh sửa lại' : 'Đang mở (người dùng sửa được). Bấm để khoá: người dùng chỉ xem được'}
+                aria-label={isLocked ? 'Trạng thái LOCKED, bấm để mở khoá' : 'Trạng thái OPEN, bấm để khoá'}
+              >
+                <Icon name={isLocked ? 'lock' : 'lock-open'} />
+                <span>{isLocked ? 'LOCKED' : 'OPEN'}</span>
+              </button>
+            )}
             <button
               type="button"
               className="btn btn--secondary"
               onClick={handleOpenPrint}
-              disabled={isLoading || !doc || Boolean(doc.templateUpdateRequired)}
+              disabled={isLoading || !doc || tplRequired}
               title="Xem bản in A4 và xuất PDF"
             >
               <Icon name="print" />
@@ -651,31 +732,33 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
               <Icon name="refresh" spin={isLoading} />
               <span>{isLoading ? 'Đang tải...' : 'Làm mới'}</span>
             </button>
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={handleSave}
-              disabled={isLoading || isSaving || !doc || Boolean(doc.templateUpdateRequired)}
-            >
-              {isSaving ? (
-                <>
-                  <div className="loading-spinner-sm" />
-                  <span>Đang lưu...</span>
-                </>
-              ) : (
-                <>
-                  <Icon name="save" />
-                  <span>Lưu báo cáo</span>
-                </>
-              )}
-            </button>
+            {!isLocked && (
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={handleSave}
+                disabled={isLoading || isSaving || !doc || tplRequired || isLocked}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="loading-spinner-sm" />
+                    <span>Đang lưu...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon name="save" />
+                    <span>Lưu báo cáo</span>
+                  </>
+                )}
+              </button>
+            )}
           </>
           )
         }
       />
 
       {/* 2. Quick Section Navigation Pills */}
-      {!isLoading && doc && !doc.templateUpdateRequired && (
+      {!isLoading && doc && !tplRequired && (
         <div className="chips card report-sec-jump-bar" role="navigation" aria-label="Mục báo cáo">
           {buildSectionNumbering(doc).visible.map((item) => (
             <button
@@ -695,6 +778,20 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
         </div>
       )}
 
+      {isLocked && !isLoading && (
+        <div className="card report-lock-note" role="status">
+          <Icon name="lock" size={20} />
+          <div className="report-lock-note__text">
+            <strong>Báo cáo này đã khoá, chỉ xem.</strong>
+            <span>
+              {' '}
+              Bạn có thể xem và sao chép nội dung nhưng không chỉnh sửa được.
+              {canManageLock ? ' Bấm nút LOCKED ở trên để mở khoá, cho phép chỉnh sửa lại.' : ' Cần chỉnh sửa thì liên hệ admin để mở khoá.'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* 3. Toast Alert */}
       {toast && (
         <div style={{ marginBottom: '16px' }}>
@@ -705,7 +802,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       {/* 4. Main Content */}
       {isLoading ? (
         <LoadingState message="Đang kiểm tra phiên bản biểu mẫu (template) và nạp dữ liệu..." />
-      ) : doc && doc.templateUpdateRequired ? (
+      ) : doc && tplRequired ? (
         <div className="report-tpl-notice" role="alert">
           <div className="report-tpl-notice__top">
             <div className="report-tpl-notice__icon" aria-hidden="true">
@@ -764,6 +861,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
           </div>
         </div>
       ) : doc ? (
+        <ReportReadOnlyContext.Provider value={isLocked}>
         <div className="report-entry-content">
           <ReportMetaForm
             metadata={doc.metadata}
@@ -773,13 +871,13 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             isExisting={!!doc.isExisting}
             subcontractorOptions={catalogOptions(catalog, 'subcontractor', false, true)}
             onAddSubcontractor={handleAddSubcontractor}
-            disabled={isSaving}
+            disabled={editDisabled}
             showErrors={showRequiredErrors}
           />
 
           <ReportSectionsEditor
             doc={doc}
-            disabled={isSaving}
+            disabled={editDisabled}
             isUploadingPhoto={isUploadingPhoto}
             catalog={catalog}
             onAddCatalogItem={handleAddCatalogItem}
@@ -795,9 +893,11 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
           {!isWeekly && (
             <ReportSignedDocument
               folderLabel={`data/${role.unit}/${getReportFolderName(role.docId, role.unit, dateStr)}/`}
-              canUpload={Boolean(doc.isExisting) && !hasUnsavedChanges}
+              canUpload={Boolean(doc.isExisting) && !hasUnsavedChanges && !isLocked}
               blockedReason={
-                doc.isExisting
+                isLocked
+                  ? 'Báo cáo đã khoá. Liên hệ admin để mở khoá nếu cần thay bản đã ký.'
+                  : doc.isExisting
                   ? 'Có thay đổi chưa lưu. Hãy lưu báo cáo trước khi upload bản đã ký để file ký khớp với nội dung.'
                   : 'Lưu báo cáo trước, sau đó mới upload được bản đã ký.'
               }
@@ -806,7 +906,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
               isUploading={isUploadingSigned}
               disabled={isSaving}
               onUpload={handleUploadSigned}
-              onRemove={() => setRemoveSignedOpen(true)}
+              onRemove={isLocked ? undefined : () => setRemoveSignedOpen(true)}
               trail={signedTrail}
               isRemoving={isRemovingSigned}
             />
@@ -816,12 +916,47 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             <ReportTaskTable
               tasks={doc.tasks}
               onTaskChange={handleTaskChange}
-              disabled={isSaving}
+              disabled={editDisabled}
             />
           )}
         </div>
+        </ReportReadOnlyContext.Provider>
       ) : (
         <EmptyState message="Không thể nạp dữ liệu mẫu báo cáo" />
+      )}
+
+      {lockConfirm && (
+        <ConfirmDialog
+          danger={lockConfirm === 'lock'}
+          title={lockConfirm === 'lock' ? 'Khoá báo cáo?' : 'Mở khoá báo cáo?'}
+          message={
+            lockConfirm === 'lock'
+              ? `Báo cáo ${role.unit} ngày ${dateStr} sẽ chuyển sang chỉ xem: người dùng không sửa/lưu/upload được cho tới khi admin mở khoá.${
+                  hasUnsavedChanges ? ' Các thay đổi chưa lưu trên màn hình này sẽ không lưu được.' : ''
+                }`
+              : `Người dùng sẽ chỉnh sửa lại được báo cáo ${role.unit} ngày ${dateStr}. Báo cáo tự khoá lại khi có bản đã ký mới được upload.`
+          }
+          confirmLabel={lockConfirm === 'lock' ? 'Khoá' : 'Mở khoá'}
+          onConfirm={() => {
+            handleToggleLock().catch((err) => console.error(err));
+          }}
+          onCancel={() => setLockConfirm(null)}
+        />
+      )}
+
+      {lockedNotice && (
+        <ConfirmDialog
+          hideCancel
+          danger
+          title="Báo cáo đã bị khoá"
+          message={`Báo cáo ${role.unit} ngày ${dateStr} đã bị khoá nên không lưu được thay đổi của bạn. Vui lòng liên hệ admin để được mở khoá.`}
+          confirmLabel="Trở về Home"
+          onConfirm={() => {
+            setLockedNotice(false);
+            onGoHome();
+          }}
+          onCancel={() => undefined}
+        />
       )}
 
       {removeSignedOpen && doc && (

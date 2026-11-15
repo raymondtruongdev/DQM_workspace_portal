@@ -24,11 +24,14 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
     currentUser,
     spHttpClient,
     siteUrl,
+    isRealAdmin = false,
     onGoHome,
     checkMaintenance
   } = props;
 
   const isAdmin = !!currentUser?.isAdmin;
+  // Khoá/mở khoá báo cáo: phải là admin thật VÀ đang xem bằng hồ sơ admin (đổi sang hồ sơ người dùng để thử giao diện thì không thấy nút, như người dùng thật)
+  const canManageLock = isRealAdmin && isAdmin;
   const effectiveEmail = currentUser?.email || currentUser?.username || '';
 
   // Initialize services
@@ -154,6 +157,7 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
           onBack={handleBackToLanding}
           onOpenDate={handleOpenDate}
           currentUserEmail={effectiveEmail}
+          canManageLock={canManageLock}
         />
       ) : currentView === 'entry' && selectedRole ? (
         <ReportEntryView
@@ -163,6 +167,8 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
           onCheckMaintenance={checkMaintenance}
           initialDate={entryDate}
           onBack={handleBackFromEntry}
+          onGoHome={onGoHome}
+          canManageLock={canManageLock}
         />
       ) : rolesError && !isLoadingRoles ? (
         <>
@@ -205,6 +211,8 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
           view={landingView}
           onChangeView={setLandingView}
           onOpenReportDate={handleOpenReportDate}
+          canManageLock={canManageLock}
+          onCheckMaintenance={checkMaintenance}
         />
       )}
     </div>

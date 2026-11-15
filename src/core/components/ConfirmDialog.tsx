@@ -9,6 +9,8 @@ export interface ConfirmDialogProps {
   danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /** true = chỉ một nút (thông báo bắt buộc xác nhận, vd "Trở về Home"): ẩn nút Huỷ, bấm nền / Esc không đóng. */
+  hideCancel?: boolean;
 }
 
 /**
@@ -21,7 +23,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmLabel = 'Xác nhận',
   danger = false,
   onConfirm,
-  onCancel
+  onCancel,
+  hideCancel = false
 }) => {
   const confirmRef = React.useRef<HTMLButtonElement | null>(null);
   React.useEffect(() => {
@@ -29,7 +32,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   }, []);
 
   return (
-    <div className="dialog-backdrop" onClick={onCancel}>
+    <div className="dialog-backdrop" onClick={hideCancel ? undefined : onCancel}>
       <div
         className="dialog"
         role="alertdialog"
@@ -37,15 +40,17 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') onCancel();
+          if (e.key === 'Escape' && !hideCancel) onCancel();
         }}
       >
         <div className="dialog__title">{title}</div>
         <div className="dialog__body">{message}</div>
         <div className="dialog__actions">
-          <button type="button" className="btn btn--secondary" onClick={onCancel}>
-            Huỷ
-          </button>
+          {!hideCancel && (
+            <button type="button" className="btn btn--secondary" onClick={onCancel}>
+              Huỷ
+            </button>
+          )}
           <button ref={confirmRef} type="button" className={`btn ${danger ? 'btn--danger' : 'btn--primary'}`} onClick={onConfirm}>
             {confirmLabel}
           </button>

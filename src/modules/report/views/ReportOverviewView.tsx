@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { RoleEntry, ToastState } from '../../../core/types';
-import { FilterChips, Icon, SearchInput } from '../../../core/components';
+import { ConfirmDialog, FilterChips, Icon, SearchInput } from '../../../core/components';
 import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { buildExportRows, exportFileName, exportXlsx } from '../utils/reportExport';
 import { ReportDataService } from '../services/ReportDataService';
@@ -25,6 +25,7 @@ import {
   matchesSearch,
   ownerDisplay,
   OverviewRow,
+  ReportListItem,
   StatusFilter,
   statusOfDay
 } from '../utils/reportOverview';
@@ -59,6 +60,10 @@ export interface IReportOverviewViewProps {
   onOpenUnit: (role: RoleEntry) => void;
   /** Mở form báo cáo của một đơn vị ở một ngày. */
   onOpenDate: (role: RoleEntry, dateStr: string) => void;
+  /** Được khoá/mở khoá (admin thật và đang xem bằng hồ sơ admin): có nút OPEN/LOCKED ở từng dòng báo cáo. */
+  canManageLock?: boolean;
+  /** true = portal đang bảo trì, không được ghi lên SharePoint. */
+  onCheckMaintenance?: () => Promise<boolean>;
 }
 
 /** Tổng quan cho admin: hôm nay đơn vị nào thiếu gì, ma trận đơn vị × 14 ngày, danh sách cần xử lý. */
@@ -66,7 +71,9 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
   assignments,
   dataService,
   onOpenUnit,
-  onOpenDate
+  onOpenDate,
+  canManageLock = false,
+  onCheckMaintenance
 }) => {
   const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS), []);
   const todayStr = dates[dates.length - 1];
@@ -91,6 +98,43 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
         console.error(err);
         setToast({ type: 'error', text: 'Không mở được file đã ký.' });
       });
+  };
+  // Khoá / mở khoá báo cáo của một dòng (đơn vị × ngày): có hộp thoại xác nhận
+  const [lockAsk, setLockAsk] = React.useState<{ item: ReportListItem; to: 'lock' | 'unlock' } | null>(null);
+  const [lockBusy, setLockBusy] = React.useState<boolean>(false);
+  const doToggleLock = async (): Promise<void> => {
+    if (!lockAsk) return;
+    const { item, to } = lockAsk;
+    setLockAsk(null);
+    if (onCheckMaintenance && (await onCheckMaintenance())) return;
+    setLockBusy(true);
+    try {
+      await dataService.setReportLocked(item.target.unit, item.target.docId, item.dateStr, to === 'lock');
+      // Cập nhật ngay trong bộ nhớ trang (ma trận, danh sách, bộ nhớ đệm) mà không phải đọc lại cả sổ
+      const next = rows.map((r) =>
+        r.target.key === item.target.key
+          ? {
+              ...r,
+              infos: {
+                ...r.infos,
+                // Ngày chưa nhập chưa có thông tin: khoá trước tạo dòng giữ chỗ (vẫn "Chưa nhập" nhưng đã khoá)
+                [item.dateStr]: { ...(r.infos[item.dateStr] || { dateStr: item.dateStr, status: 'missing' as ReportDayStatus }), locked: to === 'lock' }
+              }
+            }
+          : r
+      );
+      setRows(next);
+      saveOverviewCache({ key: cacheKey, at: Date.now(), rows: next });
+      setToast({
+        type: 'success',
+        text: to === 'lock' ? `Đã khoá báo cáo ${item.target.unit} ngày ${formatDM(item.dateStr)}.` : `Đã mở khoá báo cáo ${item.target.unit} ngày ${formatDM(item.dateStr)}.`
+      });
+    } catch (err: unknown) {
+      console.error('Error toggling report lock:', err);
+      setToast({ type: 'error', text: err instanceof Error ? err.message : 'Chưa bật/tắt được khoá báo cáo.' });
+    } finally {
+      setLockBusy(false);
+    }
   };
   const [loadError, setLoadError] = React.useState<string | undefined>(undefined);
   const [listStatus, setListStatus] = React.useState<StatusFilter>('ALL');
@@ -335,15 +379,18 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
                       }
                       const st = statusOfDay(r, d);
                       const dim = filter !== 'ALL' && st !== filter;
+                      const cellLocked = Boolean(r.infos[d] && r.infos[d].locked);
                       return (
                         <td key={d}>
                           <button
                             type="button"
                             className={`report-ov-cell report-ov-cell--${st}${dim ? ' is-dim' : ''}${d === todayStr ? ' is-today' : ''}`}
-                            title={`${r.target.unit} · ${weekdayLong(d)} ${formatDM(d)} · ${DAY_STATUS_LABEL[st]}`}
-                            aria-label={`${r.target.unit} ${formatDM(d)} ${DAY_STATUS_LABEL[st]}`}
+                            title={`${r.target.unit} · ${weekdayLong(d)} ${formatDM(d)} · ${DAY_STATUS_LABEL[st]}${cellLocked ? ' · Đã khoá' : ''}`}
+                            aria-label={`${r.target.unit} ${formatDM(d)} ${DAY_STATUS_LABEL[st]}${cellLocked ? ', đã khoá' : ''}`}
                             onClick={() => onOpenDate(r.target.role, d)}
-                          />
+                          >
+                            {cellLocked && <Icon name="lock" size={12} className="report-ov-cell__lock" />}
+                          </button>
                         </td>
                       );
                     })}
@@ -469,6 +516,12 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
                       <div className="report-ov-main__line">
                         <span className="report-ov-unit">{i.target.unit}</span>
                         <span className={`badge ${DAY_STATUS_BADGE[i.status]} report-ov-dotted`}>{DAY_STATUS_LABEL[i.status]}</span>
+                        {i.info && i.info.locked && (
+                          <span className="badge badge--danger" title="Báo cáo đã khoá: người dùng chỉ xem">
+                            <Icon name="lock" size={14} />
+                            Đã khoá
+                          </span>
+                        )}
                       </div>
                       <div className="report-ov-main__line">
                         {owners.map((o, k) => {
@@ -512,6 +565,19 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
                     </div>
 
                     <div className="report-ov-action">
+                      {canManageLock && (
+                        <button
+                          type="button"
+                          className={`btn btn--secondary report-lock-toggle report-lock-toggle--${i.info && i.info.locked ? 'locked' : 'open'} report-ov-tip report-ov-tip--end`}
+                          onClick={() => setLockAsk({ item: i, to: i.info && i.info.locked ? 'unlock' : 'lock' })}
+                          disabled={lockBusy}
+                          data-tip={i.info && i.info.locked ? 'Đang khoá. Bấm để mở khoá' : 'Đang mở. Bấm để khoá'}
+                          aria-label={i.info && i.info.locked ? 'Trạng thái LOCKED, bấm để mở khoá' : 'Trạng thái OPEN, bấm để khoá'}
+                        >
+                          <Icon name={i.info && i.info.locked ? 'lock' : 'lock-open'} size={16} />
+                          <span>{i.info && i.info.locked ? 'LOCKED' : 'OPEN'}</span>
+                        </button>
+                      )}
                       {i.status === 'missing' && (
                         <button type="button" className="btn btn--primary" onClick={openReport}>
                           Nhập báo cáo
@@ -567,6 +633,23 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
           )}
         </div>
       </div>
+
+      {lockAsk && (
+        <ConfirmDialog
+          danger={lockAsk.to === 'lock'}
+          title={lockAsk.to === 'lock' ? 'Khoá báo cáo?' : 'Mở khoá báo cáo?'}
+          message={
+            lockAsk.to === 'lock'
+              ? `Báo cáo ${lockAsk.item.target.unit} ngày ${formatDMY(lockAsk.item.dateStr)} sẽ chuyển sang chỉ xem: người dùng không sửa/lưu/upload được cho tới khi admin mở khoá.`
+              : `Người dùng sẽ chỉnh sửa lại được báo cáo ${lockAsk.item.target.unit} ngày ${formatDMY(lockAsk.item.dateStr)}. Báo cáo tự khoá lại khi có bản đã ký mới được upload.`
+          }
+          confirmLabel={lockAsk.to === 'lock' ? 'Khoá' : 'Mở khoá'}
+          onConfirm={() => {
+            doToggleLock().catch((err) => console.error(err));
+          }}
+          onCancel={() => setLockAsk(null)}
+        />
+      )}
     </div>
   );
 };

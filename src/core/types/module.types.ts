@@ -7,6 +7,8 @@ export interface ModuleProps {
   currentUser: UserSession | undefined;
   spHttpClient: SPHttpClient;
   siteUrl: string;
+  /** Tài khoản đăng nhập thật là admin (không phải hồ sơ đang "xem với vai trò khác"); dùng cho thao tác chỉ admin được làm (vd khoá/mở khoá báo cáo). */
+  isRealAdmin?: boolean;
   /** Return to the portal Home page */
   onGoHome: () => void;
   /**
