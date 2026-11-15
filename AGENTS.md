@@ -239,6 +239,8 @@ npm run build
    - Mọi thao tác ghi tuân thủ điều 5 (chế độ bảo trì: `checkMaintenance()` trước khi ghi).
    - Không ghi vào log/console thông tin cá nhân hay token; không gửi dữ liệu người dùng ra dịch vụ bên ngoài SharePoint/M365.
 
+9. **Thư mục `docs/notForAI/` (KHÔNG đọc):** chứa tài liệu riêng của chủ dự án, không dành cho AI. Không đọc, không mở, không phân tích, không trích dẫn bất kỳ file/thư mục nào bên trong (kể cả khi `grep`/`find`/quét toàn repo: loại thư mục này ra, vd `--exclude-dir=notForAI`). Chỉ làm việc với nó khi chủ dự án chỉ đích danh yêu cầu.
+
 ---
 
 ## 8. UI & Style System (BẮT BUỘC cho mọi module hiện tại và sau này)
