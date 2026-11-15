@@ -61,6 +61,10 @@ export class ReportDataService {
   }
 
   /** Thêm một mục vào danh mục dùng chung (người dùng thêm bằng "Khác…"); trả mục lưu được và `created` = false nếu đã có. */
+  public updateCatalogLink(unit: string, table: string, code: string, link: string): Promise<boolean> {
+    return this._catalogSource.updateLink(unit, table, code, link);
+  }
+
   public addCatalogItem(unit: string, row: CatalogRow): Promise<{ row: CatalogRow; created: boolean }> {
     return this._catalogSource.addRow(unit, row);
   }

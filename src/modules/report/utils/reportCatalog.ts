@@ -25,6 +25,8 @@ export interface CatalogItem {
   nameEn?: string;
   /** Ghi chú ngắn (không bắt buộc): chỉ để gợi ý trong dropdown, KHÔNG lưu vào báo cáo. */
   note?: string;
+  /** true = người dùng thêm bằng "Khác…" (AddedByAdmin = 0): liên kết (vd Activity của cấu kiện) còn sửa được; mục admin tạo sẵn thì khoá. */
+  addedByUser?: boolean;
 }
 
 export interface CatalogTable {
@@ -210,6 +212,8 @@ export function linkedValue(
   const cur = String(values[src.code] ?? '');
   if (src.optionsBy) return findCatalogItemByLink(catalog, src.optionsRef, cur)?.id || undefined;
   const item = findCatalogItem(catalog, src.optionsRef, cur);
+  // Mục người dùng thêm (chưa liên kết chắc chắn) thì ô phụ thuộc vẫn chọn được; mục admin tạo sẵn thì khoá theo liên kết
+  if (item && item.addedByUser && !col.fromField) return undefined;
   const v = item ? catalogLinkOf(item, col) : undefined;
   return v || undefined;
 }
@@ -278,6 +282,7 @@ export function mergeCatalogRows(catalog: ReportCatalog, rows: CatalogRow[]): Re
       if (r.nameVn) item.nameVn = r.nameVn;
       if (r.nameEn) item.nameEn = r.nameEn;
       if (r.note) item.note = r.note;
+      if (r.addedByUser) item.addedByUser = true;
       t.items.push(item);
     }
   });
@@ -287,6 +292,18 @@ export function mergeCatalogRows(catalog: ReportCatalog, rows: CatalogRow[]): Re
 /** Danh mục sau khi thêm một mục (không sửa danh mục cũ). */
 export function catalogWithRow(catalog: ReportCatalog | undefined, unit: string, row: CatalogRow): ReportCatalog {
   return mergeCatalogRows(catalog || { unit, tables: {}, warnings: [] }, [row]);
+}
+
+/** Danh mục sau khi đổi giá trị liên kết (`link`) của mục có mã `code` trong bảng `ref` (không sửa danh mục cũ). */
+export function catalogWithLink(catalog: ReportCatalog, ref: string, code: string, link: string): ReportCatalog {
+  const key = ref.toLowerCase();
+  const table = catalog.tables[key];
+  if (!table) return catalog;
+  const k = code.toLowerCase();
+  return {
+    ...catalog,
+    tables: { ...catalog.tables, [key]: { ...table, items: table.items.map((i) => (i.id && i.id.toLowerCase() === k ? { ...i, link } : i)) } }
+  };
 }
 
 /** Bảng chỉ admin được thêm/bớt (nằm trong ActivityP6.xlsx), dù file có đọc được hay không. */

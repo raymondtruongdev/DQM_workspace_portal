@@ -12,7 +12,7 @@ import { getMissingRequiredFields, getFieldLabel, getMissingFormFields } from '.
 import { ReportMetaForm } from '../components/ReportMetaForm';
 import { ReportTaskTable } from '../components/ReportTaskTable';
 import { AskCatalogLink, CatalogAddResult } from '../components/ReportDynamicTable';
-import { ReportCatalog, canAddToTable, catalogOptions, catalogWithRow, findDuplicate } from '../utils/reportCatalog';
+import { ReportCatalog, canAddToTable, catalogOptions, catalogWithLink, catalogWithRow, findDuplicate } from '../utils/reportCatalog';
 import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
 import { ReportSignedDocument } from '../components/ReportSignedDocument';
 import { getReportFolderName } from '../utils/reportFileNaming';
@@ -211,6 +211,26 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       console.warn('[Report] Could not add catalog item:', err);
       setToast({ type: 'error', text: 'Chưa thêm được vào danh mục dùng chung (list DRPCatalogItems); giá trị chỉ lưu trong báo cáo này.' });
       return undefined;
+    }
+  };
+
+  /**
+   * Người dùng chọn lại Activity cho cấu kiện do người dùng thêm (`AddedByAdmin = 0`): ghi liên kết vào danh mục dùng chung
+   * để mọi người sau thấy cấu kiện đã liên kết. Mục admin tạo sẵn thì không cập nhật. Lỗi (thiếu quyền sửa…) thì chỉ cảnh báo,
+   * giá trị vẫn lưu trong báo cáo này.
+   */
+  const handleUpdateCatalogLink = async (ref: string, code: string, link: string): Promise<void> => {
+    if (!catalog) return;
+    if (await onCheckMaintenance()) return;
+    try {
+      const ok = await dataService.updateCatalogLink(role.unit, ref, code, link);
+      if (!ok) return;
+      catalogStamp.current.version++;
+      setCatalog(catalogWithLink(catalog, ref, code, link));
+      setToast({ type: 'success', text: `Đã cập nhật liên kết của "${code}" trong danh mục dùng chung.` });
+    } catch (err: unknown) {
+      console.warn('[Report] Could not update catalog link:', err);
+      setToast({ type: 'error', text: 'Chưa cập nhật được liên kết trong danh mục dùng chung (cần quyền sửa mục do bạn thêm); giá trị chỉ lưu trong báo cáo này.' });
     }
   };
 
@@ -763,6 +783,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             isUploadingPhoto={isUploadingPhoto}
             catalog={catalog}
             onAddCatalogItem={handleAddCatalogItem}
+            onUpdateCatalogLink={handleUpdateCatalogLink}
             showErrors={showRequiredErrors}
             onSectionChange={handleSectionChange}
             photosFolder={photosFolder}

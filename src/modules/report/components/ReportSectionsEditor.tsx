@@ -14,6 +14,8 @@ export interface IReportSectionsEditorProps {
   catalog?: ReportCatalog;
   /** Thêm giá trị mới vào danh mục dùng chung, kèm hỏi liên kết (xem ReportDynamicTable). */
   onAddCatalogItem?: IReportDynamicTableProps['onAddCatalogItem'];
+  /** Cập nhật liên kết của mục do người dùng thêm (xem ReportDynamicTable). */
+  onUpdateCatalogLink?: IReportDynamicTableProps['onUpdateCatalogLink'];
   /** Tô đỏ các trường bắt buộc đang trống. */
   showErrors?: boolean;
   onSectionChange: (section: ReportSection) => void;
@@ -31,6 +33,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
   isUploadingPhoto = false,
   catalog,
   onAddCatalogItem,
+  onUpdateCatalogLink,
   showErrors = false,
   onSectionChange,
   photosFolder,
@@ -53,6 +56,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
               unit={doc.unit}
               catalog={catalog}
               onAddCatalogItem={onAddCatalogItem}
+              onUpdateCatalogLink={onUpdateCatalogLink}
               idCounters={doc.idCounters}
               dateStr={doc.dateStr}
               roman={roman}

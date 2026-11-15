@@ -107,6 +107,27 @@ export class ReportCatalogService {
   }
 
   /**
+   * Cập nhật giá trị liên kết (`Link`, vd Activity của cấu kiện) của mục có mã `code`. CHỈ mục do người dùng thêm
+   * (`AddedByAdmin = 0`) mới được cập nhật; mục admin tạo sẵn (trống/1) bị từ chối (trả false). Người dùng cần quyền sửa dòng do chính họ tạo
+   * (List settings > Advanced > Item-level Permissions: "Create items and edit items that were created by the user").
+   */
+  public async updateLink(unit: string, table: string, code: string, link: string): Promise<boolean> {
+    const n = await this.names();
+    if (!this._hasAddedByAdmin) return false; // không có cột đánh dấu thì không phân biệt được mục người dùng thêm
+    const found = await this._client.queryItems<Record<string, unknown>>(
+      this._siteUrl,
+      REPORT_CATALOG_LIST,
+      `$filter=${n.Catalog} eq '${esc(table.toLowerCase())}' and ${n.Code} eq '${esc(code)}' and (${n.Unit} eq '${esc(unit)}' or ${n.Unit} eq '${CATALOG_SHARED_UNIT}')&$top=1`
+    );
+    const raw = found[0];
+    if (!raw || !this.rowOf(n, raw).addedByUser) return false;
+    const id = Number(raw.Id ?? raw.ID);
+    if (!id) return false;
+    await this._client.updateItem<Record<string, unknown>>(this._siteUrl, REPORT_CATALOG_LIST, id, { [n.Link]: link });
+    return true;
+  }
+
+  /**
    * Thêm một mục. Đã có mục cùng khoá (do người khác vừa thêm cùng lúc) thì không báo lỗi:
    * trả về mục sẵn có với `created = false`.
    */
@@ -137,7 +158,7 @@ export class ReportCatalogService {
         ...(this._hasAddedByAdmin ? { [n.AddedByAdmin]: 0 } : {}),
         ...(this._hasActive ? { [n.Active]: 1 } : {})
       });
-      return { row, created: true };
+      return { row: { ...row, addedByUser: true }, created: true };
     } catch (err: unknown) {
       if (!isDuplicateError(err)) throw err;
       const again = await find();

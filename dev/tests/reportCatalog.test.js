@@ -95,3 +95,22 @@ test('fromField: cột Tên tài nguyên tự điền theo NameVN của mã (kh�
   assert.equal(v2.category, '');
   assert.equal(C.linkedValue(columns, columns[1], { resId: 'XXX' }, cat), undefined);
 });
+
+test('cấu kiện do người dùng thêm (AddedByAdmin = 0): Activity không bị khoá và cập nhật được liên kết; cấu kiện admin thì khoá', () => {
+  const cat = C.mergeCatalogRows({ unit: 'ST01', tables: {}, warnings: [] }, [
+    { table: 'element_id', code: 'Admin 1', link: 'A1' },
+    { table: 'element_id', code: 'Mới 1', link: '', addedByUser: true },
+    { table: 'element_id', code: 'Mới 2', link: 'A2', addedByUser: true }
+  ]);
+  const columns = [
+    { code: 'element', label: 'Cấu kiện', type: 'select', optionsRef: 'element_id' },
+    { code: 'activityId', label: 'Activity', type: 'select', optionsRef: 'activityp6_id', from: 'element' }
+  ];
+  assert.equal(C.linkedValue(columns, columns[1], { element: 'Admin 1' }, cat), 'A1'); // admin tạo sẵn: khoá theo liên kết
+  assert.equal(C.linkedValue(columns, columns[1], { element: 'Mới 1' }, cat), undefined); // chưa liên kết: chọn tay
+  assert.equal(C.linkedValue(columns, columns[1], { element: 'Mới 2' }, cat), undefined); // người dùng thêm: vẫn sửa được
+  const next = C.catalogWithLink(cat, 'element_id', 'mới 1', 'A9');
+  assert.equal(C.findCatalogItem(next, 'element_id', 'Mới 1').link, 'A9');
+  assert.equal(C.findCatalogItem(cat, 'element_id', 'Mới 1').link, ''); // không sửa danh mục cũ
+  assert.equal(C.findCatalogItem(next, 'element_id', 'Mới 1').addedByUser, true);
+});

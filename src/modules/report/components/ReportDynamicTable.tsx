@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { CellValue, FormField, ReportTable, TableColumn, TableRow } from '../types/report.types';
 import { ReportFieldsGrid } from './ReportFieldsGrid';
-import { ReportCatalog, applyCatalogLinks, canAddToTable, catalogOptionLabels, catalogOptions, linkedValue } from '../utils/reportCatalog';
+import { ReportCatalog, applyCatalogLinks, canAddToTable, catalogOptionLabels, catalogOptions, findCatalogItem, linkedValue } from '../utils/reportCatalog';
 import { Icon } from '../../../core/components/Icon';
 import { PromptDialog } from '../../../core/components/PromptDialog';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
@@ -38,6 +38,11 @@ export interface IReportDynamicTableProps {
    * và danh mục mới; trả undefined nếu không ghi được (khi đó giá trị chỉ lưu trong spec của báo cáo này), `{ cancelled }` nếu người dùng huỷ.
    * `askLink` hỏi giá trị liên kết của mục mới (vd Activity của cấu kiện mới; link '' = bỏ qua, undefined = huỷ).
    */
+  /**
+   * Người dùng chọn lại giá trị cho cột phụ thuộc (vd Activity) của một mục do người dùng thêm (`AddedByAdmin = 0`):
+   * ghi liên kết mới vào danh mục dùng chung (`ref` = bảng của cột nguồn, `code` = mã đang chọn).
+   */
+  onUpdateCatalogLink?: (ref: string, code: string, link: string) => Promise<void>;
   onAddCatalogItem?: (ref: string, value: string, byLink: boolean, askLink?: AskCatalogLink) => Promise<CatalogAddResult | undefined>;
   /** Số lớn nhất đã dùng ở các báo cáo khác cho mã tự tăng (Event ID, Issue ID…), để dòng mới nhận số kế tiếp. */
   idCounters?: Record<string, number>;
@@ -67,6 +72,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   unit,
   catalog,
   onAddCatalogItem,
+  onUpdateCatalogLink,
   idCounters,
   dateStr,
   roman,
@@ -117,6 +123,14 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
         return recalcRow(columns, { ...row, values });
       })
     );
+    // Cột phụ thuộc (vd Activity) đổi giá trị cho mục do người dùng thêm: cập nhật liên kết trong danh mục
+    const dep = columns.filter((c) => c.code === code)[0];
+    const src = dep && dep.from && !dep.fromField ? columns.filter((c) => c.code.toLowerCase() === dep.from!.toLowerCase())[0] : undefined;
+    if (src && src.optionsRef && onUpdateCatalogLink && typeof value === 'string' && value !== '---' && value !== '') {
+      const srcCode = String(rows[index]?.values[src.code] ?? '');
+      const item = findCatalogItem(catalog, src.optionsRef, srcCode);
+      if (item && item.addedByUser && item.link !== value) onUpdateCatalogLink(src.optionsRef, srcCode, value).catch(() => undefined);
+    }
   };
 
   /** Giá trị mới của ô select: thêm vào danh sách chọn của cột (ghi vào spec) và gán cho ô đang sửa. */
