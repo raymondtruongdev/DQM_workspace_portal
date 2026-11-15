@@ -1,10 +1,11 @@
 import { ISharePointClient } from '../../../core/services/SharePointClient';
 import { ReportDayInfo } from '../types/report.types';
-import { getReportFolderRelativePath } from '../utils/reportFileNaming';
+import { getDocShortPrefix, getReportFolderRelativePath } from '../utils/reportFileNaming';
 import { formatReportNo } from '../utils/reportMeta';
+import { normalizeDocId } from '../utils/reportRole';
 
 /** Tên SharePoint List quản lý trạng thái và số báo cáo (cột cần tạo: xem AGENTS.md mục 5.3). */
-export const REPORT_REGISTRY_LIST = 'ReportRegistry';
+export const REPORT_REGISTRY_LIST = 'DRPRegistry';
 
 export type RegistryStatus = 'unsigned' | 'done';
 
@@ -16,12 +17,14 @@ export interface ISignedTrail {
 }
 
 /** Tên (tiêu đề) các cột của list; tên nội bộ thật được tra từ list vì có thể khác (vd Unit -> Unit0). */
-const COLS = ['Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy'] as const;
+const COLS = ['No', 'Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy'] as const;
 type Col = (typeof COLS)[number];
 
 /** Một dòng của list (khoá = tên cột chuẩn ở trên, đã đổi từ tên nội bộ). */
 interface IRegistryRow {
   id: number;
+  /** Số thứ tự dòng (cột tuỳ chọn, code tự đánh khi tạo dòng mới). */
+  No: number;
   Title: string;
   Unit: string;
   DocID: string;
@@ -43,7 +46,7 @@ interface IRegistryRow {
 const esc = (v: string): string => v.replace(/'/g, "''");
 
 /**
- * Sổ quản lý báo cáo (SharePoint List `ReportRegistry`): số báo cáo hiện tại của từng đơn vị, người lập,
+ * Sổ quản lý báo cáo (SharePoint List `DRPRegistry`): số báo cáo hiện tại của từng đơn vị, người lập,
  * trạng thái, thời điểm lưu/ký. Nguồn dữ liệu của số báo cáo, lịch 14 ngày và tab Tổng quan.
  */
 export class ReportRegistryService {
@@ -57,6 +60,8 @@ export class ReportRegistryService {
   private _hasRemoval = false;
   /** List đã có cột SignedUploadBy chưa. */
   private _hasUploadBy = false;
+  /** List đã có cột No chưa (có thì tự đánh số thứ tự khi tạo dòng mới). */
+  private _hasNo = false;
 
   constructor(client: ISharePointClient, siteUrl: string, libraryPath: () => string) {
     this._client = client;
@@ -64,9 +69,9 @@ export class ReportRegistryService {
     this._libraryPath = libraryPath;
   }
 
-  /** Khoá duy nhất của một báo cáo: "ST01|DailyReport|2026-11-12". */
+  /** Khoá duy nhất của một báo cáo (cột Title): "DRP_20261112_ST01" = <DRP|WRP>_<yyyyMMdd>_<Unit>. */
   public static keyOf(unit: string, docId: string, dateStr: string): string {
-    return `${unit}|${docId}|${dateStr}`;
+    return `${getDocShortPrefix(docId)}_${dateStr.replace(/-/g, '')}_${unit}`;
   }
 
   /** Tên nội bộ của các cột (đọc một lần, nhớ lại); không tra được thì coi tên nội bộ = tên cột. */
@@ -78,6 +83,7 @@ export class ReportRegistryService {
           const out = {} as Record<Col, string>;
           this._hasCounters = map.counters !== undefined;
           this._hasUploadBy = map.signeduploadby !== undefined;
+          this._hasNo = map.no !== undefined;
           this._hasRemoval = map.signedremovedat !== undefined && map.signedremovedby !== undefined;
           COLS.forEach((c) => {
             out[c] = map[c.toLowerCase()] || c;
@@ -106,9 +112,10 @@ export class ReportRegistryService {
     const str = (c: Col): string => (raw[n[c]] === undefined || raw[n[c]] === null ? '' : String(raw[n[c]]));
     return {
       id: Number(raw.Id),
+      No: Number(raw[n.No]) || 0,
       Title: str('Title'),
       Unit: str('Unit'),
-      DocID: str('DocID'),
+      DocID: normalizeDocId(str('DocID')),
       ReportDate: str('ReportDate'),
       ReportNo: Number(raw[n.ReportNo]) || 0,
       Reporter: str('Reporter'),
@@ -143,7 +150,7 @@ export class ReportRegistryService {
     if (existing && existing.ReportNo > 0) return formatReportNo(existing.ReportNo);
     const top = await this.query(
       (n) =>
-        `$filter=${n.Unit} eq '${esc(unit)}' and ${n.DocID} eq '${esc(docId)}'&$orderby=${n.ReportNo} desc&$top=1`
+        `$filter=${n.Unit} eq '${esc(unit)}' and ${n.DocID} eq '${esc(getDocShortPrefix(docId))}'&$orderby=${n.ReportNo} desc&$top=1`
     );
     return formatReportNo((top[0] ? top[0].ReportNo : 0) + 1);
   }
@@ -156,7 +163,7 @@ export class ReportRegistryService {
     await this.names();
     if (!this._hasCounters) return {};
     const top = await this.query(
-      (n) => `$filter=${n.Unit} eq '${esc(unit)}' and ${n.DocID} eq '${esc(docId)}'&$orderby=${n.ReportNo} desc&$top=1`
+      (n) => `$filter=${n.Unit} eq '${esc(unit)}' and ${n.DocID} eq '${esc(getDocShortPrefix(docId))}'&$orderby=${n.ReportNo} desc&$top=1`
     );
     return top[0] ? ReportRegistryService.parseCounters(top[0].Counters) : {};
   }
@@ -199,13 +206,19 @@ export class ReportRegistryService {
       );
       return;
     }
+    let no: Partial<Omit<IRegistryRow, 'id'>> = {};
+    if (this._hasNo) {
+      const last = await this.query((c) => `$orderby=${c.No} desc&$top=1`);
+      no = { No: (last[0] ? last[0].No : 0) + 1 };
+    }
     await this._client.createItem<Record<string, unknown>>(
       this._siteUrl,
       REPORT_REGISTRY_LIST,
       this.toInternal(n, {
+        ...no,
         Title: ReportRegistryService.keyOf(unit, docId, dateStr),
         Unit: unit,
-        DocID: docId,
+        DocID: getDocShortPrefix(docId),
         ReportDate: dateStr,
         ReportNo: parseInt(reportNo, 10) || 0,
         Reporter: reporter,
@@ -288,7 +301,7 @@ export class ReportRegistryService {
   ): Promise<Record<string, Record<string, ReportDayInfo>>> {
     const rows = await this.query(
       (n) =>
-        `$filter=${n.DocID} eq '${esc(docId)}' and ${n.ReportDate} ge '${esc(fromDate)}'` +
+        `$filter=${n.DocID} eq '${esc(getDocShortPrefix(docId))}' and ${n.ReportDate} ge '${esc(fromDate)}'` +
         `${unit ? ` and ${n.Unit} eq '${esc(unit)}'` : ''}&$top=5000`
     );
     const out: Record<string, Record<string, ReportDayInfo>> = {};

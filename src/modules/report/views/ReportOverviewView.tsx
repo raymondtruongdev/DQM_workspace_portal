@@ -116,7 +116,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
       setIsLoading(true);
       setLoadError(undefined);
       try {
-        // Một lần đọc sổ ReportRegistry cho mọi đơn vị (thay vì quét thư mục từng đơn vị)
+        // Một lần đọc sổ DRPRegistry cho mọi đơn vị (thay vì quét thư mục từng đơn vị)
         const docIds = targets.map((t) => t.docId).filter((d, i, arr) => arr.indexOf(d) === i);
         const merged: Record<string, Record<string, ReportDayInfo>> = {};
         for (const docId of docIds) {
@@ -131,10 +131,10 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
         setRows(next);
         saveOverviewCache({ key: cacheKey, at: Date.now(), rows: next });
       } catch (err: unknown) {
-        console.warn('[ReportOverview] Could not read ReportRegistry:', err);
+        console.warn('[ReportOverview] Could not read DRPRegistry:', err);
         if (runId.current !== myRun) return;
         setRows(targets.map((t) => ({ target: t, state: 'error', infos: {} })));
-        setLoadError('Không đọc được sổ ReportRegistry. Kiểm tra list đã được tạo và bạn có quyền đọc.');
+        setLoadError('Không đọc được sổ DRPRegistry. Kiểm tra list đã được tạo và bạn có quyền đọc.');
       } finally {
         if (runId.current === myRun) setIsLoading(false);
       }

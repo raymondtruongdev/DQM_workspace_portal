@@ -8,7 +8,7 @@ import {
 
 /**
  * Bảng động: định nghĩa cột (kiểu, danh mục, công thức, mặc định, luỹ kế…) đến từ template JSON, ghép với nhãn của báo cáo
- * theo `id` cột (xem reportJson.ts). Ô select dùng danh mục (list CatalogItems) hoặc danh sách cố định `options`;
+ * theo `id` cột (xem reportJson.ts). Ô select dùng danh mục (list DRPCatalogItems) hoặc danh sách cố định `options`;
  * mọi ô select đều có mục cuối "Khác…" để thêm giá trị mới (danh mục thì ghi vào list dùng chung).
  * Mã tự tăng: cột text có default chứa {n<k>} (vd EVT-{unit}-{n5}) = số lớn nhất đang dùng + 1, đệm k chữ số.
  */
@@ -204,7 +204,7 @@ function scanMaxAutoId(tpl: string, unit: string, table: ReportTable, code: stri
 
 /**
  * Số thứ tự kế tiếp cho mẫu có {n<k>}: lớn hơn cả số đang có ở cột lẫn `floor` (số đã dùng ở các báo cáo khác của đơn vị,
- * lấy từ sổ ReportRegistry), đệm k chữ số.
+ * lấy từ sổ DRPRegistry), đệm k chữ số.
  */
 function expandDefault(tpl: string, unit: string, table: ReportTable, code: string, floor = 0): string {
   const parts = splitAutoTemplate(tpl, unit);
@@ -218,7 +218,7 @@ export function autoIdColumns(table: ReportTable): TableColumn[] {
   return table.columns.filter((c) => c.type === 'text' && c.defaultValue !== undefined && /\{n\d*\}/i.test(c.defaultValue));
 }
 
-/** Khoá bộ đếm của một cột mã tự tăng trong sổ ReportRegistry: "events.eventid". */
+/** Khoá bộ đếm của một cột mã tự tăng trong sổ DRPRegistry: "events.eventid". */
 export function autoIdKey(table: ReportTable, col: TableColumn): string {
   return `${table.key}.${col.code}`.toLowerCase();
 }

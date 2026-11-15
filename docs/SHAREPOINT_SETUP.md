@@ -13,9 +13,9 @@ Tất cả file cần để cài đặt nằm trong `docs/sharepoint_setup/`: c�
 |---|---|---|---|
 | `DailyReportLibrary` | Thư viện tài liệu | Template, danh mục Activity, logo, báo cáo hằng ngày | Xem bảng ở mục 2 |
 | `UserProfiles` | List | Nhận diện người đăng nhập, vai trò admin/user | Chỉ admin |
-| `ReportRole` | List | Ai được làm báo cáo của đơn vị nào (một người có thể nhiều dòng) | Chỉ admin |
-| `ReportRegistry` | List | Sổ báo cáo: số báo cáo tự tăng, trạng thái từng ngày, tab Tổng quan, lịch 14 ngày | Người báo cáo thêm/sửa, admin toàn quyền |
-| `CatalogItems` | List | Danh mục cho dropdown (Element, nhân lực, thiết bị, vật tư, thời tiết, trạng thái, đơn vị thi công…) | Người báo cáo chỉ thêm, admin toàn quyền |
+| `DRPRole` | List | Ai được làm báo cáo của đơn vị nào (một người có thể nhiều dòng) | Chỉ admin |
+| `DRPRegistry` | List | Sổ báo cáo: số báo cáo tự tăng, trạng thái từng ngày, tab Tổng quan, lịch 14 ngày | Người báo cáo thêm/sửa, admin toàn quyền |
+| `DRPCatalogItems` | List | Danh mục cho dropdown (Element, nhân lực, thiết bị, vật tư, thời tiết, trạng thái, đơn vị thi công…) | Người báo cáo chỉ thêm, admin toàn quyền |
 | `SiteAssets/portal_config.json` | File | Chế độ bảo trì (Shutdown Server) | Admin (tự tạo khi bật bảo trì lần đầu) |
 
 Tên thư viện/list phải đúng chữ hoa/thường như trên (tên thư viện đặt ở `REPORT_CONFIG.LIBRARY_NAME` trong `src/modules/report/constants/reportConfig.ts`).
@@ -53,7 +53,7 @@ DailyReportLibrary/
 | `_template/template_DRP_<Unit>_<yyyyMMdd>.json` | `_template/` | Người dùng: chỉ đọc. Admin: ghi |
 | `resource/thaco_logo.jpg`, `crec_logo.jpg` | `resource/` | Người dùng: chỉ đọc. Admin: ghi |
 
-**Không upload:** `data/` (báo cáo demo, chỉ để tham khảo cấu trúc; muốn thử thì upload nguyên thư mục `data/ST01/DRP_20261114_ST01`), các file `*_list.xlsx` (dùng để tạo list ở mục 3; không còn file `ReportRole.xlsx`, phân quyền nằm ở list `ReportRole`), `_template/*.xlsx` (template Excel cũ, app không đọc), `*.docx`, `~$*`.
+**Không upload:** `data/` (báo cáo demo, chỉ để tham khảo cấu trúc; muốn thử thì upload nguyên thư mục `data/ST01/DRP_20261114_ST01`), các file `*_list.xlsx` (dùng để tạo list ở mục 3; không còn file `DRPRole.xlsx`, phân quyền nằm ở list `DRPRole`), `_template/*.xlsx` (template Excel cũ, app không đọc), `*.docx`, `~$*`.
 
 ### 2.2 `ActivityP6.xlsx` (một sheet `ActivityP6`)
 
@@ -80,31 +80,31 @@ Dòng 1: `ActivityID | Unit | Description`; mỗi dòng sau một Activity.
 
 ## 3. Bốn list trên site
 
-Đủ bốn list: `UserProfiles`, `ReportRole`, `ReportRegistry`, `CatalogItems`. Mỗi file `docs/sharepoint_setup/*_list.xlsx` có sẵn sheet `Huong_dan` mô tả từng bước và kiểu cột; phần dưới tóm tắt những điểm bắt buộc.
+Đủ bốn list: `UserProfiles`, `DRPRole`, `DRPRegistry`, `DRPCatalogItems`. Mỗi file `docs/sharepoint_setup/*_list.xlsx` có sẵn sheet `Huong_dan` mô tả từng bước và kiểu cột; phần dưới tóm tắt những điểm bắt buộc.
 
-> **Lưu ý khi tạo list từ Excel (UserProfiles và ReportRole):** SharePoint lấy **cột chữ đầu tiên** của bảng làm cột `Title` và đặt tên hiển thị là `Title`, nên tên tiêu đề của cột đó (thường là `DisplayName`) biến mất khỏi list; các cột còn lại giữ nguyên tên. Web part đã xử lý: không có cột `DisplayName` thì dùng `Title` làm tên hiển thị. Vì vậy trong file Excel, cột chữ đầu tiên phải là `DisplayName` (không phải `Email`), và tiêu đề từng cột phải đúng dữ liệu bên dưới; nếu `Email` bị lấy làm `Title` thì web part không tìm thấy cột `Email`.
+> **Lưu ý khi tạo list từ Excel (UserProfiles và DRPRole):** SharePoint lấy **cột chữ đầu tiên** của bảng làm cột `Title` và đặt tên hiển thị là `Title`, nên tên tiêu đề của cột đó (thường là `DisplayName`) biến mất khỏi list; các cột còn lại giữ nguyên tên. Web part đã xử lý: không có cột `DisplayName` thì dùng `Title` làm tên hiển thị. Vì vậy trong file Excel, cột chữ đầu tiên phải là `DisplayName` (không phải `Email`), và tiêu đề từng cột phải đúng dữ liệu bên dưới; nếu `Email` bị lấy làm `Title` thì web part không tìm thấy cột `Email`.
 
 ### 3.1 `UserProfiles` (từ `docs/sharepoint_setup/UserProfiles_list.xlsx`)
 - Tạo list: New > List > From Excel > chọn bảng `UserProfiles`. Thay dữ liệu mẫu bằng danh sách người dùng thật.
 - Cột quan trọng nhất: `Email` (UPN M365), `Role` (`ADMIN` hoặc `USER`).
-- Cột `Active` (Yes/No): `No` = tạm khoá người dùng mà không xoá dòng; trống = Yes. Luôn giữ ít nhất một admin `Yes`. Import từ Excel không có kiểu Yes/No: chọn Single line of text (chữ Yes/No) hoặc Number (1/0), web đọc được cả hai; cột Yes/No thật chỉ có khi tạo bằng script `docs/sharepoint_setup`. Cột `Active` của `ReportRole` cũng vậy.
+- Cột `Active` (Number `1`/`0`; Yes/No vẫn đọc được): `0` = tạm khoá người dùng mà không xoá dòng; trống = Yes. Luôn giữ ít nhất một admin `Yes`. Import từ Excel không có kiểu Yes/No: chọn Single line of text (chữ Yes/No) hoặc Number (1/0), web đọc được cả hai; cột Yes/No thật chỉ có khi tạo bằng script `docs/sharepoint_setup`. Cột `Active` của `DRPRole` cũng vậy.
 - Quyền: người thường chỉ **đọc**; chỉ admin thêm/sửa/xoá (vai trò ADMIN trong list chính là quyền admin của web part).
 
-### 3.2 `ReportRole` (từ `docs/sharepoint_setup/ReportRole_list.xlsx`): phân quyền báo cáo theo người
-- Tạo list từ Excel (bảng `ReportRole`), đặt tên list đúng **`ReportRole`**. Cột: `Email`, `DisplayName`, `Unit`, `DocID`, `DocTitle` (Single line of text; `DisplayName` có thể là cột Title) và `Active` (**Yes/No**).
-- Mỗi dòng = một người × một đơn vị × một loại báo cáo (`DocID` = `DailyReport`; `WeeklyReport` chỉ là placeholder). Một ô `Email` có thể chứa nhiều email ngăn bằng `;` hoặc dấu phẩy. `DisplayName` là tên người phụ trách, tự điền vào ô "Trưởng ga / CHT" của mục ký duyệt.
-- Tên cột cùng ý nghĩa dùng cùng tên ở các list khác: `Email`, `DisplayName` (như `UserProfiles`), `Unit`, `DocID` (như `ReportRegistry`).
-- Người dùng chỉ thấy ô báo cáo có dòng `Active = Yes` với email của mình. Admin (`Role` = `ADMIN` trong `UserProfiles`) thấy tất cả mà không cần dòng ở đây. **Người dùng phải có trong cả `UserProfiles` và `ReportRole`.**
+### 3.2 `DRPRole` (từ `docs/sharepoint_setup/DRPRole_list.xlsx`): phân quyền báo cáo theo người
+- Tạo list từ Excel (bảng `DRPRole`), đặt tên list đúng **`DRPRole`**. Cột: `Email`, `DisplayName`, `Unit`, `DocID`, `DocTitle` (Single line of text; `DisplayName` có thể là cột Title) và `Active` (**Number 1/0**; Yes/No vẫn đọc được).
+- Mỗi dòng = một người × một đơn vị × một loại báo cáo (`DocID` = `DRP`; `WRP` chỉ là placeholder). Một ô `Email` có thể chứa nhiều email ngăn bằng `;` hoặc dấu phẩy. `DisplayName` là tên người phụ trách, tự điền vào ô "Trưởng ga / CHT" của mục ký duyệt.
+- Tên cột cùng ý nghĩa dùng cùng tên ở các list khác: `Email`, `DisplayName` (như `UserProfiles`), `Unit`, `DocID` (như `DRPRegistry`).
+- Người dùng chỉ thấy ô báo cáo có dòng `Active = Yes` với email của mình. Admin (`Role` = `ADMIN` trong `UserProfiles`) thấy tất cả mà không cần dòng ở đây. **Người dùng phải có trong cả `UserProfiles` và `DRPRole`.**
 - Quyền: người báo cáo chỉ **đọc**; chỉ admin thêm/sửa/xoá. Bật versioning.
 
-### 3.3 `ReportRegistry` (từ `docs/sharepoint_setup/ReportRegistry_list.xlsx`)
-- Tạo list từ Excel (bảng `ReportRegistry`); cột `ReportDate`, `SavedAt`, `SignedAt`, `Status`, `Counters`, `SignedUploadBy`, `SignedRemovedAt`, `SignedRemovedBy` (ba cột cuối tuỳ chọn: người upload bản ký hiện tại, lần xoá bản ký gần nhất) đều chọn **Single line of text** (không chọn Date/Choice); `ReportNo` kiểu Number, **0 chữ số thập phân**.
-- Xoá dòng mẫu `ST00|DailyReport|2000-01-01` sau khi tạo.
+### 3.3 `DRPRegistry` (từ `docs/sharepoint_setup/DRPRegistry_list.xlsx`)
+- Tạo list từ Excel (bảng `DRPRegistry`); cột tuỳ chọn `No` (Number, 0 số lẻ, Indexed) để web tự đánh số thứ tự khi tạo dòng mới; cột `ReportDate`, `SavedAt`, `SignedAt`, `Status`, `Counters`, `SignedUploadBy`, `SignedRemovedAt`, `SignedRemovedBy` (ba cột cuối tuỳ chọn: người upload bản ký hiện tại, lần xoá bản ký gần nhất) đều chọn **Single line of text** (không chọn Date/Choice); `ReportNo` kiểu Number, **0 chữ số thập phân**.
+- Xoá dòng mẫu `DRP_20000101_ST00` sau khi tạo.
 - List settings: cột `Title` bật **Indexed** và **Enforce unique values**; tạo Index cho `Title`, `Unit`, `ReportDate`, `ReportNo` (tránh ngưỡng 5000 dòng); bật versioning.
 - Quyền: người báo cáo được **thêm và sửa**, **không xoá** ("Contribute không xoá"); admin toàn quyền. Không xoá dòng cũ (số báo cáo kế tiếp lấy từ số lớn nhất trong list).
 
-### 3.4 `CatalogItems` (từ `docs/sharepoint_setup/CatalogItems_list.xlsx`)
-- Tạo list từ Excel (bảng `CatalogItems`), mọi cột **Single line of text**. File đã gồm 77 dòng: mã nhân lực/thiết bị dùng chung (`Unit = ALL`), Element và Vật tư theo từng đơn vị, và các danh sách chọn dùng chung (`ALL`): `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`.
+### 3.4 `DRPCatalogItems` (từ `docs/sharepoint_setup/DRPCatalogItems_list.xlsx`)
+- Tạo list từ Excel (bảng `DRPCatalogItems`), mọi cột **Single line of text**. File đã gồm 77 dòng: mã nhân lực/thiết bị dùng chung (`Unit = ALL`), Element và Vật tư theo từng đơn vị, và các danh sách chọn dùng chung (`ALL`): `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`.
 - List settings: cột `Title` bật **Indexed** + **Enforce unique values**; Index thêm cho `Unit`; bật versioning.
 - Quyền: người báo cáo chỉ **thêm** dòng (không sửa/xoá); admin toàn quyền (sửa chính tả, gán mã, xoá mục sai).
 - Ý nghĩa cột: `Title` = khoá duy nhất do web tự sinh (`<Unit>|<Catalog>|code|<giá trị chuẩn hoá>`); `Unit` = mã đơn vị hoặc `ALL`; `Catalog` = tên danh mục chữ thường; `Code` = mã/giá trị; `Link` = giá trị ràng buộc (vd mã nhân lực ↔ "Chỉ huy trưởng").
@@ -125,14 +125,14 @@ Không cần tạo tay: admin vào Admin Config > Shutdown Server rồi bật/t�
 Web part tự lấy site hiện hành từ `pageContext.web.absoluteUrl` (hoặc cấu hình `siteUrl` ở Property Pane nếu dữ liệu nằm ở site khác).
 
 ## 6. Quy trình thêm đơn vị mới (vd ST06)
-1. List `ReportRole`: thêm các dòng `Email | DisplayName | ST06 | DailyReport | Báo cáo ngày | Yes`.
+1. List `DRPRole`: thêm các dòng `Email | DisplayName | ST06 | DailyReport | Báo cáo ngày | Yes`.
 2. `_template/`: upload `template_DRP_ST06_<yyyyMMdd>.json` (sao chép template đơn vị khác, đổi dòng mẫu nếu cần).
 3. `ActivityP6.xlsx`: thêm các dòng Activity với `Unit = ST06`.
-4. `CatalogItems`: thêm Element/Vật tư riêng của ST06 (nếu có); mã nhân lực/thiết bị `ALL` đã dùng chung.
+4. `DRPCatalogItems`: thêm Element/Vật tư riêng của ST06 (nếu có); mã nhân lực/thiết bị `ALL` đã dùng chung.
 5. Tạo sẵn thư mục `data/ST06` và cấp quyền Contribute cho nhóm của đơn vị (nếu phân quyền theo đơn vị; xem mục 2.5).
 
 ## 7. Sao lưu
-Mỗi báo cáo là một thư mục tự chứa: `.json` là dữ liệu gốc, `.html` là bản xem/in độc lập (mở offline), `photos/` là ảnh, `*_signed.pdf` là bản ký. Sao chép thư mục `data/` là đủ để sao lưu; sổ `ReportRegistry` chỉ là chỉ mục có thể dựng lại.
+Mỗi báo cáo là một thư mục tự chứa: `.json` là dữ liệu gốc, `.html` là bản xem/in độc lập (mở offline), `photos/` là ảnh, `*_signed.pdf` là bản ký. Sao chép thư mục `data/` là đủ để sao lưu; sổ `DRPRegistry` chỉ là chỉ mục có thể dựng lại.
 SharePoint Online thường buộc file `.html` trong thư viện **tải về** thay vì mở trực tiếp: người dùng tải về rồi mở bằng trình duyệt.
 
 ## 8. Kiểm tra sau khi cài (làm lần lượt)
@@ -140,12 +140,12 @@ SharePoint Online thường buộc file `.html` trong thư viện **tải về**
 | # | Thao tác | Kết quả đúng |
 |---|---|---|
 | 1 | Mở web part bằng tài khoản **admin** | Trang chủ hiện tên, vai trò Admin; có Admin Config |
-| 2 | Vào Quản lý Báo cáo | Tab "Tổng quan" hiện danh sách đơn vị (không có cảnh báo vàng về `ReportRegistry`) |
+| 2 | Vào Quản lý Báo cáo | Tab "Tổng quan" hiện danh sách đơn vị (không có cảnh báo vàng về `DRPRegistry`) |
 | 3 | Mở một đơn vị, ngày hôm nay (chưa có báo cáo) | Form tạo từ template, số báo cáo `00001`, có đủ 11 mục |
 | 4 | Mở dropdown Activity ở mục Khối lượng | Có mã + mô tả của đúng đơn vị đó; không có cảnh báo danh mục |
-| 5 | Chọn "Khác…" ở một ô (vd Thời tiết), nhập giá trị mới | Giá trị được chọn; list `CatalogItems` có thêm một dòng |
+| 5 | Chọn "Khác…" ở một ô (vd Thời tiết), nhập giá trị mới | Giá trị được chọn; list `DRPCatalogItems` có thêm một dòng |
 | 6 | Chọn một mã nhân lực | Ô "Loại" tự điền và khoá |
-| 7 | Điền đơn vị thi công, bấm **Lưu báo cáo** | Thông báo "Đã lưu báo cáo số 00001"; thư mục `data/<Unit>/DRP_<yyyyMMdd>_<Unit>/` có `.json` và `.html`; `ReportRegistry` có 1 dòng `unsigned` |
+| 7 | Điền đơn vị thi công, bấm **Lưu báo cáo** | Thông báo "Đã lưu báo cáo số 00001"; thư mục `data/<Unit>/DRP_<yyyyMMdd>_<Unit>/` có `.json` và `.html`; `DRPRegistry` có 1 dòng `unsigned` |
 | 8 | Tải `.html` về và mở bằng trình duyệt (tắt mạng) | Hiện đủ bản in A4, nút In/Lưu PDF hoạt động |
 | 9 | Tải một ảnh ở mục Ảnh hiện trường, Lưu lại | Ảnh nằm ở `photos/g1/`; `.html` mới nhúng ảnh |
 | 10 | Upload bản PDF đã ký | File `<MãTàiLiệu>_signed.pdf` trong thư mục; sổ chuyển `done` |
@@ -161,13 +161,13 @@ SharePoint Online thường buộc file `.html` trong thư viện **tải về**
 | "Danh mục: Chưa có file danh mục ActivityP6.xlsx…" | Chưa upload hoặc sai tên/vị trí | Đặt `ActivityP6.xlsx` ở **gốc** thư viện |
 | "Sheet … cần có cột ActivityID và Unit ở dòng 1" | Sai tiêu đề cột | Sửa dòng 1 thành `ActivityID | Unit | Description` |
 | "Chưa có Activity nào của đơn vị …" | Không có dòng `Unit` khớp | Thêm dòng cho đơn vị (hoặc `ALL`) |
-| "Chưa đọc được danh mục dùng chung (kiểm tra list CatalogItems…)" | List chưa tạo/sai tên, thiếu quyền đọc | Tạo list `CatalogItems`, cấp quyền đọc |
+| "Chưa đọc được danh mục dùng chung (kiểm tra list DRPCatalogItems…)" | List chưa tạo/sai tên, thiếu quyền đọc | Tạo list `DRPCatalogItems`, cấp quyền đọc |
 | "Chưa thêm được vào danh mục dùng chung" | Thiếu quyền thêm hoặc sai tên cột | Cấp quyền Add; giữ nguyên tên hiển thị 5 cột |
-| "Đã lưu báo cáo nhưng chưa ghi được vào sổ ReportRegistry…" | List chưa tạo, sai kiểu cột (Date/Choice), thiếu quyền | Làm lại mục 3.2; đọc phần "Chi tiết" trong thông báo |
+| "Đã lưu báo cáo nhưng chưa ghi được vào sổ DRPRegistry…" | List chưa tạo, sai kiểu cột (Date/Choice), thiếu quyền | Làm lại mục 3.2; đọc phần "Chi tiết" trong thông báo |
 | "Đã lưu dữ liệu báo cáo nhưng chưa tạo được file HTML xem độc lập" | Thiếu quyền ghi hoặc tenant chặn `.html` | Kiểm tra quyền; dữ liệu `.json` vẫn an toàn |
 | Lưu lỗi "412 / Precondition failed" | Người khác vừa lưu cùng báo cáo | Bấm **Làm mới** rồi sửa lại |
-| Không thấy ô báo cáo nào ("Chưa được phân quyền…") | Email chưa có dòng `Active = Yes` trong list `ReportRole` (hoặc chưa có trong `UserProfiles`) | Thêm/sửa dòng phân quyền |
-| "Chưa đọc được phân quyền báo cáo" (kèm lỗi 404/403) | List `ReportRole` chưa tạo, sai tên hoặc người dùng không có quyền đọc | Tạo list đúng tên `ReportRole`, cấp quyền đọc |
+| Không thấy ô báo cáo nào ("Chưa được phân quyền…") | Email chưa có dòng `Active = Yes` trong list `DRPRole` (hoặc chưa có trong `UserProfiles`) | Thêm/sửa dòng phân quyền |
+| "Chưa đọc được phân quyền báo cáo" (kèm lỗi 404/403) | List `DRPRole` chưa tạo, sai tên hoặc người dùng không có quyền đọc | Tạo list đúng tên `DRPRole`, cấp quyền đọc |
 | Hệ thống đang bảo trì | Admin bật Shutdown Server | Admin tắt ở Admin Config |
 | Dropdown vẫn thiếu giá trị mới sửa ở `ActivityP6.xlsx` | Web nhớ file 5 phút | Tải lại trang |
 | "Tài khoản của bạn chưa có trong danh sách phân quyền UserProfiles" dù đã có dòng | Tên cột nội bộ khác tên hiển thị (list tạo từ Excel hoặc đổi tên cột); hoặc trang đang chạy bản đã deploy cũ | Bản mới tự tra tên cột; mở F12 → Console xem dòng `[PortalShell]`/`[UserProfileService]`; đảm bảo đang chạy bản local hoặc đã deploy lại |

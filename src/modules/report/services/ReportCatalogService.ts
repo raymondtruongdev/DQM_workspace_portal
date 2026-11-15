@@ -2,7 +2,7 @@ import { ISharePointClient } from '../../../core/services/SharePointClient';
 import { CatalogRow, normKey } from '../utils/reportCatalog';
 
 /** Tên SharePoint List chứa danh mục người dùng được tự thêm (cột cần tạo: xem AGENTS.md mục 5.3). */
-export const REPORT_CATALOG_LIST = 'CatalogItems';
+export const REPORT_CATALOG_LIST = 'DRPCatalogItems';
 
 /** Tên (tiêu đề) các cột của list; tên nội bộ thật được tra từ list vì có thể khác. */
 const COLS = ['Title', 'Unit', 'Catalog', 'Code', 'Link'] as const;
@@ -20,7 +20,7 @@ function isDuplicateError(err: unknown): boolean {
 }
 
 /**
- * Danh mục người dùng được tự thêm (SharePoint List `CatalogItems`, dùng chung cho mọi nhà ga và mọi loại danh mục):
+ * Danh mục người dùng được tự thêm (SharePoint List `DRPCatalogItems`, dùng chung cho mọi nhà ga và mọi loại danh mục):
  * Element, Resource nhân lực/thiết bị, Vật tư… Mỗi dòng = một mục. Chống trùng hai lớp: kiểm tra trước khi thêm
  * và khoá duy nhất `Title` của list (`<Unit>|<Catalog>|code|<mã chuẩn hoá>` hoặc `…|link|<giá trị chuẩn hoá>`).
  */

@@ -104,7 +104,7 @@ export interface TemplateColumnJson {
   label: LabelJson;
   /** Mặc định `text`. */
   type?: TemplateColumnType;
-  /** Tên danh mục (Element_ID, weather…) cho cột select: danh sách lấy lúc chạy từ list CatalogItems. */
+  /** Tên danh mục (Element_ID, weather…) cho cột select: danh sách lấy lúc chạy từ list DRPCatalogItems. */
   catalog?: string;
   /** `link`: dropdown liệt kê giá trị ràng buộc (tên vật tư…) thay vì mã; chọn thì cột `from` tự điền mã. */
   catalogBy?: 'link';

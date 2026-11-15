@@ -59,7 +59,7 @@ Hiện mỗi báo cáo ngày được lưu thành một file `.xlsx`, nên dữ 
 - **Giá trị:** ngày `yyyy-MM-dd`, giờ ISO 8601, số là số JSON (`1.5`), ô dropdown chỉ lưu giá trị đã chọn (chuỗi).
 
 ### 3.4 Không lưu trong JSON
-`docCodePattern`, `location` (= `unit`), `required`, `order` của section, tiền tố số của sheet, `type`/`align`/`width`/`layout`/`single`/`perRow`/`ui`, `options`, `catalog`, `from`, `readonly`, `default`, `reset`, `carry`, `formula`, cờ `total`/`locked` của cột, danh sách `subcontractorOptions`, bộ đếm mã tự tăng (đã có trong sổ `ReportRegistry`).
+`docCodePattern`, `location` (= `unit`), `required`, `order` của section, tiền tố số của sheet, `type`/`align`/`width`/`layout`/`single`/`perRow`/`ui`, `options`, `catalog`, `from`, `readonly`, `default`, `reset`, `carry`, `formula`, cờ `total`/`locked` của cột, danh sách `subcontractorOptions`, bộ đếm mã tự tăng (đã có trong sổ `DRPRegistry`).
 
 ## 4. Cấu trúc file lưu
 
@@ -80,7 +80,7 @@ data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
 
 ## 6. Luồng Lưu / Mở
 
-- **Lưu** (`ReportDataService.saveReport`): `checkMaintenance()` → ghi `.json` (giữ ETag) → ghi `.html` → ghi sổ `ReportRegistry`. HTML lỗi thì cảnh báo nhưng vẫn giữ JSON (cách xử lý như ghi sổ).
+- **Lưu** (`ReportDataService.saveReport`): `checkMaintenance()` → ghi `.json` (giữ ETag) → ghi `.html` → ghi sổ `DRPRegistry`. HTML lỗi thì cảnh báo nhưng vẫn giữ JSON (cách xử lý như ghi sổ).
 - **Mở** (`loadReport`): ưu tiên `.json`; chưa có thì đọc `.xlsx` cũ (đường dự phòng); chưa có gì thì lấy báo cáo ngày trước, rồi template.
 - Khi mở: ghép cột với template theo `id`, tính lại công thức và `totals`.
 - **Sao chép từ ngày trước:** áp dụng luỹ kế (`carry`) và reset theo template; bỏ ảnh; `reportNo` do sổ cấp.
@@ -94,7 +94,7 @@ data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
 
 ## 8. Dropdown từ SharePoint list
 
-- Dùng lại list `CatalogItems`. Thêm danh mục cố định với `Unit = ALL`: `weather`, `event_type`, `event_status`, `severity`, `issue_status`, `equip_status`, `supplier`, `subcontractor`.
+- Dùng lại list `DRPCatalogItems`. Thêm danh mục cố định với `Unit = ALL`: `weather`, `event_type`, `event_status`, `severity`, `issue_status`, `equip_status`, `supplier`, `subcontractor`.
 - Template khai báo cột nào dùng danh mục nào theo `id` cột. "Khác…" ghi thẳng vào list.
 - Quyền như hiện nay: người báo cáo chỉ thêm, admin toàn quyền.
 
@@ -151,12 +151,12 @@ data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
 - App chỉ đọc/ghi `.json` (không còn codec Excel). `utils/reportJson.ts`: `jsonToDoc` / `docToJson` / `docFromTemplate` / `applyTemplate` / `carryForwardDoc`, kiểm tra `schema`.
 - **Template JSON** (`_template/template_DRP_<Unit>_<yyyyMMdd>.json`) giữ mọi thứ về cách nhập (kiểu ô, danh mục, công thức, mặc định, luỹ kế, bố cục); mẫu 4 đơn vị trong `docs/sharepoint_setup/DailyReportLibrary/_template/`. Apply template ghép theo `id`, giữ dữ liệu cũ.
 - Mục có thể gồm bảng + `fields` (HSE) hoặc chỉ `fields` (ký duyệt, chỉ đạo); mã dòng `r<n>`; mã nhóm ảnh `g<n>`.
-- Mọi dropdown (kể cả danh sách trước đây cố định) lấy từ danh mục dùng chung. Nguồn danh mục: file `ActivityP6.xlsx` + list `CatalogItems` (file mẫu đã thêm các danh mục `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`). Chạy thử cục bộ dùng list giả lập nạp từ `CatalogItems_list.xlsx` (`dev/`). Đơn vị thi công chọn từ danh mục `subcontractor` (không còn `subcontractorOptions` trong JSON).
+- Mọi dropdown (kể cả danh sách trước đây cố định) lấy từ danh mục dùng chung. Nguồn danh mục: file `ActivityP6.xlsx` + list `DRPCatalogItems` (file mẫu đã thêm các danh mục `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`). Chạy thử cục bộ dùng list giả lập nạp từ `DRPCatalogItems_list.xlsx` (`dev/`). Đơn vị thi công chọn từ danh mục `subcontractor` (không còn `subcontractorOptions` trong JSON).
 - **File HTML độc lập** sinh lúc Lưu: render tĩnh cùng `ReportPrintDocument` của cửa sổ in, nhúng logo + ảnh (nén cạnh dài 1280px, base64) + toàn bộ JSON. Quyết định các điểm mở: ảnh nhúng base64 có nén; không giữ đường đọc Excel cũ; dòng `Tóm tắt | Summary` vẫn in như bản in hiện tại (HTML/in chưa ẩn khi trống).
-- `ActivityP6.xlsx` gọn thành MỘT sheet `ActivityID | Unit | Description` (lọc theo đơn vị trên web, mô tả hiện kèm mã trong dropdown); nguồn tách theo ai được ghi: file chỉ-đọc cho Activity (admin), list `CatalogItems` cho phần người dùng được thêm.
+- `ActivityP6.xlsx` gọn thành MỘT sheet `ActivityID | Unit | Description` (lọc theo đơn vị trên web, mô tả hiện kèm mã trong dropdown); nguồn tách theo ai được ghi: file chỉ-đọc cho Activity (admin), list `DRPCatalogItems` cho phần người dùng được thêm.
 - Khung chạy thử `dev/` (SharePoint giả lập trong bộ nhớ), 9 test chuyển đổi (`npm run test:report`).
 
 **Chưa làm / cần theo dõi:**
-- Thử trên SharePoint thật (list `CatalogItems`, ghi `.html`, quyền, ETag 412, dung lượng HTML khi nhiều ảnh lớn).
+- Thử trên SharePoint thật (list `DRPCatalogItems`, ghi `.html`, quyền, ETag 412, dung lượng HTML khi nhiều ảnh lớn).
 - Không có script chuyển báo cáo Excel cũ sang JSON (không dùng báo cáo cũ).
 - Báo cáo tuần vẫn là placeholder.

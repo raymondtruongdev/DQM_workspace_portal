@@ -11,10 +11,10 @@ Script `setup-sharepoint.mjs` thay cho các bước tạo tay ở mục 2 và 3 
 ## 1. Việc script làm / không làm
 
 **Làm:**
-- List `UserProfiles`, `ReportRole`, `ReportRegistry`, `CatalogItems`: tạo cột đúng tên nội bộ (không bị `field_N`), kiểu Text/Number(0 số lẻ)/Yes-No, `Title` Enforce unique values + Indexed (`ReportRegistry`, `CatalogItems`), index `Unit`/`ReportDate`/`ReportNo`/`Email`, bật versioning.
+- List `UserProfiles`, `DRPRole`, `DRPRegistry`, `DRPCatalogItems`: tạo cột đúng tên nội bộ (không bị `field_N`), kiểu Text/Number(0 số lẻ)/Yes-No, `Title` Enforce unique values + Indexed (`DRPRegistry`, `DRPCatalogItems`), index `Unit`/`ReportDate`/`ReportNo`/`Email`, bật versioning.
 - Thư viện `DailyReportLibrary` + thư mục `_template`, `resource`, `data`, `data/<Unit>` (đơn vị lấy từ tên các file template).
 - Upload `ActivityP6.xlsx`, `_template/template_DRP_*.json`, logo `resource/*.jpg` từ `docs/sharepoint_setup/DailyReportLibrary/`. File đã có trên SharePoint thì **bỏ qua** (tránh đè bản admin đã sửa), dùng `--force` để ghi đè.
-- Nạp dữ liệu: `CatalogItems` (77 dòng mẫu), admin đầu tiên vào `UserProfiles` (`--admin`), `ReportRole` mẫu (chỉ khi có `--seed-sample`). `ReportRegistry` để trống (web part tự ghi).
+- Nạp dữ liệu: `DRPCatalogItems` (77 dòng mẫu), admin đầu tiên vào `UserProfiles` (`--admin`), `DRPRole` mẫu (chỉ khi có `--seed-sample`). `DRPRegistry` để trống (web part tự ghi).
 
 **Không làm (làm tay):** phân quyền list/thư viện (mục 5), build + deploy `.sppkg`, xoá dòng mẫu nếu bạn đã dùng `--seed-sample`.
 
@@ -54,8 +54,8 @@ node docs/sharepoint_setup/setup-sharepoint.mjs --site https://tenant.sharepoint
 | Tuỳ chọn | Ý nghĩa |
 |---|---|
 | `--admin <email>` | Admin đầu tiên (UPN M365) ghi vào `UserProfiles` với `Role = ADMIN`. **Bắt buộc lần đầu**: không có admin thì không ai vào được Admin Config |
-| `--seed-sample` | Nạp thêm `ReportRole` mẫu (email trong file mẫu là của dự án dev, chỉ dùng thử) |
-| `--no-seed-catalog` | Không nạp 77 dòng mẫu của `CatalogItems` |
+| `--seed-sample` | Nạp thêm `DRPRole` mẫu (email trong file mẫu là của dự án dev, chỉ dùng thử) |
+| `--no-seed-catalog` | Không nạp 77 dòng mẫu của `DRPCatalogItems` |
 | `--skip-lists` / `--skip-files` | Chỉ làm phần thư viện / chỉ làm phần list |
 | `--force` | Ghi đè file đã có trong thư viện (ví dụ upload lại `ActivityP6.xlsx`) |
 | `--config <file>` | Dùng file cấu hình khác |
@@ -65,8 +65,8 @@ Sửa `setup.config.json` khi cần thêm cột, thêm file upload hay đổi d�
 
 ## 4. Sau khi chạy
 
-- Mở site, kiểm tra 4 list và thư viện đã có; cột `Title` của `ReportRegistry`/`CatalogItems` có Enforce unique values.
-- Thay dữ liệu mẫu bằng dữ liệu thật: `UserProfiles` (người dùng), `ReportRole` (phân quyền báo cáo), `ActivityP6.xlsx` (Activity thật).
+- Mở site, kiểm tra 4 list và thư viện đã có; cột `Title` của `DRPRegistry`/`DRPCatalogItems` có Enforce unique values.
+- Thay dữ liệu mẫu bằng dữ liệu thật: `UserProfiles` (người dùng), `DRPRole` (phân quyền báo cáo), `ActivityP6.xlsx` (Activity thật).
 - Nếu có dòng mẫu không dùng thì xoá (script không bao giờ xoá dữ liệu).
 
 ## 5. Phân quyền: làm tay trên SharePoint
@@ -75,9 +75,9 @@ Script chủ ý không đổi quyền (sai quyền khó phát hiện và là ph�
 
 | Đối tượng | Người báo cáo | Admin |
 |---|---|---|
-| `UserProfiles`, `ReportRole` | Chỉ đọc | Toàn quyền |
-| `ReportRegistry` | Thêm + sửa, **không xoá** | Toàn quyền |
-| `CatalogItems` | Chỉ **thêm** (không sửa/xoá) | Toàn quyền |
+| `UserProfiles`, `DRPRole` | Chỉ đọc | Toàn quyền |
+| `DRPRegistry` | Thêm + sửa, **không xoá** | Toàn quyền |
+| `DRPCatalogItems` | Chỉ **thêm** (không sửa/xoá) | Toàn quyền |
 | Thư viện gốc, `_template`, `resource`, `ActivityP6.xlsx` | Chỉ đọc | Toàn quyền |
 | `data/` hoặc `data/<Unit>` | Contribute (không xoá file bản ký) | Toàn quyền |
 | `SiteAssets` (chỗ ghi `portal_config.json`) | Không ghi | Ghi |

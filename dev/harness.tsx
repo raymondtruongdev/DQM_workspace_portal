@@ -21,11 +21,11 @@ const LIBRARY = '/sites/demo/DailyReportLibrary';
 const seed = (window as unknown as { __SEED__: Seed }).__SEED__;
 
 Object.keys(seed.files).forEach((rel) => seedFile(`${LIBRARY}/${rel}`, seed.files[rel]));
-seedList('ReportRegistry', [
+seedList('DRPRegistry', [
   {
-    Title: 'ST01|DailyReport|2026-11-10',
+    Title: 'DRP_20261110_ST01',
     Unit: 'ST01',
-    DocID: 'DailyReport',
+    DocID: 'DRP',
     ReportDate: '2026-11-10',
     ReportNo: 1,
     Reporter: 'truongquoctoan1@thadico.com',
@@ -35,10 +35,10 @@ seedList('ReportRegistry', [
     Counters: '{"events.eventid":4,"issues.issueid":4}'
   }
 ]);
-seedList('CatalogItems', seed.catalogRows);
-// ?norole=1: không tạo list ReportRole để thử thông báo lỗi
-if (new URLSearchParams(window.location.search).get('norole') !== '1') seedList('ReportRole', seed.roleRows);
-// ?as=<email>: mở như người dùng THƯỜNG có email đó (mặc định: admin) để thử phân quyền theo list ReportRole
+seedList('DRPCatalogItems', seed.catalogRows);
+// ?norole=1: không tạo list DRPRole để thử thông báo lỗi
+if (new URLSearchParams(window.location.search).get('norole') !== '1') seedList('DRPRole', seed.roleRows);
+// ?as=<email>: mở như người dùng THƯỜNG có email đó (mặc định: admin) để thử phân quyền theo list DRPRole
 const asEmail = new URLSearchParams(window.location.search).get('as');
 
 (window as unknown as { __dev: unknown }).__dev = { dumpFiles, readText, dumpList, LIBRARY };

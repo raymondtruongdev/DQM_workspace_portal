@@ -168,7 +168,7 @@ export interface ReportDoc {
   templateUpdateRequired?: boolean;
   outdatedSourceType?: 'existing' | 'previous_day';
   outdatedTemplateVersion?: string;
-  /** Số lớn nhất đã dùng của các mã tự tăng (Event ID, Issue ID…) ở các báo cáo khác của đơn vị, đọc từ sổ ReportRegistry; khoá "events.eventid". */
+  /** Số lớn nhất đã dùng của các mã tự tăng (Event ID, Issue ID…) ở các báo cáo khác của đơn vị, đọc từ sổ DRPRegistry; khoá "events.eventid". */
   idCounters?: Record<string, number>;
 }
 
@@ -188,6 +188,6 @@ export interface ReportDayInfo {
   status: ReportDayStatus;
   savedAt?: string;           // thời điểm lưu file báo cáo (.json)
   signed?: SignedDocInfo;     // file PDF đã ký (nếu có)
-  reporter?: string;          // người lập (email) – từ sổ ReportRegistry
-  reportNo?: string;          // số báo cáo – từ sổ ReportRegistry
+  reporter?: string;          // người lập (email) – từ sổ DRPRegistry
+  reportNo?: string;          // số báo cáo – từ sổ DRPRegistry
 }

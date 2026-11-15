@@ -33,7 +33,7 @@ export interface IReportDynamicTableProps {
   /** Danh mục cho các cột select:@… và from=… (chưa tải xong thì undefined). */
   catalog?: ReportCatalog;
   /**
-   * Người dùng thêm giá trị mới ("Khác…") vào cột danh mục: ghi vào list CatalogItems (chống trùng). Trả về giá trị cần gán cho ô
+   * Người dùng thêm giá trị mới ("Khác…") vào cột danh mục: ghi vào list DRPCatalogItems (chống trùng). Trả về giá trị cần gán cho ô
    * và danh mục mới; trả undefined nếu không ghi được (khi đó giá trị chỉ lưu trong spec của báo cáo này), `{ cancelled }` nếu người dùng huỷ.
    * `askLink` hỏi giá trị liên kết của mục mới (vd Activity của cấu kiện mới; link '' = bỏ qua, undefined = huỷ).
    */
@@ -121,7 +121,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
       updateCell(index, col.code, value);
       return;
     }
-    // Cột danh mục: ghi vào list CatalogItems (có chống trùng); chọn lại mục sẵn có nếu đã tồn tại
+    // Cột danh mục: ghi vào list DRPCatalogItems (có chống trùng); chọn lại mục sẵn có nếu đã tồn tại
     if (col.optionsRef && onAddCatalogItem) {
       const byLink = col.optionsBy === 'link';
       const added = await onAddCatalogItem(col.optionsRef, value, byLink, byLink ? undefined : makeAskLink(col, value.trim()));

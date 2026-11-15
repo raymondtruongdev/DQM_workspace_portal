@@ -1,7 +1,7 @@
 import { RoleEntry } from '../../../core/types';
 import { ReportDayInfo, ReportDayStatus } from '../types/report.types';
 
-/** Người phụ trách một báo cáo (lấy từ list ReportRole). */
+/** Người phụ trách một báo cáo (lấy từ list DRPRole). */
 export interface ReportOwner {
   name: string;
   email: string;

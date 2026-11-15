@@ -137,7 +137,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
 
   // Dynamic table handlers
   /**
-   * Người dùng chọn "Khác…" ở cột danh mục: chống trùng (mục đã có thì chọn mục sẵn có), chưa có thì ghi vào list CatalogItems
+   * Người dùng chọn "Khác…" ở cột danh mục: chống trùng (mục đã có thì chọn mục sẵn có), chưa có thì ghi vào list DRPCatalogItems
    * để mọi người cùng thấy; mục có mã thì hỏi thêm giá trị liên kết. Trả `{ cancelled }` khi người dùng huỷ, undefined khi không ghi được
    * (giá trị chỉ lưu trong báo cáo này).
    */
@@ -176,7 +176,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       return { value: saved, catalog: next };
     } catch (err: unknown) {
       console.warn('[Report] Could not add catalog item:', err);
-      setToast({ type: 'error', text: 'Chưa thêm được vào danh mục dùng chung (list CatalogItems); giá trị chỉ lưu trong báo cáo này.' });
+      setToast({ type: 'error', text: 'Chưa thêm được vào danh mục dùng chung (list DRPCatalogItems); giá trị chỉ lưu trong báo cáo này.' });
       return undefined;
     }
   };
@@ -279,7 +279,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     }
   };
 
-  // Dấu vết bản đã ký (người upload, lần xoá gần nhất) đọc từ sổ ReportRegistry; đọc lại sau mỗi lần upload/xoá
+  // Dấu vết bản đã ký (người upload, lần xoá gần nhất) đọc từ sổ DRPRegistry; đọc lại sau mỗi lần upload/xoá
   const [signedTrail, setSignedTrail] = React.useState<ISignedTrail | undefined>(undefined);
   React.useEffect(() => {
     if (isWeekly || !isReportSaved) {
@@ -488,7 +488,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     setIsSaving(true);
     try {
       const res = await dataService.saveReport(doc, currentUserEmail);
-      // Số báo cáo/mã tài liệu có thể đã được cấp lại theo sổ ReportRegistry lúc lưu
+      // Số báo cáo/mã tài liệu có thể đã được cấp lại theo sổ DRPRegistry lúc lưu
       setDoc((prev) => (prev ? { ...prev, isExisting: true, eTag: res.eTag, metadata: res.metadata } : null));
       setHasUnsavedChanges(false);
       const warning = res.registryWarning || res.htmlWarning;

@@ -1,4 +1,4 @@
-/** Test đọc phân quyền báo cáo từ list ReportRole. Chạy: npm run test:report */
+/** Test đọc phân quyền báo cáo từ list DRPRole. Chạy: npm run test:report */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
@@ -30,6 +30,10 @@ test('chuẩn hoá DocID và đọc cột Active (Yes/No, chữ, để trống)'
   assert.equal(R.parseActive(false), false);
   assert.equal(R.parseActive('TRUE'), true);
   assert.equal(R.parseActive('No'), false);
+  assert.equal(R.parseActive(1), true);
+  assert.equal(R.parseActive(0), false);
+  assert.equal(R.parseActive('1'), true);
+  assert.equal(R.parseActive('0'), false);
   assert.equal(R.parseActive(''), true);
   assert.equal(R.parseActive(undefined), true);
 });

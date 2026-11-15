@@ -341,7 +341,7 @@
       "rows": [
         {
           "id": "r1",
-          "locked": true,
+          "locked": false,
           "cells": {
             "activityId": "CV-ST01-00001",
             "element": "Tấm tường vây số 01",

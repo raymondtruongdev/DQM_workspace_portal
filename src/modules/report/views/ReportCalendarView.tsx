@@ -106,7 +106,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
 
   const selInfo = byDate[selected];
   const selStatus = statusOf(selected);
-  // Sổ ReportRegistry không lưu tên file đã ký (<DocCode>_signed.pdf): đọc thư mục khi chọn ngày đã hoàn tất
+  // Sổ DRPRegistry không lưu tên file đã ký (<DocCode>_signed.pdf): đọc thư mục khi chọn ngày đã hoàn tất
   const [resolvedName, setResolvedName] = React.useState<{ date: string; name: string } | null>(null);
   const needName = selStatus === 'done' && !!selInfo && !!selInfo.signed && !selInfo.signed.name;
   React.useEffect(() => {

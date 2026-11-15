@@ -19,7 +19,7 @@ export interface IReportSignedDocumentProps {
   /** Xoá file đã ký (có hộp thoại xác nhận + lý do). Không truyền = không hiện nút. */
   onRemove?: () => void;
   isRemoving?: boolean;
-  /** Dấu vết bản đã ký từ sổ ReportRegistry: người upload (khi đã có bản ký), lần xoá gần nhất (khi chưa có). */
+  /** Dấu vết bản đã ký từ sổ DRPRegistry: người upload (khi đã có bản ký), lần xoá gần nhất (khi chưa có). */
   trail?: ISignedTrail;
 }
 

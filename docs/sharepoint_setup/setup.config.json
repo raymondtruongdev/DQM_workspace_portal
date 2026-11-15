@@ -28,12 +28,12 @@
         { "name": "Department", "type": "Text" },
         { "name": "DepartmentName", "type": "Text" },
         { "name": "Role", "type": "Text" },
-        { "name": "Active", "type": "Boolean", "default": true }
+        { "name": "Active", "type": "Number", "decimals": 0, "default": 1 }
       ],
       "seed": { "mode": "admin" }
     },
     {
-      "name": "ReportRole",
+      "name": "DRPRole",
       "description": "Phân quyền báo cáo theo người (Email x Unit x DocID). Người thường chỉ đọc.",
       "titleRequired": false,
       "titleUnique": false,
@@ -44,17 +44,18 @@
         { "name": "Unit", "type": "Text" },
         { "name": "DocID", "type": "Text" },
         { "name": "DocTitle", "type": "Text" },
-        { "name": "Active", "type": "Boolean", "default": true }
+        { "name": "Active", "type": "Number", "decimals": 0, "default": 1 }
       ],
-      "seed": { "mode": "sample", "file": "docs/sharepoint_setup/ReportRole_list.xlsx", "sheet": "ReportRole" }
+      "seed": { "mode": "sample", "file": "docs/sharepoint_setup/DRPRole_list.xlsx", "sheet": "DRPRole" }
     },
     {
-      "name": "ReportRegistry",
+      "name": "DRPRegistry",
       "description": "Sổ báo cáo: số báo cáo tự tăng, trạng thái từng ngày, tab Tổng quan.",
       "titleRequired": true,
       "titleUnique": true,
       "versioning": true,
       "columns": [
+        { "name": "No", "type": "Number", "decimals": 0, "indexed": true },
         { "name": "Unit", "type": "Text", "indexed": true },
         { "name": "DocID", "type": "Text" },
         { "name": "ReportDate", "type": "Text", "indexed": true },
@@ -71,7 +72,7 @@
       "seed": { "mode": "none" }
     },
     {
-      "name": "CatalogItems",
+      "name": "DRPCatalogItems",
       "description": "Danh mục dùng chung cho dropdown (Element, nhân lực, thiết bị, vật tư, thời tiết...).",
       "titleRequired": true,
       "titleUnique": true,
@@ -82,7 +83,7 @@
         { "name": "Code", "type": "Text" },
         { "name": "Link", "type": "Text" }
       ],
-      "seed": { "mode": "sample", "file": "docs/sharepoint_setup/CatalogItems_list.xlsx", "sheet": "CatalogItems", "default": true }
+      "seed": { "mode": "sample", "file": "docs/sharepoint_setup/DRPCatalogItems_list.xlsx", "sheet": "DRPCatalogItems", "default": true }
     }
   ]
 }

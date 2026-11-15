@@ -6,7 +6,7 @@ import { TableColumn, CellValue } from '../types/report.types';
  *  - File `ActivityP6.xlsx` (chỉ admin ghi, người dùng chỉ đọc): MỘT sheet, mỗi dòng một Activity với các cột
  *    `ActivityID` (mã), `Unit` (đơn vị, vd ST01; `ALL` = dùng chung mọi đơn vị) và `Description` (mô tả, không bắt buộc, hiện kèm mã
  *    trong dropdown). Web lọc theo đơn vị đang mở. Muốn bỏ một mã thì xoá dòng; báo cáo cũ vẫn giữ giá trị đã lưu.
- *  - SharePoint List `CatalogItems` (người dùng được tự thêm bằng "Khác…", xem ReportCatalogService): Element, Resource, Vật tư,
+ *  - SharePoint List `DRPCatalogItems` (người dùng được tự thêm bằng "Khác…", xem ReportCatalogService): Element, Resource, Vật tư,
  *    và các danh sách chọn dùng chung (thời tiết, trạng thái…).
  * Mã "---" luôn có sẵn trong dropdown làm giá trị "chưa chọn".
  */
@@ -23,12 +23,12 @@ export interface CatalogItem {
 export interface CatalogTable {
   /** Tên bảng = tiêu đề cột mã, ví dụ "Element_ID". */
   name: string;
-  /** 'file' = từ ActivityP6.xlsx (chỉ admin sửa, người dùng không thêm được); 'list' = từ list CatalogItems hoặc danh mục cục bộ (người dùng được thêm). */
+  /** 'file' = từ ActivityP6.xlsx (chỉ admin sửa, người dùng không thêm được); 'list' = từ list DRPCatalogItems hoặc danh mục cục bộ (người dùng được thêm). */
   source: 'file' | 'list';
   items: CatalogItem[];
 }
 
-/** Một dòng của list CatalogItems (tên bảng đã chuẩn hoá chữ thường). */
+/** Một dòng của list DRPCatalogItems (tên bảng đã chuẩn hoá chữ thường). */
 export interface CatalogRow {
   table: string;
   code: string;
@@ -222,7 +222,7 @@ export function findDuplicate(catalog: ReportCatalog | undefined, ref: string, b
   return table.items.filter((i) => normKey(byLink ? i.link : i.id) === k)[0];
 }
 
-/** Gộp các dòng của list CatalogItems vào danh mục (bảng có sẵn từ file thì thêm mục, bảng chưa có thì tạo mới `source: 'list'`). */
+/** Gộp các dòng của list DRPCatalogItems vào danh mục (bảng có sẵn từ file thì thêm mục, bảng chưa có thì tạo mới `source: 'list'`). */
 export function mergeCatalogRows(catalog: ReportCatalog, rows: CatalogRow[]): ReportCatalog {
   const tables: Record<string, CatalogTable> = {};
   Object.keys(catalog.tables).forEach((k) => {

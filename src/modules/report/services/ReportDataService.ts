@@ -47,7 +47,7 @@ export class ReportDataService {
 
   /**
    * Danh mục (Activity P6, cấu kiện, tài nguyên, vật tư, thời tiết, trạng thái, đơn vị thi công…) của đơn vị cho các dropdown.
-   * Nguồn là list CatalogItems + file ActivityP6.xlsx (Activity, chỉ admin ghi). Không đọc được thì trả
+   * Nguồn là list DRPCatalogItems + file ActivityP6.xlsx (Activity, chỉ admin ghi). Không đọc được thì trả
    * danh mục rỗng/một phần kèm cảnh báo (form vẫn dùng được, chỉ giữ giá trị đã lưu).
    */
   public async getCatalog(unit: string, force = false): Promise<ReportCatalog> {
@@ -55,8 +55,8 @@ export class ReportDataService {
     try {
       return mergeCatalogRows(base, await this._catalogSource.getRows(unit));
     } catch (err: unknown) {
-      console.warn('[Report] Could not read CatalogItems:', err);
-      return { ...base, warnings: base.warnings.concat('Chưa đọc được danh mục dùng chung (kiểm tra list CatalogItems và quyền đọc).') };
+      console.warn('[Report] Could not read DRPCatalogItems:', err);
+      return { ...base, warnings: base.warnings.concat('Chưa đọc được danh mục dùng chung (kiểm tra list DRPCatalogItems và quyền đọc).') };
     }
   }
 
@@ -89,13 +89,13 @@ export class ReportDataService {
     }
   }
 
-  /** Báo cáo ngày mới có số báo cáo theo sổ ReportRegistry (báo cáo tuần là placeholder nên bỏ qua). */
+  /** Báo cáo ngày mới có số báo cáo theo sổ DRPRegistry (báo cáo tuần là placeholder nên bỏ qua). */
   private isDaily(docId: string): boolean {
     return !docId.toLowerCase().includes('week');
   }
 
   /**
-   * Gán số báo cáo từ sổ ReportRegistry (số lớn nhất của đơn vị + 1, hoặc số đã có của ngày này).
+   * Gán số báo cáo từ sổ DRPRegistry (số lớn nhất của đơn vị + 1, hoặc số đã có của ngày này).
    * Không đọc được sổ (chưa tạo list, không có quyền…) thì giữ số suy ra từ báo cáo ngày trước.
    */
   private async applyRegistryNo(doc: ReportDoc): Promise<ReportDoc> {
@@ -104,13 +104,13 @@ export class ReportDataService {
       const no = await this._registry.getReportNoFor(doc.unit, doc.docId, doc.dateStr);
       return { ...doc, metadata: syncMetadata({ ...doc.metadata, reportNo: no }, doc.unit) };
     } catch (err: unknown) {
-      console.warn('[ReportRegistry] Could not read next report no., using previous report:', err);
+      console.warn('[DRPRegistry] Could not read next report no., using previous report:', err);
       return doc;
     }
   }
 
   /**
-   * Gắn bộ đếm mã tự tăng (Event ID, Issue ID…) từ sổ ReportRegistry vào báo cáo để dòng mới nhận số kế tiếp liên tục giữa các ngày,
+   * Gắn bộ đếm mã tự tăng (Event ID, Issue ID…) từ sổ DRPRegistry vào báo cáo để dòng mới nhận số kế tiếp liên tục giữa các ngày,
    * và điền các mã còn trống/còn nguyên mẫu "{n5}". Không đọc được sổ thì chỉ dựa vào các dòng đang có trong báo cáo.
    */
   private async applyIdCounters(doc: ReportDoc): Promise<ReportDoc> {
@@ -119,7 +119,7 @@ export class ReportDataService {
     try {
       counters = await this._registry.getCounters(doc.unit, doc.docId);
     } catch (err: unknown) {
-      console.warn('[ReportRegistry] Could not read ID counters:', err);
+      console.warn('[DRPRegistry] Could not read ID counters:', err);
     }
     return {
       ...doc,
@@ -184,7 +184,7 @@ export class ReportDataService {
       const prevDoc = jsonToDoc(parseReportJson(prev.text), latest ? latest.template : undefined);
       let doc = carryForwardDoc({ ...prevDoc, dateStr: prevDoc.dateStr }, dateStr, currentUserEmail);
       doc = { ...doc, copiedFromDate: prev.sourceDateStr };
-      // Số báo cáo tự nhảy theo từng đơn vị: số của báo cáo ngày trước + 1 (rồi theo sổ ReportRegistry)
+      // Số báo cáo tự nhảy theo từng đơn vị: số của báo cáo ngày trước + 1 (rồi theo sổ DRPRegistry)
       doc = { ...doc, metadata: syncMetadata({ ...doc.metadata, reportNo: nextReportNo(doc.metadata.reportNo) }, unit) };
       doc = applyFormDefaults(doc, ctx);
       doc = await this.applyRegistryNo(doc);
@@ -235,7 +235,7 @@ export class ReportDataService {
 
   /**
    * Lưu báo cáo: ghi `.json` (nguồn dữ liệu, kiểm tra ETag) rồi `.html` (bản xem/in độc lập nhúng dữ liệu) cạnh nhau,
-   * sau đó ghi sổ ReportRegistry. Lỗi ghi HTML hoặc sổ chỉ báo cảnh báo, không chặn việc lưu dữ liệu.
+   * sau đó ghi sổ DRPRegistry. Lỗi ghi HTML hoặc sổ chỉ báo cảnh báo, không chặn việc lưu dữ liệu.
    */
   public async saveReport(
     doc: ReportDoc,
@@ -272,8 +272,8 @@ export class ReportDataService {
         const counters = collectAutoIdCounters(toSave.sections, doc.unit, toSave.idCounters);
         await this._registry.recordSave(doc.unit, doc.docId, doc.dateStr, metadata.reportNo, metadata.email, counters);
       } catch (err: unknown) {
-        console.warn('[ReportRegistry] Could not record save:', err);
-        registryWarning = `Đã lưu báo cáo nhưng chưa ghi được vào sổ ReportRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}`;
+        console.warn('[DRPRegistry] Could not record save:', err);
+        registryWarning = `Đã lưu báo cáo nhưng chưa ghi được vào sổ DRPRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}`;
       }
     }
     return { ...res, metadata, registryWarning, htmlWarning };
@@ -347,7 +347,7 @@ export class ReportDataService {
 
   /**
    * Trạng thái các ngày (YYYY-MM-DD) của một đơn vị: chưa nhập / chưa upload bản ký / hoàn tất.
-   * Đọc từ sổ ReportRegistry (cùng nguồn với tab Tổng quan nên hai màn hình luôn khớp nhau);
+   * Đọc từ sổ DRPRegistry (cùng nguồn với tab Tổng quan nên hai màn hình luôn khớp nhau);
    * chưa tạo được/không đọc được sổ thì tạm quét thư mục data/ (có thể lệch với Tổng quan).
    */
   public async getDayInfos(
@@ -363,7 +363,7 @@ export class ReportDataService {
         const days = byKey[`${unit}|${docId}`.toLowerCase()] || {};
         return dateStrs.map((d): ReportDayInfo => days[d] || { dateStr: d, status: 'missing' });
       } catch (err: unknown) {
-        console.warn('[ReportRegistry] Could not read day infos, scanning folders instead:', err);
+        console.warn('[DRPRegistry] Could not read day infos, scanning folders instead:', err);
       }
     }
     return await this._fileService.getReportDayInfos(unit, docId, dateStrs, concurrency);
@@ -416,15 +416,15 @@ export class ReportDataService {
       try {
         await this._registry.recordSigned(unit, docId, dateStr, reportNo, reporter, uploader);
       } catch (err: unknown) {
-        console.warn('[ReportRegistry] Could not record signed:', err);
-        registryWarning = `Đã upload bản ký nhưng chưa cập nhật được sổ ReportRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}`;
+        console.warn('[DRPRegistry] Could not record signed:', err);
+        registryWarning = `Đã upload bản ký nhưng chưa cập nhật được sổ DRPRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}`;
       }
     }
     return { info, registryWarning };
   }
 
   /**
-   * Xoá bản đã ký của một ngày: xoá file PDF rồi đưa sổ ReportRegistry về "Chưa upload bản ký", ghi thời điểm + người xoá
+   * Xoá bản đã ký của một ngày: xoá file PDF rồi đưa sổ DRPRegistry về "Chưa upload bản ký", ghi thời điểm + người xoá
    * GẦN NHẤT (cột SignedRemovedAt/SignedRemovedBy). Xoá file lỗi thì ném ra; ghi sổ lỗi chỉ trả cảnh báo.
    * Nơi gọi phải `checkMaintenance()` trước.
    */
@@ -434,11 +434,11 @@ export class ReportDataService {
     try {
       const logged = await this._registry.recordUnsigned(unit, docId, dateStr, actor);
       if (!logged) {
-        return { warning: 'Đã xoá bản đã ký nhưng chưa ghi được người xoá: list ReportRegistry chưa có cột SignedRemovedAt và SignedRemovedBy.' };
+        return { warning: 'Đã xoá bản đã ký nhưng chưa ghi được người xoá: list DRPRegistry chưa có cột SignedRemovedAt và SignedRemovedBy.' };
       }
     } catch (err: unknown) {
-      console.warn('[ReportRegistry] Could not record unsigned:', err);
-      return { warning: `Đã xoá bản đã ký nhưng chưa cập nhật được sổ ReportRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}` };
+      console.warn('[DRPRegistry] Could not record unsigned:', err);
+      return { warning: `Đã xoá bản đã ký nhưng chưa cập nhật được sổ DRPRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}` };
     }
     return {};
   }
@@ -454,7 +454,7 @@ export class ReportDataService {
   }
 
   /**
-   * Trạng thái báo cáo ngày của mọi đơn vị từ ngày `fromDate` (YYYY-MM-DD), đọc một lần từ sổ ReportRegistry
+   * Trạng thái báo cáo ngày của mọi đơn vị từ ngày `fromDate` (YYYY-MM-DD), đọc một lần từ sổ DRPRegistry
    */
   public async getRegistryDayInfos(
     docId: string,
