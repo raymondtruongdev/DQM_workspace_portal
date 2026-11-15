@@ -479,8 +479,15 @@
         {
           "id": "equipment",
           "label": {
-            "vi": "Thiết bị / biển số",
+            "vi": "Thiết bị",
             "en": "Equipment"
+          }
+        },
+        {
+          "id": "plate",
+          "label": {
+            "vi": "Biển số",
+            "en": "Plate No."
           }
         },
         {

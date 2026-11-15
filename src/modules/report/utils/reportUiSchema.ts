@@ -100,11 +100,12 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   },
   equipment: {
     columns: {
-      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', minPx: ACTIVITY_COL_PX },
-      resId: { type: 'select', catalog: 'ResEquip_ID', noNone: true, align: 'center', width: 22 },
-      equipment: { readonly: true, from: 'resId', fromField: 'nameVn', width: 34 },
-      qty: { type: 'number', default: 1, width: 10 },
-      status: { type: 'select', catalog: 'equipment_status', noNone: true, default: 'Active', align: 'center', width: 14 },
+      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', minPx: ACTIVITY_COL_PX, fit: true },
+      resId: { type: 'select', catalog: 'ResEquip_ID', noNone: true, align: 'center', minPx: 220, fit: true },
+      equipment: { readonly: true, from: 'resId', fromField: 'nameVn', minPx: 260, fit: true },
+      plate: { minPx: 170, placeholder: '51H12345, 62A11223' }, // Biển số: người dùng tự nhập (gợi ý viết liền, không dấu; nhiều biển cách nhau dấu phẩy)
+      qty: { type: 'number', default: 1, minPx: 90, fit: true },
+      status: { type: 'select', catalog: 'equipment_status', noNone: true, default: 'Active', align: 'center', minPx: 130, fit: true },
     },
   },
   issues: {

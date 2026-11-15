@@ -636,8 +636,15 @@
         {
           "id": "equipment",
           "label": {
-            "vi": "Thiết bị / biển số",
+            "vi": "Thiết bị",
             "en": "Equipment"
+          }
+        },
+        {
+          "id": "plate",
+          "label": {
+            "vi": "Biển số",
+            "en": "Plate No."
           }
         },
         {
@@ -703,7 +710,8 @@
             "resId": "RES-EQM-MIX-00002",
             "equipment": "Xe bồn trộn bê tông",
             "qty": 6,
-            "status": "Active"
+            "status": "Active",
+            "plate": "51D12345"
           }
         },
         {
@@ -713,7 +721,8 @@
             "resId": "RES-EQM-GNS-00001",
             "equipment": "Máy phát điện",
             "qty": 1,
-            "status": "Pending"
+            "status": "Pending",
+            "plate": "GEN-250"
           }
         }
       ]

@@ -172,7 +172,7 @@ export function getDocShortPrefix(docId?: string): string {
 
 /**
  * Match a file name inside _template/ against a target unit and DocID.
- * Pattern: template_<DRP|WRP>_<Unit>_<yyyyMMdd>.json (e.g. template_DRP_ST01_20261114.json)
+ * Pattern: template_<DRP|WRP>_<Unit>_<yyyyMMdd>.json (e.g. template_DRP_ST01_20261115.json)
  */
 export function matchUnitTemplateFileName(
   fileName: string,

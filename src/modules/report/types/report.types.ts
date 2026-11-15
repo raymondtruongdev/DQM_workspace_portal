@@ -1,6 +1,6 @@
 export interface TemplateVersionInfo {
-  fileName: string;          // e.g. "template_DRP_ST01_20261114.json"
-  version: string;           // e.g. "template_DRP_ST01_20261114"
+  fileName: string;          // e.g. "template_DRP_ST01_20261115.json"
+  version: string;           // e.g. "template_DRP_ST01_20261115"
   versionDate: string;       // e.g. "20261114"
   serverRelativeUrl: string;
   timeLastModified?: string;
@@ -22,7 +22,7 @@ export interface ReportMetadata {
   subTitle: string;             // Tên dự án (một chuỗi, bản in tự xuống dòng)
   docCode: string;              // Mã tài liệu đã thay {unit} {reportNo}, e.g. "HCM2_1-23_CS-THAC_DCEM-CPZZ-ST01-CWS-DRP-00001"
   docCodePattern?: string;      // Mẫu mã tài liệu có {unit} và {reportNo} (từ template, không lưu trong file báo cáo)
-  templateVersion?: string;     // e.g. "template_DRP_ST01_20261114"
+  templateVersion?: string;     // e.g. "template_DRP_ST01_20261115"
   location: string;             // Luôn = mã đơn vị (ST01), tự điền, không sửa được
   reportNo: string;             // Số báo cáo 5 chữ số, tự tăng độc lập theo từng đơn vị, e.g. "00001"
   subcontractors: string[];     // Các đơn vị thi công được chọn trong báo cáo này
@@ -48,6 +48,7 @@ export interface TableColumn {
   align?: 'left' | 'center' | 'right';
   width?: number;                     // % bề rộng (tuỳ chọn)
   minPx?: number;                     // bề rộng tối thiểu (px), thay mức mặc định theo kiểu cột
+  placeholder?: string;               // gợi ý mờ trong ô văn bản còn trống
   fit?: boolean;                      // giữ đúng bề rộng minPx/width, không giãn theo phần dư của bảng
   defaultValue?: string;              // giá trị khi thêm dòng; {unit}, {n5}
   tones?: Record<string, ColumnTone>; // tô màu theo giá trị (select)

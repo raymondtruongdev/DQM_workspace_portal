@@ -317,6 +317,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           onChange={(e) => updateCell(idx, col.code, e.target.value)}
           disabled={disabled && !readOnlyMode}
           readOnly={locked || readOnlyMode}
+          placeholder={col.placeholder}
           title={splitLabel(col.label).vi}
         />
       </td>

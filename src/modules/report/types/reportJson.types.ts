@@ -86,7 +86,7 @@ export interface ReportJson {
   docCodeTemplate: string;
   docCode: string;
   title: { vi: string; en: string; sub: string };
-  /** Tên template đã dùng (vd template_DRP_ST01_20261114): so với bản mới nhất để báo cập nhật. */
+  /** Tên template đã dùng (vd template_DRP_ST01_20261115): so với bản mới nhất để báo cập nhật. */
   template: string;
   created: ReportJsonStamp;
   updated: ReportJsonStamp;
@@ -127,6 +127,8 @@ export interface TemplateColumnJson {
   width?: number;
   /** Bề rộng tối thiểu (px) của cột, thay cho mức mặc định theo kiểu cột (vd ô chọn mặc định tối thiểu 140px); dùng để thu nhỏ cột. */
   minPx?: number;
+  /** Gợi ý mờ trong ô văn bản khi còn trống (vd biển số). */
+  placeholder?: string;
   /** true = cột giữ đúng bề rộng `minPx`/`width` (vừa chữ); phần dư của bảng dồn cho các cột không đặt `fit`. */
   fit?: boolean;
   default?: string | number;

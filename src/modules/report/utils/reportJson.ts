@@ -76,6 +76,7 @@ export function templateColumn(tc: TemplateColumnJson): TableColumn {
   if (tc.align) col.align = tc.align;
   if (tc.width) col.width = tc.width;
   if (tc.minPx) col.minPx = tc.minPx;
+  if (tc.placeholder) col.placeholder = tc.placeholder;
   if (tc.fit) col.fit = true;
   if (tc.default !== undefined) col.defaultValue = String(tc.default);
   if (tc.reset) col.reset = true;
@@ -149,7 +150,7 @@ export interface NewDocContext {
   dateStr: string;
   email: string;
   siteManager?: string;
-  /** Tên template (vd template_DRP_ST01_20261114). */
+  /** Tên template (vd template_DRP_ST01_20261115). */
   version: string;
 }
 
