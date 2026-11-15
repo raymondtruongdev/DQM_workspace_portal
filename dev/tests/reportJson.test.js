@@ -13,7 +13,28 @@ const J = require(path.join(js, 'reportJson'));
 const T = require(path.join(js, 'reportTable'));
 
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
-const sampleText = read('docs/sample/DailyReport.sample.data.json');
+// Báo cáo mẫu đã lưu = template ST01 (cùng định dạng) + phần đầu của một báo cáo thật (ngày, người lập, đơn vị thi công…)
+const sampleText = (() => {
+  const tplFile = JSON.parse(
+    read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261114.json')
+      .replace(/\{user\}/g, 'user@example.com')
+      .replace(/\{siteManager\}/g, 'Trưởng ga cũ')
+  );
+  tplFile.sections.forEach((sec) => (sec.rows || []).forEach((r) => { if (r.locked === false) delete r.locked; }));
+  tplFile.sections.find((sec) => sec.type === 'photo').rows = [
+    { id: 'g1', department: 'DCEM', summary: 'Hố đào tấm P-12', files: ['img1.jpeg', 'img2.jpeg', 'img3.jpeg'] },
+    { id: 'g2', department: 'HSE', summary: 'Kiểm tra an toàn hiện trường', files: ['img4.jpeg', 'img5.jpeg', 'img6.jpeg'] }
+  ];
+  return JSON.stringify({
+    ...tplFile,
+    date: '2026-11-10',
+    reportNo: 1,
+    template: 'template_DRP_ST01_20261114',
+    created: { by: 'user@example.com', at: '2026-11-10T01:00:00.000Z' },
+    updated: { by: 'user@example.com', at: '2026-11-14T02:47:46.958Z' },
+    subcontractors: ['THAC_CRSG', 'THAC_THAN']
+  });
+})();
 const tpl = () => J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261114.json'));
 const clone = (o) => JSON.parse(JSON.stringify(o));
 

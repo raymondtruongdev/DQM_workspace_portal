@@ -53,7 +53,7 @@ DailyReportLibrary/
 | `_template/template_DRP_<Unit>_<yyyyMMdd>.json` | `_template/` | Người dùng: chỉ đọc. Admin: ghi |
 | `resource/thaco_logo.jpg`, `crec_logo.jpg` | `resource/` | Người dùng: chỉ đọc. Admin: ghi |
 
-**Không upload:** `data/` (báo cáo demo, chỉ để tham khảo cấu trúc; muốn thử thì upload nguyên thư mục `data/ST01/DRP_20261114_ST01`), các file `*_list.xlsx` (dùng để tạo list ở mục 3; không còn file `DRPRole.xlsx`, phân quyền nằm ở list `DRPRole`), `_template/*.xlsx` (template Excel cũ, app không đọc), `*.docx`, `~$*`.
+**Không upload:** `data/` (báo cáo do web part tự tạo; repo không còn báo cáo mẫu), các file `*_list.xlsx` (dùng để tạo list ở mục 3; không còn file `DRPRole.xlsx`, phân quyền nằm ở list `DRPRole`), `_template/*.xlsx` (template Excel cũ, app không đọc), `*.docx`, `~$*`.
 
 ### 2.2 `ActivityP6.xlsx` (một sheet `ActivityP6`)
 

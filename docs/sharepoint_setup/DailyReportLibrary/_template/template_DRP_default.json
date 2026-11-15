@@ -483,6 +483,13 @@
       "summary": "",
       "columns": [
         {
+          "id": "activityId",
+          "label": {
+            "vi": "Activity ID (P6)",
+            "en": "Activity ID"
+          }
+        },
+        {
           "id": "resId",
           "label": {
             "vi": "Mã tài nguyên",
@@ -508,13 +515,6 @@
           "label": {
             "vi": "Tình trạng",
             "en": "Status"
-          }
-        },
-        {
-          "id": "activityId",
-          "label": {
-            "vi": "Activity ID (P6)",
-            "en": "Activity ID"
           }
         }
       ],

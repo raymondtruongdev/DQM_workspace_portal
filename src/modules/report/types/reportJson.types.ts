@@ -1,6 +1,6 @@
 /**
  * Định dạng file lưu báo cáo (`<DRP|WRP>_<yyyyMMdd>_<Unit>.json`) và file template (`template_DRP_<Unit>_<yyyyMMdd>.json`).
- * Hợp đồng đầy đủ: docs/REPORT_JSON_PLAN.md và mẫu docs/sample/DailyReport.sample.data.json.
+ * Hợp đồng đầy đủ: docs/REPORT_JSON_PLAN.md và mẫu docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_<yyyyMMdd>.json.
  *
  * Nguyên tắc: file báo cáo chỉ chứa định danh, nhãn và GIÁ TRỊ THẬT (kể cả ô đã tính và dòng Tổng) để mở một mình đọc được.
  * Cách NHẬP/TRÌNH BÀY (kiểu ô, danh mục dropdown, công thức, mặc định, căn lề, độ rộng, bố cục) do CODE quyết định

@@ -95,11 +95,11 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   },
   equipment: {
     columns: {
+      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', width: 16 },
       resId: { type: 'select', catalog: 'ResEquip_ID', readonly: true, from: 'equipment', default: '---', align: 'center', width: 16 },
       equipment: { type: 'select', catalog: 'ResEquip_ID', catalogBy: 'link', width: 34 },
       qty: { type: 'number', default: 1, width: 10 },
       status: { type: 'select', catalog: 'equipment_status', noNone: true, default: 'Active', align: 'center', width: 14 },
-      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', width: 16 },
     },
   },
   issues: {

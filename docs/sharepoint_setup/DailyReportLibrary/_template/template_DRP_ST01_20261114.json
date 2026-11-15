@@ -620,6 +620,13 @@
       "summary": "",
       "columns": [
         {
+          "id": "activityId",
+          "label": {
+            "vi": "Activity ID (P6)",
+            "en": "Activity ID"
+          }
+        },
+        {
           "id": "resId",
           "label": {
             "vi": "Mã tài nguyên",
@@ -646,74 +653,67 @@
             "vi": "Tình trạng",
             "en": "Status"
           }
-        },
-        {
-          "id": "activityId",
-          "label": {
-            "vi": "Activity ID (P6)",
-            "en": "Activity ID"
-          }
         }
       ],
       "rows": [
         {
           "id": "r1",
           "cells": {
+            "activityId": "CV-ST01-00001",
             "resId": "RES-EQP-00001",
             "equipment": "Cẩu bánh xích 80T",
             "qty": 1,
-            "status": "Active",
-            "activityId": "CV-ST01-00001"
+            "status": "Active"
           }
         },
         {
           "id": "r2",
           "cells": {
+            "activityId": "CV-ST01-00001",
             "resId": "RES-EQP-00003",
             "equipment": "Gầu ngoạm tường vây",
             "qty": 1,
-            "status": "Active",
-            "activityId": "CV-ST01-00001"
+            "status": "Active"
           }
         },
         {
           "id": "r3",
           "cells": {
+            "activityId": "CV-ST01-00002",
             "resId": "RES-EQP-00004",
             "equipment": "Trạm trộn / tái sinh bentonite",
             "qty": 1,
-            "status": "Active",
-            "activityId": "CV-ST01-00002"
+            "status": "Active"
           }
         },
         {
           "id": "r4",
           "cells": {
+            "activityId": "CV-ST01-00002",
             "resId": "RES-EQP-00005",
             "equipment": "Máy đào 0,7 m³",
             "qty": 2,
-            "status": "Active",
-            "activityId": "CV-ST01-00002"
+            "status": "Active"
           }
         },
         {
           "id": "r5",
           "cells": {
+            "activityId": "---",
             "resId": "RES-EQP-00002",
             "equipment": "Xe bồn bê tông 7 m³",
             "qty": 6,
-            "status": "Active",
-            "activityId": "---"
+            "status": "Active"
           }
         },
         {
           "id": "r6",
           "cells": {
+            "activityId": "---",
             "resId": "RES-EQP-00006",
             "equipment": "Máy phát điện 250 kVA",
             "qty": 1,
-            "status": "Pending",
-            "activityId": "---"
+            "status": "Pending"
           }
         }
       ]
