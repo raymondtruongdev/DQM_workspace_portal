@@ -19,6 +19,12 @@ export interface CatalogItem {
   id: string;
   /** Giá trị ràng buộc theo mã ('' nếu để trống hoặc "---"). */
   link: string;
+  /** Tên tiếng Việt (không bắt buộc, cột `NameVN`): chỉ lưu trong danh mục, KHÔNG lưu vào báo cáo. */
+  nameVn?: string;
+  /** Tên tiếng Anh (không bắt buộc): chỉ lưu trong danh mục, KHÔNG lưu vào báo cáo. */
+  nameEn?: string;
+  /** Ghi chú ngắn (không bắt buộc): chỉ để gợi ý trong dropdown, KHÔNG lưu vào báo cáo. */
+  note?: string;
 }
 
 export interface CatalogTable {
@@ -35,6 +41,12 @@ export interface CatalogRow {
   code: string;
   link: string;
   description?: string;
+  /** Cột `NameVN` của list (không bắt buộc). */
+  nameVn?: string;
+  /** Cột `NameEN` của list (không bắt buộc). */
+  nameEn?: string;
+  /** Cột `Note` của list (không bắt buộc). */
+  note?: string;
 }
 
 export interface ReportCatalog {
@@ -145,15 +157,29 @@ export function catalogOptions(catalog: ReportCatalog | undefined, ref: string, 
   return noNone ? ids : [CATALOG_NONE].concat(ids);
 }
 
-/** Nhãn hiển thị của các mã trong dropdown: "mã – mô tả" cho mục có mô tả (mục không có mô tả giữ nguyên mã). */
-export function catalogOptionLabels(catalog: ReportCatalog | undefined, ref: string): Record<string, string> | undefined {
+/**
+ * Nhãn hiển thị trong dropdown (giá trị lưu không đổi):
+ *  - chọn theo tên (`byLink`, vd thiết bị, loại nhân lực, vật tư): mục có `nameVn`/`nameEn`/`note` hiện "Link (Code) — Note"
+ *    (thiếu mã hoặc ghi chú thì bỏ phần đó); mục khác giữ tên;
+ *  - chọn theo mã: mục có mô tả Activity hiện "mã – mô tả"; mục có `note` hiện "Code — Note"; còn lại chỉ hiện mã.
+ * `nameVn`/`nameEn` chỉ lưu trong danh mục; muốn hiện thêm gợi ý thì admin ghi vào cột `Note`.
+ */
+export function catalogOptionLabels(catalog: ReportCatalog | undefined, ref: string, byLink = false): Record<string, string> | undefined {
   const table = catalog ? catalog.tables[ref.toLowerCase()] : undefined;
   if (!table) return undefined;
   const out: Record<string, string> = {};
   let any = false;
   table.items.forEach((i) => {
-    if (i.id && i.description) {
+    if (byLink) {
+      if (i.link && (i.nameVn || i.nameEn || i.note)) {
+        out[i.link] = `${i.link}${i.id ? ` (${i.id})` : ''}${i.note ? ` — ${i.note}` : ''}`;
+        any = true;
+      }
+    } else if (i.id && i.description) {
       out[i.id] = `${i.id} – ${i.description}`;
+      any = true;
+    } else if (i.id && i.note) {
+      out[i.id] = `${i.id} — ${i.note}`;
       any = true;
     }
   });
@@ -176,7 +202,8 @@ export function linkedValue(
   const cur = String(values[src.code] ?? '');
   if (src.optionsBy) return findCatalogItemByLink(catalog, src.optionsRef, cur)?.id || undefined;
   const item = findCatalogItem(catalog, src.optionsRef, cur);
-  return item && item.link ? item.link : undefined;
+  const v = item ? (col.fromNote ? item.note : item.link) : undefined;
+  return v || undefined;
 }
 
 /**
@@ -194,11 +221,12 @@ export function applyCatalogLinks(
   const current = String(values[changed] ?? '');
   if (current === CATALOG_NONE || current === '') return;
   // Mã không có trong danh mục (giá trị mới thêm bằng "Khác…") thì chưa có ràng buộc: ô ràng buộc về "---" / để trống
-  const linkValue = src.optionsBy
-    ? findCatalogItemByLink(catalog, src.optionsRef, current)?.id
-    : findCatalogItem(catalog, src.optionsRef, current)?.link;
+  const item = src.optionsBy ? undefined : findCatalogItem(catalog, src.optionsRef, current);
   columns.forEach((c) => {
     if (c.from && c.from.toLowerCase() === changed.toLowerCase()) {
+      const linkValue = src.optionsBy
+        ? findCatalogItemByLink(catalog, src.optionsRef!, current)?.id
+        : item && (c.fromNote ? item.note : item.link);
       values[c.code] = linkValue || (c.type === 'select' ? CATALOG_NONE : '');
     }
   });
@@ -236,7 +264,14 @@ export function mergeCatalogRows(catalog: ReportCatalog, rows: CatalogRow[]): Re
     const key = r.table.toLowerCase();
     const t = tables[key] || (tables[key] = { name: r.table, source: 'list', items: [] });
     const dup = t.items.some((i) => (r.code ? normKey(i.id) === normKey(r.code) : false) || (!r.code && normKey(i.link) === normKey(r.link)));
-    if (!dup) t.items.push(r.description ? { id: r.code, link: r.link, description: r.description } : { id: r.code, link: r.link });
+    if (!dup) {
+      const item: CatalogItem = { id: r.code, link: r.link };
+      if (r.description) item.description = r.description;
+      if (r.nameVn) item.nameVn = r.nameVn;
+      if (r.nameEn) item.nameEn = r.nameEn;
+      if (r.note) item.note = r.note;
+      t.items.push(item);
+    }
   });
   return { ...catalog, tables };
 }

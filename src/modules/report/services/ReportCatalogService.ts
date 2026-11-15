@@ -6,7 +6,7 @@ import { parseActive } from '../utils/reportRole';
 export const REPORT_CATALOG_LIST = 'DRPCatalogItems';
 
 /** Tên (tiêu đề) các cột của list; tên nội bộ thật được tra từ list vì có thể khác. */
-const COLS = ['Title', 'Unit', 'Catalog', 'Code', 'Link', 'Active'] as const;
+const COLS = ['Title', 'Unit', 'Catalog', 'Code', 'Link', 'NameVN', 'NameEN', 'Note', 'Active'] as const;
 type Col = (typeof COLS)[number];
 
 /** `Unit` của các mục dùng chung cho mọi nhà ga (vd mã nhân lực, thiết bị): nhập một dòng, mọi nhà ga đều thấy. */
@@ -34,6 +34,12 @@ export class ReportCatalogService {
   private _names: Promise<Record<Col, string>> | undefined;
   /** List đã có cột Active chưa (có thì dòng mới ghi Active = 1; thiếu cột thì không ghi, tránh lỗi trường không tồn tại). */
   private _hasActive = false;
+  /** List đã có cột NameVN chưa (tuỳ chọn; chỉ lưu trong danh mục, thiếu cột thì bỏ qua). */
+  private _hasNameVn = false;
+  /** List đã có cột NameEN chưa (tuỳ chọn). */
+  private _hasNameEn = false;
+  /** List đã có cột Note chưa (tuỳ chọn, như NameEN). */
+  private _hasNote = false;
 
   constructor(client: ISharePointClient, siteUrl: string) {
     this._client = client;
@@ -54,6 +60,9 @@ export class ReportCatalogService {
         .then((map) => {
           const out = {} as Record<Col, string>;
           this._hasActive = map.active !== undefined;
+          this._hasNameVn = map.namevn !== undefined;
+          this._hasNameEn = map.nameen !== undefined;
+          this._hasNote = map.note !== undefined;
           COLS.forEach((c) => {
             out[c] = map[c.toLowerCase()] || c;
           });
@@ -70,7 +79,11 @@ export class ReportCatalogService {
 
   private rowOf(n: Record<Col, string>, raw: Record<string, unknown>): CatalogRow {
     const str = (c: Col): string => (raw[n[c]] === undefined || raw[n[c]] === null ? '' : String(raw[n[c]]).trim());
-    return { table: str('Catalog').toLowerCase(), code: str('Code'), link: str('Link') };
+    const nameVn = str('NameVN');
+    const nameEn = str('NameEN');
+    const note = str('Note');
+    const row: CatalogRow = { table: str('Catalog').toLowerCase(), code: str('Code'), link: str('Link') };
+    return { ...row, ...(nameVn ? { nameVn } : {}), ...(nameEn ? { nameEn } : {}), ...(note ? { note } : {}) };
   }
 
   /** Mọi mục của một nhà ga cộng các mục dùng chung (`Unit = ALL`). Lỗi (chưa tạo list, thiếu quyền…) thì ném ra để nơi gọi báo cảnh báo. */
@@ -113,6 +126,9 @@ export class ReportCatalogService {
         [n.Catalog]: row.table.toLowerCase(),
         [n.Code]: row.code,
         [n.Link]: row.link,
+        ...(this._hasNameVn && row.nameVn ? { [n.NameVN]: row.nameVn } : {}),
+        ...(this._hasNameEn && row.nameEn ? { [n.NameEN]: row.nameEn } : {}),
+        ...(this._hasNote && row.note ? { [n.Note]: row.note } : {}),
         ...(this._hasActive ? { [n.Active]: 1 } : {})
       });
       return { row, created: true };

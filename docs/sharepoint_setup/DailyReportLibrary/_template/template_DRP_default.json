@@ -409,7 +409,7 @@
         {
           "id": "r1",
           "cells": {
-            "resId": "RES-HUM-00001",
+            "resId": "SCM",
             "category": "Chỉ huy trưởng",
             "daily": 0,
             "prevCum": 0,
@@ -419,7 +419,7 @@
         {
           "id": "r2",
           "cells": {
-            "resId": "RES-HUM-00002",
+            "resId": "SSV",
             "category": "Giám sát hiện trường",
             "daily": 0,
             "prevCum": 0,
@@ -429,7 +429,7 @@
         {
           "id": "r3",
           "cells": {
-            "resId": "RES-HUM-00003",
+            "resId": "SKW",
             "category": "Công nhân kỹ thuật",
             "daily": 0,
             "prevCum": 0,
@@ -439,28 +439,8 @@
         {
           "id": "r4",
           "cells": {
-            "resId": "RES-HUM-00004",
+            "resId": "GLB",
             "category": "Lao động phổ thông",
-            "daily": 0,
-            "prevCum": 0,
-            "cumTotal": 0
-          }
-        },
-        {
-          "id": "r5",
-          "cells": {
-            "resId": "RES-HUM-00005",
-            "category": "An toàn viên",
-            "daily": 0,
-            "prevCum": 0,
-            "cumTotal": 0
-          }
-        },
-        {
-          "id": "r6",
-          "cells": {
-            "resId": "RES-HUM-00006",
-            "category": "Vận hành máy",
             "daily": 0,
             "prevCum": 0,
             "cumTotal": 0

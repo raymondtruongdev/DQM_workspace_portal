@@ -190,6 +190,27 @@
   background-image: none;
 }
 :where(.app-layout) .select select:disabled { cursor: not-allowed; }
+/* compactSelected: chữ của <select> trong suốt, dòng .select__shown phủ lên chỉ hiện giá trị lưu; danh sách xổ vẫn hiện nhãn đầy đủ */
+:where(.app-layout) .select--compact select { color: transparent; }
+:where(.app-layout) .select--compact option { color: var(--color-text); }
+:where(.app-layout) .select__shown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-8) 0 var(--space-3);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  pointer-events: none;
+  min-width: 0;
+}
+:where(.app-layout) .select__shown--disabled { color: var(--color-text-muted); }
+:where(.app-layout) .select__shown-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 :where(.app-layout) .select__icon {
   position: absolute;
   right: var(--space-3);

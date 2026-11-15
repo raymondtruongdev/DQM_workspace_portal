@@ -22,7 +22,8 @@ import {
 } from '../utils/reportTable';
 
 /** Hỏi giá trị liên kết của mục mới; `undefined` = người dùng huỷ. */
-export type AskCatalogLink = () => Promise<{ link: string } | undefined>;
+/** `asNote` = giá trị nhập là Note của mã (cột phụ thuộc có `fromNote`), ghi vào cột Note thay vì Link. */
+export type AskCatalogLink = () => Promise<{ link: string; asNote?: boolean } | undefined>;
 
 /** Kết quả thêm mục danh mục: giá trị gán cho ô + danh mục mới, hoặc người dùng đã huỷ. */
 export type CatalogAddResult = { value: string; catalog: ReportCatalog; cancelled?: false } | { cancelled: true };
@@ -80,7 +81,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
 
   // Hộp thoại hỏi liên kết khi thêm mã mới (bước 2 của "Khác…")
   const [linkAsk, setLinkAsk] = React.useState<
-    { title: string; label: string; options?: string[]; resolve: (v: { link: string } | undefined) => void } | undefined
+    { title: string; label: string; options?: string[]; asNote?: boolean; resolve: (v: { link: string; asNote?: boolean } | undefined) => void } | undefined
   >(undefined);
 
   /** Cột phụ thuộc vào cột mã `col` (có from=<col>) mà mục mới cần liên kết; hỏi người dùng giá trị (có thể bỏ qua). */
@@ -93,11 +94,12 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
         : undefined;
     if (options && options.length === 0) return undefined; // chưa có gì để chọn: bỏ qua bước hỏi
     return () =>
-      new Promise<{ link: string } | undefined>((resolve) =>
+      new Promise<{ link: string; asNote?: boolean } | undefined>((resolve) =>
         setLinkAsk({
           title: `Thêm "${value}"`,
           label: `${splitLabel(dep.label).vi} của "${value}" (không bắt buộc, bỏ trống nếu chưa có)`,
           options,
+          asNote: dep.fromNote,
           resolve
         })
       );
@@ -230,7 +232,9 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                   )
                 : col.options || []
             }
-            optionLabels={col.optionsRef && col.optionsBy !== 'link' ? catalogOptionLabels(catalog, col.optionsRef) : undefined}
+            compactSelected
+            placeholder={current === '' ? 'Chọn…' : undefined}
+            optionLabels={col.optionsRef ? catalogOptionLabels(catalog, col.optionsRef, col.optionsBy === 'link') : undefined}
             allowOther={col.optionsRef ? canAddToTable(catalog, col.optionsRef) : true}
             onChange={(v, isNew) => {
               selectValue(idx, col, v, isNew).catch(() => undefined);
@@ -370,7 +374,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           options={linkAsk.options}
           allowEmpty
           onSubmit={(v) => {
-            linkAsk.resolve({ link: v });
+            linkAsk.resolve({ link: v, asNote: linkAsk.asNote });
             setLinkAsk(undefined);
           }}
           onCancel={() => {

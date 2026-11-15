@@ -52,3 +52,43 @@ test('nhãn dropdown "mã – mô tả" chỉ cho mục có mô tả', () => {
   assert.equal(merged.tables['activityp6_id'].items.length, 3);
   assert.equal(C.catalogOptionLabels(merged, 'activityp6_id').A9, 'A9 – Mới');
 });
+
+test('chọn theo tên: nhãn "Tên Việt (mã) — ghi chú" cho mục có NameVN/NameEN/Note', () => {
+  const cat = C.mergeCatalogRows({ unit: 'ST01', tables: {}, warnings: [] }, [
+    { table: 'resequip_id', code: 'E1', link: 'Xe nâng người', nameVn: 'Xe nâng người', nameEn: 'Aerial work platform', note: 'Cao tối đa 12 m' },
+    { table: 'resequip_id', code: 'E2', link: 'Máy khoan', note: 'Thuê ngoài' },
+    { table: 'resequip_id', code: 'E3', link: 'Máy ủi' }
+  ]);
+  assert.deepEqual(C.catalogOptionLabels(cat, 'resequip_id', true), {
+    'Xe nâng người': 'Xe nâng người (E1) — Cao tối đa 12 m',
+    'Máy khoan': 'Máy khoan (E2) — Thuê ngoài'
+  });
+});
+
+test('chọn theo mã: nhãn "Code — Note", không có Note thì chỉ hiện mã', () => {
+  const cat = C.mergeCatalogRows({ unit: 'ST01', tables: {}, warnings: [] }, [
+    { table: 'event_type', code: 'KIEM_TRA_ATLD', link: '', nameVn: 'Kiểm tra ATLĐ hiện trường', nameEn: 'HSE inspection', note: 'Kiểm tra ATLĐ' },
+    { table: 'event_type', code: 'NGHIEM_THU', link: '', nameVn: 'Nghiệm thu', nameEn: 'Inspection request' }
+  ]);
+  assert.deepEqual(C.catalogOptionLabels(cat, 'event_type'), { KIEM_TRA_ATLD: 'KIEM_TRA_ATLD — Kiểm tra ATLĐ' });
+  assert.deepEqual(C.catalogOptions(cat, 'event_type', false, true), ['KIEM_TRA_ATLD', 'NGHIEM_THU']);
+});
+
+test('fromNote: cột Loại tự điền theo Note của mã (không dùng Link)', () => {
+  const cat = C.mergeCatalogRows({ unit: 'ST01', tables: {}, warnings: [] }, [
+    { table: 'reshuman_id', code: 'SEG', link: 'Tên cũ', note: 'Bảo vệ' },
+    { table: 'reshuman_id', code: 'XXX', link: '' }
+  ]);
+  const columns = [
+    { code: 'resId', label: 'Mã', type: 'select', optionsRef: 'reshuman_id' },
+    { code: 'category', label: 'Loại', type: 'text', from: 'resId', fromNote: true }
+  ];
+  const values = { resId: 'SEG', category: '' };
+  C.applyCatalogLinks(columns, values, 'resId', cat);
+  assert.equal(values.category, 'Bảo vệ');
+  assert.equal(C.linkedValue(columns, columns[1], { resId: 'SEG' }, cat), 'Bảo vệ');
+  const v2 = { resId: 'XXX', category: 'x' };
+  C.applyCatalogLinks(columns, v2, 'resId', cat);
+  assert.equal(v2.category, '');
+  assert.equal(C.linkedValue(columns, columns[1], { resId: 'XXX' }, cat), undefined);
+});

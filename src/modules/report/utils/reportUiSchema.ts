@@ -85,8 +85,8 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   },
   manpower: {
     columns: {
-      resId: { type: 'select', catalog: 'ResHuman_ID', readonly: true, from: 'category', default: '---', align: 'center', width: 16 },
-      category: { type: 'select', catalog: 'ResHuman_ID', catalogBy: 'link', width: 28 },
+      resId: { type: 'select', catalog: 'ResHuman_ID', noNone: true, align: 'center', width: 16 },
+      category: { readonly: true, from: 'resId', fromNote: true, width: 28 },
       daily: { type: 'number', reset: true, total: true, default: 0, width: 13 },
       prevCum: { type: 'number', readonly: true, total: true, default: 0, carry: 'daily+prevCum', width: 13 },
       cumTotal: { type: 'calc', formula: 'daily+prevCum', total: true, width: 13 },
@@ -96,8 +96,8 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   equipment: {
     columns: {
       activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', width: 16 },
-      resId: { type: 'select', catalog: 'ResEquip_ID', readonly: true, from: 'equipment', default: '---', align: 'center', width: 16 },
-      equipment: { type: 'select', catalog: 'ResEquip_ID', catalogBy: 'link', width: 34 },
+      resId: { type: 'select', catalog: 'ResEquip_ID', default: '---', align: 'center', width: 22 },
+      equipment: { readonly: true, from: 'resId', fromNote: true, width: 34 },
       qty: { type: 'number', default: 1, width: 10 },
       status: { type: 'select', catalog: 'equipment_status', noNone: true, default: 'Active', align: 'center', width: 14 },
     },

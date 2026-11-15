@@ -185,7 +185,7 @@ test('template_DRP_default.json: sạch dữ liệu riêng của ST01, tạo bá
   assert.ok(!rows.some((r) => r.isLocked), 'không có dòng khoá');
   assert.ok(!rows.some((r) => Object.values(r.values).some((v) => /ST01/.test(String(v)))), 'không còn mã riêng ST01');
   assert.equal(doc.sections.find((s) => s.key === 'weather').rows[0].values.am, 'Nắng');
-  assert.equal(doc.sections.find((s) => s.key === 'manpower').rows.length, 6);
+  assert.equal(doc.sections.find((s) => s.key === 'manpower').rows.length, 4);
   assert.equal(doc.sections.find((s) => s.key === 'signOff').fields.find((f) => f.key === 'preparedBy').value, 'a@b.c');
   assert.equal(doc.sections.find((s) => s.key === 'hse').fields.find((f) => f.key === 'engineerInstructions').value, '');
 });

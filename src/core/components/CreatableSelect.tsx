@@ -24,6 +24,11 @@ export interface CreatableSelectProps {
   allowOther?: boolean;
   /** Nhãn hiển thị thay cho giá trị của từng mục (giá trị lưu vẫn là `options[i]`), ví dụ { 'A1': 'A1 – Mô tả' }. */
   optionLabels?: Record<string, string>;
+  /**
+   * true = nhãn dài (`optionLabels`) chỉ hiện trong danh sách xổ ra; ô đã chọn chỉ hiện giá trị lưu.
+   * Ô `<select>` gốc luôn hiện nhãn của mục đang chọn nên chữ của nó được làm trong suốt và phủ lên một dòng chữ chỉ có giá trị.
+   */
+  compactSelected?: boolean;
 }
 
 const OTHER = '__other__';
@@ -55,9 +60,12 @@ export const CreatableSelect: React.FC<CreatableSelectProps> = ({
   title,
   placeholder,
   allowOther = true,
-  optionLabels
+  optionLabels,
+  compactSelected = false
 }) => {
   const [open, setOpen] = React.useState(false);
+  const compact = compactSelected && Boolean(value) && Boolean(optionLabels && optionLabels[value] && optionLabels[value] !== value);
+  const alignMatch = /\btext-(center|right)\b/.exec(className);
   const onSelectOpen = React.useContext(SelectOpenContext);
   const list = value && options.indexOf(value) === -1 ? [value].concat(options) : options;
 
@@ -70,7 +78,7 @@ export const CreatableSelect: React.FC<CreatableSelectProps> = ({
 
   return (
     <>
-      <span className={['select', wrapperClassName || ''].filter(Boolean).join(' ')}>
+      <span className={['select', compact ? 'select--compact' : '', wrapperClassName || ''].filter(Boolean).join(' ')}>
       <select
         id={id}
         className={className}
@@ -97,6 +105,15 @@ export const CreatableSelect: React.FC<CreatableSelectProps> = ({
         ))}
         {allowOther && <option value={OTHER}>{otherLabel}</option>}
       </select>
+      {compact && (
+        <span
+          className={`select__shown${disabled ? ' select__shown--disabled' : ''}`}
+          style={alignMatch ? { justifyContent: alignMatch[1] === 'center' ? 'center' : 'flex-end' } : undefined}
+          aria-hidden="true"
+        >
+          <span className="select__shown-text">{value}</span>
+        </span>
+      )}
       <Icon name="chevron-down" size={16} className="select__icon" />
       </span>
       {open && (
