@@ -1,11 +1,12 @@
 import { ISharePointClient } from '../../../core/services/SharePointClient';
 import { CatalogRow, normKey } from '../utils/reportCatalog';
+import { parseActive } from '../utils/reportRole';
 
 /** Tên SharePoint List chứa danh mục người dùng được tự thêm (cột cần tạo: xem AGENTS.md mục 5.3). */
 export const REPORT_CATALOG_LIST = 'DRPCatalogItems';
 
 /** Tên (tiêu đề) các cột của list; tên nội bộ thật được tra từ list vì có thể khác. */
-const COLS = ['Title', 'Unit', 'Catalog', 'Code', 'Link'] as const;
+const COLS = ['Title', 'Unit', 'Catalog', 'Code', 'Link', 'Active'] as const;
 type Col = (typeof COLS)[number];
 
 /** `Unit` của các mục dùng chung cho mọi nhà ga (vd mã nhân lực, thiết bị): nhập một dòng, mọi nhà ga đều thấy. */
@@ -31,6 +32,8 @@ export class ReportCatalogService {
   private _client: ISharePointClient;
   private _siteUrl: string;
   private _names: Promise<Record<Col, string>> | undefined;
+  /** List đã có cột Active chưa (có thì dòng mới ghi Active = 1; thiếu cột thì không ghi, tránh lỗi trường không tồn tại). */
+  private _hasActive = false;
 
   constructor(client: ISharePointClient, siteUrl: string) {
     this._client = client;
@@ -50,6 +53,7 @@ export class ReportCatalogService {
         .getListFieldMap(this._siteUrl, REPORT_CATALOG_LIST)
         .then((map) => {
           const out = {} as Record<Col, string>;
+          this._hasActive = map.active !== undefined;
           COLS.forEach((c) => {
             out[c] = map[c.toLowerCase()] || c;
           });
@@ -77,7 +81,11 @@ export class ReportCatalogService {
       REPORT_CATALOG_LIST,
       `$filter=(${n.Unit} eq '${esc(unit)}' or ${n.Unit} eq '${CATALOG_SHARED_UNIT}')&$top=5000`
     );
-    return raw.map((r) => this.rowOf(n, r)).filter((r) => r.table && (r.code || r.link));
+    // Active = 0 (cột tuỳ chọn, trống/không có cột = hiện): ẩn khỏi dropdown
+    return raw
+      .filter((r) => parseActive(r[n.Active]))
+      .map((r) => this.rowOf(n, r))
+      .filter((r) => r.table && (r.code || r.link));
   }
 
   /**
@@ -104,7 +112,8 @@ export class ReportCatalogService {
         [n.Unit]: unit,
         [n.Catalog]: row.table.toLowerCase(),
         [n.Code]: row.code,
-        [n.Link]: row.link
+        [n.Link]: row.link,
+        ...(this._hasActive ? { [n.Active]: 1 } : {})
       });
       return { row, created: true };
     } catch (err: unknown) {

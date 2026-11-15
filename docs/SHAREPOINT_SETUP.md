@@ -57,9 +57,10 @@ DailyReportLibrary/
 
 ### 2.2 `ActivityP6.xlsx` (một sheet `ActivityP6`)
 
-Dòng 1: `ActivityID | Unit | Description`; mỗi dòng sau một Activity.
+Dòng 1: `ActivityID | Unit | Description | Active`; mỗi dòng sau một Activity.
 - `Unit` = mã đơn vị (vd `ST01`), hoặc `ALL` = dùng chung mọi đơn vị. Thêm đơn vị mới chỉ cần thêm dòng.
 - `Description` không bắt buộc, hiện kèm mã trong dropdown ("CV-ST01-00001 – Thi công tường vây"); giá trị lưu vẫn là mã.
+- `Active` (1/0) không bắt buộc: `0` = ẩn Activity khỏi dropdown, `1` hoặc trống = hiện (xem mục 3.5). Cột `No` (nếu có) chỉ để đánh số, web bỏ qua.
 - Cột tìm theo tên tiêu đề nên thứ tự cột tuỳ ý. Mã trùng trong cùng một đơn vị bị báo cảnh báo. Muốn bỏ mã thì xoá dòng (báo cáo cũ giữ nguyên giá trị đã lưu).
 - Người dùng không thêm được Activity từ giao diện; chỉ admin sửa file. Web nhớ nội dung file 5 phút trong bộ nhớ trang (sửa xong, tải lại trang hoặc chờ 5 phút).
 
@@ -67,6 +68,7 @@ Dòng 1: `ActivityID | Unit | Description`; mỗi dòng sau một Activity.
 
 - Mỗi đơn vị một file; **ngày `yyyyMMdd` trong tên file là phiên bản**, web luôn dùng bản có ngày lớn nhất.
 - Sửa nội dung template (thêm/bớt mục, cột, trường, đổi danh mục, công thức…) thì **upload file mới với ngày mới hơn** (giữ file cũ hay xoá đều được). Báo cáo đang dùng bản cũ sẽ hiện khung vàng "Cần cập nhật template mới"; người dùng bấm "Apply template mới" thì dữ liệu cũ được giữ và cột/mục mới được thêm vào.
+- **Khoá dòng mẫu:** thêm `"locked": true` vào dòng trong `rows`, vd `{ "id": "r1", "locked": true, "cells": { … } }`. Dòng này không xoá được và các cột `key` (Activity/cấu kiện, Luỹ kế hôm qua…) chỉ đọc; vẫn sửa được số liệu. Không ghi `locked` = dòng thường. Sửa `locked` cũng là sửa template: đổi ngày trong tên file.
 - Giữ nguyên `id` của mục/cột/trường giữa các bản (đổi `id` nghĩa là cột mới, dữ liệu cột cũ bị bỏ khi Apply).
 - Cấu trúc file: `docs/REPORT_JSON_PLAN.md` mục 3 và `src/modules/report/types/reportJson.types.ts`; mẫu 4 đơn vị: `docs/sharepoint_setup/DailyReportLibrary/_template/`.
 - Đơn vị chưa có báo cáo nào bắt buộc phải có template của đơn vị đó, nếu không web báo "Chưa có template cho STxx".
@@ -104,11 +106,19 @@ Dòng 1: `ActivityID | Unit | Description`; mỗi dòng sau một Activity.
 - Quyền: người báo cáo được **thêm và sửa**, **không xoá** ("Contribute không xoá"); admin toàn quyền. Không xoá dòng cũ (số báo cáo kế tiếp lấy từ số lớn nhất trong list).
 
 ### 3.4 `DRPCatalogItems` (từ `docs/sharepoint_setup/DRPCatalogItems_list.xlsx`)
-- Tạo list từ Excel (bảng `DRPCatalogItems`), mọi cột **Single line of text**. File đã gồm 77 dòng: mã nhân lực/thiết bị dùng chung (`Unit = ALL`), Element và Vật tư theo từng đơn vị, và các danh sách chọn dùng chung (`ALL`): `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`.
+- Tạo list từ Excel (bảng `DRPCatalogItems`), mọi cột **Single line of text**, riêng `Active` chọn **Number** (0 số lẻ, mặc định 1). File đã gồm 77 dòng: mã nhân lực/thiết bị dùng chung (`Unit = ALL`), Element và Vật tư theo từng đơn vị, và các danh sách chọn dùng chung (`ALL`): `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`.
 - List settings: cột `Title` bật **Indexed** + **Enforce unique values**; Index thêm cho `Unit`; bật versioning.
 - Quyền: người báo cáo chỉ **thêm** dòng (không sửa/xoá); admin toàn quyền (sửa chính tả, gán mã, xoá mục sai).
 - Ý nghĩa cột: `Title` = khoá duy nhất do web tự sinh (`<Unit>|<Catalog>|code|<giá trị chuẩn hoá>`); `Unit` = mã đơn vị hoặc `ALL`; `Catalog` = tên danh mục chữ thường; `Code` = mã/giá trị; `Link` = giá trị ràng buộc (vd mã nhân lực ↔ "Chỉ huy trưởng").
 - Thêm giá trị cho danh sách chọn dùng chung: thêm dòng `Unit = ALL`, `Catalog` đúng tên, `Code` = giá trị, `Title` = `ALL|<Catalog>|code|<giá trị chuẩn hoá>` (không dấu, chữ thường, khoảng trắng đơn).
+
+### 3.5 Cột `Active`: ẩn/hiện mục trong dropdown (`DRPCatalogItems`, `ActivityP6.xlsx`)
+
+- `1` hoặc để trống = hiện; `0` = ẩn (không cần xoá dòng, đổi về `1` để hiện lại). Chưa có cột `Active` thì mọi mục đều hiện.
+- Tạo cột một lần: `DRPCatalogItems` > Create column `Active`, kiểu **Number**, 0 số lẻ, mặc định 1. `ActivityP6.xlsx`: thêm cột `Active` ở dòng 1.
+- Mục người dùng thêm bằng "Khác…" tự ghi `Active = 1`.
+- Báo cáo đã lưu giữ nguyên giá trị cũ dù mục bị ẩn. Gõ lại đúng giá trị của mục đang ẩn bằng "Khác…" thì chọn lại mục đó, không tạo dòng mới.
+- Chỉ là bộ lọc hiển thị, không phải bảo mật (quyền sửa cột do SharePoint quyết định).
 
 ## 4. `SiteAssets/portal_config.json` (chế độ bảo trì)
 Không cần tạo tay: admin vào Admin Config > Shutdown Server rồi bật/tắt, web part ghi file này. Cần để quyền **ghi vào SiteAssets** chỉ cho admin. Không có file nghĩa là không bảo trì.
@@ -169,6 +179,7 @@ SharePoint Online thường buộc file `.html` trong thư viện **tải về**
 | Không thấy ô báo cáo nào ("Chưa được phân quyền…") | Email chưa có dòng `Active = Yes` trong list `DRPRole` (hoặc chưa có trong `UserProfiles`) | Thêm/sửa dòng phân quyền |
 | "Chưa đọc được phân quyền báo cáo" (kèm lỗi 404/403) | List `DRPRole` chưa tạo, sai tên hoặc người dùng không có quyền đọc | Tạo list đúng tên `DRPRole`, cấp quyền đọc |
 | Hệ thống đang bảo trì | Admin bật Shutdown Server | Admin tắt ở Admin Config |
+| Một mục không hiện trong dropdown | Cột `Active` của mục đang là `0` | Đổi `Active` về `1` hoặc xoá giá trị (mục 3.5) |
 | Dropdown vẫn thiếu giá trị mới sửa ở `ActivityP6.xlsx` | Web nhớ file 5 phút | Tải lại trang |
 | "Tài khoản của bạn chưa có trong danh sách phân quyền UserProfiles" dù đã có dòng | Tên cột nội bộ khác tên hiển thị (list tạo từ Excel hoặc đổi tên cột); hoặc trang đang chạy bản đã deploy cũ | Bản mới tự tra tên cột; mở F12 → Console xem dòng `[PortalShell]`/`[UserProfileService]`; đảm bảo đang chạy bản local hoặc đã deploy lại |
 | "Chưa có template cho STxx trong thư mục _template/" | Chưa upload `template_DRP_<Unit>_<yyyyMMdd>.json` | Upload template JSON vào thư mục `_template` ở gốc thư viện (không upload file `.xlsx`) |

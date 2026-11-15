@@ -81,7 +81,8 @@
         { "name": "Unit", "type": "Text", "indexed": true },
         { "name": "Catalog", "type": "Text" },
         { "name": "Code", "type": "Text" },
-        { "name": "Link", "type": "Text" }
+        { "name": "Link", "type": "Text" },
+        { "name": "Active", "type": "Number", "decimals": 0, "default": 1 }
       ],
       "seed": { "mode": "sample", "file": "docs/sharepoint_setup/DRPCatalogItems_list.xlsx", "sheet": "DRPCatalogItems", "default": true }
     }

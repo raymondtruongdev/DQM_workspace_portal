@@ -1,11 +1,12 @@
 import type * as XLSXTypes from 'xlsx';
 import { TableColumn, CellValue } from '../types/report.types';
+import { parseActive } from './reportRole';
 
 /**
  * Danh mục dùng chung cho các dropdown, gộp từ hai nguồn (xem AGENTS.md mục 5.3):
  *  - File `ActivityP6.xlsx` (chỉ admin ghi, người dùng chỉ đọc): MỘT sheet, mỗi dòng một Activity với các cột
  *    `ActivityID` (mã), `Unit` (đơn vị, vd ST01; `ALL` = dùng chung mọi đơn vị) và `Description` (mô tả, không bắt buộc, hiện kèm mã
- *    trong dropdown). Web lọc theo đơn vị đang mở. Muốn bỏ một mã thì xoá dòng; báo cáo cũ vẫn giữ giá trị đã lưu.
+ *    trong dropdown) và `Active` (1/0, không bắt buộc; 0 = ẩn khỏi dropdown, trống = hiện). Web lọc theo đơn vị đang mở. Muốn bỏ một mã thì xoá dòng; báo cáo cũ vẫn giữ giá trị đã lưu.
  *  - SharePoint List `DRPCatalogItems` (người dùng được tự thêm bằng "Khác…", xem ReportCatalogService): Element, Resource, Vật tư,
  *    và các danh sách chọn dùng chung (thời tiết, trạng thái…).
  * Mã "---" luôn có sẵn trong dropdown làm giá trị "chưa chọn".
@@ -62,7 +63,8 @@ export const ACTIVITY_TABLE = 'ActivityP6_ID';
 const HEADER_ALIASES = {
   code: ['activityid', 'activity id', 'activityp6_id', 'activityp6id', 'id', 'code', 'ma'],
   unit: ['unit', 'don vi', 'donvi'],
-  description: ['description', 'mo ta', 'ghi chu']
+  description: ['description', 'mo ta', 'ghi chu'],
+  status: ['active', 'status', 'trang thai']
 };
 
 function headerIndex(header: unknown[], aliases: string[]): number {
@@ -89,6 +91,7 @@ export function parseCatalogFromWorkbook(XLSX: typeof XLSXTypes, wb: XLSXTypes.W
   const codeCol = headerIndex(header, HEADER_ALIASES.code);
   const unitCol = headerIndex(header, HEADER_ALIASES.unit);
   const descCol = headerIndex(header, HEADER_ALIASES.description);
+  const statusCol = headerIndex(header, HEADER_ALIASES.status);
   if (codeCol < 0 || unitCol < 0) {
     catalog.warnings.push(`Sheet "${sheetName}" cần có cột ActivityID và Unit ở dòng 1.`);
     return catalog;
@@ -99,6 +102,7 @@ export function parseCatalogFromWorkbook(XLSX: typeof XLSXTypes, wb: XLSXTypes.W
     const id = norm(rows[r][codeCol]);
     const rowUnit = norm(rows[r][unitCol]).toLowerCase();
     if (!id || id === CATALOG_NONE || (rowUnit !== target && rowUnit !== 'all')) continue;
+    if (statusCol >= 0 && !parseActive(rows[r][statusCol])) continue; // Active = 0: ẩn khỏi dropdown (báo cáo cũ vẫn giữ giá trị)
     if (seen.has(id.toLowerCase())) {
       catalog.warnings.push(`Trùng mã ${id} của đơn vị ${unit} trong ActivityP6.xlsx.`);
       continue;
