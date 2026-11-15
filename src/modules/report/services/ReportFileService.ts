@@ -7,6 +7,7 @@ import {
   getReportHtmlFileName,
   getReportFolderRelativePath,
   getReportFileRelativePath,
+  getReportEventPdfFolderRelativePath,
   getReportPhotosFolderRelativePath,
   getUnitFolderRelativePath,
   matchDefaultTemplateFileName,
@@ -273,6 +274,39 @@ export class ReportFileService {
 
     const safeName = sanitizeSharePointPath(fileName) || `photo_${Date.now()}.jpg`;
     await this._client.uploadFile(this._siteUrl, groupFolder, safeName, buffer, true);
+    return safeName;
+  }
+
+  /** Thư mục file PDF đính kèm sự kiện: <thư mục báo cáo>/pdf/eventlog */
+  public getReportEventPdfFolderPath(unit: string, docId: string, dateStr: string): string {
+    return getReportEventPdfFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
+  }
+
+  /** Tên file PDF đính kèm sẽ lưu: GIỮ NGUYÊN tên gốc (chỉ đổi các ký tự SharePoint cấm thành "-"). */
+  public static eventPdfStoredName(fileName: string): string {
+    return sanitizeSharePointPath(fileName) || `file_${Date.now()}.pdf`;
+  }
+
+  /** File PDF đính kèm tên này đã có trong pdf/eventlog của báo cáo chưa. */
+  public async eventPdfExists(unit: string, docId: string, dateStr: string, storedName: string): Promise<boolean> {
+    const files = await this._client.getFolderFiles(this._siteUrl, this.getReportEventPdfFolderPath(unit, docId, dateStr));
+    const k = storedName.toLowerCase();
+    return files.some((f) => f.name.toLowerCase() === k);
+  }
+
+  /**
+   * Upload một file PDF đính kèm của dòng sự kiện vào data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/pdf/eventlog/.
+   * Giữ nguyên tên file gốc; cùng tên thì ghi đè (nơi gọi đã hỏi người dùng). Trả về tên đã lưu.
+   */
+  public async uploadEventPdf(unit: string, docId: string, dateStr: string, fileName: string, buffer: ArrayBuffer): Promise<string> {
+    await this.ensureUnitFolder(unit);
+    const reportFolder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
+    await this._client.ensureFolder(this._siteUrl, reportFolder);
+    await this._client.ensureFolder(this._siteUrl, `${reportFolder}/pdf`);
+    const folder = this.getReportEventPdfFolderPath(unit, docId, dateStr);
+    await this._client.ensureFolder(this._siteUrl, folder);
+    const safeName = ReportFileService.eventPdfStoredName(fileName);
+    await this._client.uploadFile(this._siteUrl, folder, safeName, buffer, true);
     return safeName;
   }
 

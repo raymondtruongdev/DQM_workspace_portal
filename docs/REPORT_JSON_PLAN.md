@@ -55,6 +55,7 @@ Hiện mỗi báo cáo ngày được lưu thành một file `.xlsx`, nên dữ 
 - **Cột:** chỉ `{ id, label: { vi, en } }`.
 - **Dòng bảng:** `{ id, locked?, cells }`. `locked: true` chỉ ghi khi đúng (dòng mẫu không được xoá). `cells` khoá theo `column.id`, chứa **mọi ô thật kể cả ô đã tính** (`progress`, `cumTotal`).
 - **`id` dòng:** `r1`, `r2`…; dòng mới = số lớn nhất hiện có trong section + 1; duy nhất trong từng section; **không bao giờ đổi** sau khi tạo; dòng `locked` của template giữ `id` theo template.
+- **PDF đính kèm dòng (mục Sự kiện `events`, cờ `rowPdf` do code quyết định):** dòng bảng có thêm `pdf: string[]` = tên các file PDF (chỉ ghi khi có file; KHÔNG dùng khoá `files` vì dòng ảnh dùng khoá đó để nhận diện). File nằm ở `pdf/eventlog/<tên file gốc>.pdf` (giữ nguyên tên); báo cáo kế thừa từ ngày trước không sao chép `pdf`.
 - **Dòng ảnh:** `{ id, department, summary, files[] }`. `id` = `g1`, `g2`… do hệ thống cấp (số lớn nhất + 1, thay cho `g<Date.now()>` hiện tại), đồng thời là tên thư mục `photos/<id>/`. Tên phòng ban người dùng nhập nằm ở `department`, đổi tên không làm đổi `id`.
 - **Giá trị:** ngày `yyyy-MM-dd`, giờ ISO 8601, số là số JSON (`1.5`), ô dropdown chỉ lưu giá trị đã chọn (chuỗi).
 
@@ -68,6 +69,7 @@ data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
 ├── <DRP|WRP>_<yyyyMMdd>_<Unit>.json    nguồn dữ liệu (backup)
 ├── <DRP|WRP>_<yyyyMMdd>_<Unit>.html         bản xem/in độc lập, nhúng JSON
 ├── photos/<GroupID>/…              ảnh (giữ nguyên)
+├── pdf/eventlog/<tên file gốc>.pdf   PDF đính kèm các dòng sự kiện
 └── <DocCode>_signed.pdf            bản ký (giữ nguyên)
 ```
 

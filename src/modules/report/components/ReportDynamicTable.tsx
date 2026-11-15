@@ -35,18 +35,26 @@ export interface IReportDynamicTableProps {
   /** Danh mục cho các cột select:@… và from=… (chưa tải xong thì undefined). */
   catalog?: ReportCatalog;
   /**
-   * Người dùng thêm giá trị mới ("Khác…") vào cột danh mục: ghi vào list DRPCatalogItems (chống trùng). Trả về giá trị cần gán cho ô
-   * và danh mục mới; trả undefined nếu không ghi được (khi đó giá trị chỉ lưu trong spec của báo cáo này), `{ cancelled }` nếu người dùng huỷ.
-   * `askLink` hỏi giá trị liên kết của mục mới (vd Activity của cấu kiện mới; link '' = bỏ qua, undefined = huỷ).
-   */
-  /**
    * Người dùng chọn lại giá trị cho cột phụ thuộc (vd Activity) của một mục do người dùng thêm (`AddedByAdmin = 0`):
    * ghi liên kết mới vào danh mục dùng chung (`ref` = bảng của cột nguồn, `code` = mã đang chọn).
    */
   onUpdateCatalogLink?: (ref: string, code: string, link: string) => Promise<void>;
+  /**
+   * Người dùng thêm giá trị mới ("Khác…") vào cột danh mục: ghi vào list DRPCatalogItems (chống trùng). Trả về giá trị cần gán cho ô
+   * và danh mục mới; trả undefined nếu không ghi được (khi đó giá trị chỉ lưu trong spec của báo cáo này), `{ cancelled }` nếu người dùng huỷ.
+   * `askLink` hỏi giá trị liên kết của mục mới (vd Activity của cấu kiện mới; link '' = bỏ qua, undefined = huỷ).
+   */
   onAddCatalogItem?: (ref: string, value: string, byLink: boolean, askLink?: AskCatalogLink) => Promise<CatalogAddResult | undefined>;
   /** Số lớn nhất đã dùng ở các báo cáo khác cho mã tự tăng (Event ID, Issue ID…), để dòng mới nhận số kế tiếp. */
   idCounters?: Record<string, number>;
+  /** Thư mục (server-relative) chứa PDF đính kèm của các dòng (mục có `rowPdf`, vd Sự kiện). */
+  rowPdfFolder?: string;
+  /** Tải PDF đính kèm cho một dòng. Nơi gọi tải lên SharePoint (hỏi Thay thế/Huỷ khi trùng tên) và cập nhật `files` của dòng. */
+  onUploadRowPdf?: (rowId: string, files: FileList) => Promise<void>;
+  /** Xoá một PDF đính kèm của dòng (xoá file và bỏ khỏi `files`). */
+  onDeleteRowPdf?: (rowId: string, name: string) => Promise<void>;
+  /** Xoá các file PDF của một dòng sắp bị xoá (chỉ xoá file, bỏ qua file dòng khác còn dùng; dòng do bảng tự bỏ). */
+  onPurgeRowPdf?: (rowId: string, names: string[]) => Promise<void>;
   dateStr: string;
   roman: string;
   anchor: string;
@@ -74,6 +82,10 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   catalog,
   onAddCatalogItem,
   onUpdateCatalogLink,
+  rowPdfFolder,
+  onUploadRowPdf,
+  onDeleteRowPdf,
+  onPurgeRowPdf,
   idCounters,
   dateStr,
   roman,
@@ -176,9 +188,41 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
 
   const addRow = (): void => setRows([...rows, createRow(table, unit, idCounters)]);
 
-  const removeRow = (index: number): void => {
-    if (rows[index]?.isLocked) return;
-    setRows(rows.filter((_, idx) => idx !== index));
+  const removeRow = async (index: number): Promise<void> => {
+    const row = rows[index];
+    if (!row || row.isLocked) return;
+    // Dòng có PDF đính kèm: xoá cả file trên SharePoint (có xác nhận), tránh để lại file mồ côi
+    if (table.rowPdf && row.files && row.files.length > 0 && onPurgeRowPdf) {
+      if (!window.confirm(`Xoá dòng này và ${row.files.length} file PDF đính kèm khỏi SharePoint?`)) return;
+      try {
+        await onPurgeRowPdf(row.id, row.files);
+      } catch {
+        return;
+      }
+    }
+    setRows(rows.filter((r) => r.id !== row.id));
+  };
+
+  // PDF đính kèm của dòng: một ô chọn file dùng chung, nhớ dòng đang đính kèm
+  const pdfInputRef = React.useRef<HTMLInputElement | null>(null);
+  const pdfTarget = React.useRef<string | null>(null);
+  const [pdfBusyRow, setPdfBusyRow] = React.useState<string | null>(null);
+  const pickPdf = (row: TableRow): void => {
+    pdfTarget.current = row.id;
+    if (pdfInputRef.current) {
+      pdfInputRef.current.value = '';
+      pdfInputRef.current.click();
+    }
+  };
+  const handlePdfPicked = async (files: FileList | null): Promise<void> => {
+    const target = pdfTarget.current;
+    if (!files || files.length === 0 || !target || !onUploadRowPdf) return;
+    setPdfBusyRow(target);
+    try {
+      await onUploadRowPdf(target, files);
+    } finally {
+      setPdfBusyRow(null);
+    }
   };
 
   const tableMinWidth = columns.reduce((acc, c) => acc + columnMinPx(c), table.single ? 0 : 56);
@@ -311,17 +355,30 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                   </th>
                 );
               })}
-              {!table.single && <th style={{ width: 56, minWidth: 56, textAlign: 'center' }} />}
+              {!table.single && <th style={{ width: table.rowPdf ? 96 : 56, minWidth: table.rowPdf ? 96 : 56, textAlign: 'center' }} />}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, idx) => (
-              <tr key={row.id || idx} className={row.isLocked ? 'report-row-locked' : ''}>
+              <React.Fragment key={row.id || idx}>
+              <tr className={row.isLocked ? 'report-row-locked' : ''}>
                 {columns.map((col) => (
                   <React.Fragment key={col.code}>{renderCell(col, row, idx)}</React.Fragment>
                 ))}
                 {!table.single && (
                   <td className="text-center">
+                    {table.rowPdf && onUploadRowPdf && (
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--icon btn--sm"
+                        onClick={() => pickPdf(row)}
+                        disabled={disabled || pdfBusyRow === row.id}
+                        title="Đính kèm file PDF cho dòng này"
+                        aria-label="Đính kèm file PDF"
+                      >
+                        <Icon name={pdfBusyRow === row.id ? 'refresh' : 'attach'} size={16} spin={pdfBusyRow === row.id} />
+                      </button>
+                    )}
                     {row.isLocked ? (
                       <span className="report-row-lock-badge" title="Mục cố định theo template (không được xoá)">
                         <Icon name="lock" size={16} />
@@ -330,7 +387,9 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                       <button
                         type="button"
                         className="btn btn--ghost-danger btn--icon btn--sm"
-                        onClick={() => removeRow(idx)}
+                        onClick={() => {
+                          removeRow(idx).catch(() => undefined);
+                        }}
                         disabled={disabled}
                         title="Xoá dòng"
                       >
@@ -340,6 +399,47 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                   </td>
                 )}
               </tr>
+              {table.rowPdf && row.files && row.files.length > 0 && (
+                <tr className="report-row-pdf">
+                  <td colSpan={columns.length + 1}>
+                    <div className="report-row-pdf__list">
+                      <span className="report-row-pdf__label">
+                        <Icon name="document-pdf" size={16} />
+                        PDF đính kèm
+                      </span>
+                      {row.files.map((name) => (
+                        <span key={name} className="report-row-pdf__item">
+                          <a
+                            className="btn btn--secondary btn--sm"
+                            href={`${rowPdfFolder || ''}/${encodeURIComponent(name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`Mở ${name}`}
+                          >
+                            <Icon name="document-pdf" size={16} />
+                            <span className="report-row-pdf__name">{name}</span>
+                          </a>
+                          {onDeleteRowPdf && (
+                            <button
+                              type="button"
+                              className="btn btn--ghost-danger btn--icon btn--sm"
+                              onClick={() => {
+                                if (window.confirm(`Xoá file "${name}" khỏi SharePoint?`)) onDeleteRowPdf(row.id, name).catch(() => undefined);
+                              }}
+                              disabled={disabled}
+                              title="Xoá file PDF này"
+                              aria-label={`Xoá file ${name}`}
+                            >
+                              <Icon name="dismiss" size={16} />
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              )}
+              </React.Fragment>
             ))}
             {hasTotals(table) && (
               <tr className="report-table-total-row">
@@ -357,6 +457,21 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {table.rowPdf && onUploadRowPdf && (
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          multiple
+          style={{ display: 'none' }}
+          tabIndex={-1}
+          aria-label="Chọn file PDF đính kèm"
+          onChange={(e) => {
+            handlePdfPicked(e.target.files).catch(() => undefined);
+          }}
+        />
+      )}
 
       {table.fields && table.fields.length > 0 && (
         <div className="section-card__body" style={{ borderTop: '1px solid var(--color-border)' }}>

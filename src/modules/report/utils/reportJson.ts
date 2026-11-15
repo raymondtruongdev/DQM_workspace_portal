@@ -99,7 +99,9 @@ function templateField(tf: TemplateFieldJson, value: CellValue): FormField {
 }
 
 function jsonRowToRow(r: ReportJsonRow): TableRow {
-  return { id: r.id, isLocked: r.locked ? true : undefined, values: { ...r.cells } };
+  const row: TableRow = { id: r.id, isLocked: r.locked ? true : undefined, values: { ...r.cells } };
+  if (r.pdf && r.pdf.length > 0) row.files = r.pdf.slice();
+  return row;
 }
 
 const sectionTitle = (t: { vi: string; en?: string; short?: string }): { title: string; titleEn: string; shortTitle: string } => ({
@@ -119,6 +121,7 @@ export function templateSection(ts: TemplateSectionJson): ReportSection {
       kind: 'table',
       ...head,
       single: ts.single === true,
+      ...(ts.rowPdf ? { rowPdf: true } : {}),
       columns: ts.columns.map(templateColumn),
       rows: (ts.rows || []).map(jsonRowToRow)
     };
@@ -229,6 +232,7 @@ function jsonSection(js: ReportJsonSection, ts: TemplateSectionJson | undefined)
       kind: 'table',
       ...head,
       single: Boolean(ts && ts.single),
+      ...(ts && ts.rowPdf ? { rowPdf: true } : {}),
       columns: js.columns.map((jc) => jsonColumn(jc, ts && ts.columns ? ts.columns.filter((c) => c.id === jc.id)[0] : undefined, jsonRows)),
       rows: jsonRows.map(jsonRowToRow)
     };
@@ -315,7 +319,9 @@ function sectionToJson(s: ReportSection): ReportJsonSection {
         const v = cellOf(r.values[c.code]);
         if (v !== undefined) cells[c.code] = v;
       });
-      return r.isLocked ? { id: r.id, locked: true, cells } : { id: r.id, cells };
+      const out: ReportJsonRow = r.isLocked ? { id: r.id, locked: true, cells } : { id: r.id, cells };
+      if (r.files && r.files.length > 0) out.pdf = r.files.slice();
+      return out;
     })
   };
   const totalCols = s.columns.filter((c) => c.total);
@@ -407,6 +413,7 @@ export function expandTemplate(file: TemplateSource): ReportTemplateJson {
     const s: TemplateSectionJson = { id: fs.id, title: fs.title };
     if (ui.kind) s.kind = ui.kind;
     if (ui.single !== undefined) s.single = ui.single;
+    if (ui.rowPdf) s.rowPdf = true;
     if (ui.showSummary !== undefined) s.showSummary = ui.showSummary;
     if (ui.layout) s.layout = { ...ui.layout };
     if (ui.perRow !== undefined) s.perRow = ui.perRow;
@@ -530,7 +537,9 @@ export function carryForwardDoc(prev: ReportDoc, dateStr: string, email: string)
     sections: prev.sections.map((s) => {
       if (s.kind === 'photo') return { ...s, groups: [] };
       if (s.kind === 'form') return { ...s, fields: freshFields(s.fields) as FormField[] };
-      const t = carryForwardTable(s);
+      // File PDF đính kèm thuộc về báo cáo của ngày đó: không kế thừa sang ngày mới (như ảnh)
+      const noFiles = s.rows.some((r) => r.files) ? { ...s, rows: s.rows.map((r) => ({ ...r, files: undefined })) } : s;
+      const t = carryForwardTable(noFiles);
       return t.fields ? { ...t, fields: freshFields(t.fields) } : t;
     }),
     metadata: { ...prev.metadata, email, updateTime: now, created: undefined }

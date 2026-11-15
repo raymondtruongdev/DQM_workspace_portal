@@ -11,6 +11,7 @@ const root = path.resolve(__dirname, '..', '..');
 const js = path.join(root, 'temp', 'dev', 'js', 'src', 'modules', 'report', 'utils');
 const J = require(path.join(js, 'reportJson'));
 const T = require(path.join(js, 'reportTable'));
+const { REPORT_FEATURES } = require(path.join(root, 'temp', 'dev', 'js', 'src', 'modules', 'report', 'constants', 'reportFeatures'));
 
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 // Báo cáo mẫu đã lưu = template ST01 (cùng định dạng) + phần đầu của một báo cáo thật (ngày, người lập, đơn vị thi công…)
@@ -215,4 +216,29 @@ test('file hỏng hoặc sai phiên bản thì báo lỗi dễ hiểu', () => {
   assert.throws(() => J.parseReportJson('{"schema":1,"unit":"ST01"}'), /thiếu/);
   assert.throws(() => J.parseReportJson(JSON.stringify({ ...clone(JSON.parse(sampleText)), schema: 99 })), /chưa được hỗ trợ/);
   assert.throws(() => J.parseTemplateJson('{"schema":1}'), /thiếu danh sách mục/);
+});
+
+test('PDF đính kèm dòng sự kiện: lưu/đọc lại trong khoá pdf của dòng; dòng không có file thì không ghi khoá pdf', () => {
+  const json = J.parseReportJson(sampleText);
+  const ev = json.sections.find((s) => s.id === 'events');
+  ev.rows[0].pdf = ['EVT-ST01-00001_bien-ban.pdf', 'EVT-ST01-00001_anh.pdf'];
+  const doc = J.jsonToDoc(json, tpl());
+  const table = doc.sections.find((s) => s.key === 'events');
+  assert.equal(Boolean(table.rowPdf), REPORT_FEATURES.EVENT_PDF); // rowPdf do bảng UI của code quyết định, theo cờ tính năng
+  assert.deepEqual(table.rows[0].files, ['EVT-ST01-00001_bien-ban.pdf', 'EVT-ST01-00001_anh.pdf']);
+  const back = J.docToJson(doc).sections.find((s) => s.id === 'events');
+  assert.deepEqual(back.rows[0].pdf, ev.rows[0].pdf);
+  assert.ok(back.rows.slice(1).every((r) => r.pdf === undefined));
+  // Mục khác không có rowPdf
+  assert.equal(doc.sections.find((s) => s.key === 'manpower').rowPdf, undefined);
+});
+
+test('báo cáo kế thừa từ ngày trước không sao chép PDF đính kèm; Apply template giữ files', () => {
+  const json = J.parseReportJson(sampleText);
+  json.sections.find((s) => s.id === 'events').rows[0].pdf = ['EVT-ST01-00001_x.pdf'];
+  const doc = J.jsonToDoc(json, tpl());
+  const next = J.carryForwardDoc(doc, '2026-11-11', 'x@y.z');
+  assert.ok(next.sections.find((s) => s.key === 'events').rows.every((r) => !r.files));
+  const applied = J.applyTemplate(doc, tpl(), 'template_DRP_ST01_20261114', { email: 'x@y.z' });
+  assert.deepEqual(applied.sections.find((s) => s.key === 'events').rows[0].files, ['EVT-ST01-00001_x.pdf']);
 });

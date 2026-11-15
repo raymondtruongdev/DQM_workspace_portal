@@ -16,6 +16,11 @@ export interface IReportSectionsEditorProps {
   onAddCatalogItem?: IReportDynamicTableProps['onAddCatalogItem'];
   /** Cập nhật liên kết của mục do người dùng thêm (xem ReportDynamicTable). */
   onUpdateCatalogLink?: IReportDynamicTableProps['onUpdateCatalogLink'];
+  /** Thư mục PDF đính kèm sự kiện (server-relative) và các thao tác tải / xoá PDF của dòng (xem ReportDynamicTable). */
+  eventPdfFolder?: string;
+  onUploadRowPdf?: (sectionKey: string, rowId: string, files: FileList) => Promise<void>;
+  onDeleteRowPdf?: (sectionKey: string, rowId: string, name: string) => Promise<void>;
+  onPurgeRowPdf?: (sectionKey: string, rowId: string, names: string[]) => Promise<void>;
   /** Tô đỏ các trường bắt buộc đang trống. */
   showErrors?: boolean;
   onSectionChange: (section: ReportSection) => void;
@@ -34,6 +39,10 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
   catalog,
   onAddCatalogItem,
   onUpdateCatalogLink,
+  eventPdfFolder,
+  onUploadRowPdf,
+  onDeleteRowPdf,
+  onPurgeRowPdf,
   showErrors = false,
   onSectionChange,
   photosFolder,
@@ -57,6 +66,10 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
               catalog={catalog}
               onAddCatalogItem={onAddCatalogItem}
               onUpdateCatalogLink={onUpdateCatalogLink}
+              rowPdfFolder={eventPdfFolder}
+              onUploadRowPdf={onUploadRowPdf ? (rowId, files) => onUploadRowPdf(sec.key, rowId, files) : undefined}
+              onDeleteRowPdf={onDeleteRowPdf ? (rowId, name) => onDeleteRowPdf(sec.key, rowId, name) : undefined}
+              onPurgeRowPdf={onPurgeRowPdf ? (rowId, names) => onPurgeRowPdf(sec.key, rowId, names) : undefined}
               idCounters={doc.idCounters}
               dateStr={doc.dateStr}
               roman={roman}

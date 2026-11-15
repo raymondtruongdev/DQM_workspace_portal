@@ -37,6 +37,8 @@ export interface ReportJsonRow {
   /** Chỉ ghi khi true: dòng mẫu của template, không được xoá. */
   locked?: true;
   cells: Record<string, JsonCellValue>;
+  /** Tên file PDF đính kèm của dòng (mục có `rowPdf`); chỉ ghi khi có file. Không đặt tên `files` vì dòng ảnh dùng khoá đó để phân biệt. */
+  pdf?: string[];
 }
 
 /** Ô văn bản đơn lẻ gắn với cả mục (ghi chú HSE, ký duyệt, chỉ đạo…). */
@@ -157,6 +159,8 @@ export interface TemplateSectionJson {
   kind?: 'photo';
   /** Bảng một dòng cố định: không thêm/xoá dòng. */
   single?: boolean;
+  /** true = mỗi dòng đính kèm được file PDF (thuộc tính UI do code quyết định, không nằm trong file template). */
+  rowPdf?: boolean;
   /** false = ẩn ô Tóm tắt trên form nhập (mặc định hiện). */
   showSummary?: boolean;
   /** Bố cục các `fields`: số cột lưới; `sign` = in dạng khung chữ ký. */

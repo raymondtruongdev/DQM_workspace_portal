@@ -1,4 +1,5 @@
 import { TemplateColumnJson, TemplateFieldJson, TemplateSectionJson } from '../types/reportJson.types';
+import { REPORT_FEATURES } from '../constants/reportFeatures';
 
 /**
  * Cách NHẬP/TRÌNH BÀY của báo cáo do CODE quyết định (file này), không nằm trong file template JSON.
@@ -14,7 +15,7 @@ import { TemplateColumnJson, TemplateFieldJson, TemplateSectionJson } from '../t
 export type ColumnUi = Omit<TemplateColumnJson, 'id' | 'label'>;
 export type FieldUi = Omit<TemplateFieldJson, 'id' | 'label' | 'default'>;
 
-export interface SectionUi extends Pick<TemplateSectionJson, 'kind' | 'single' | 'showSummary' | 'layout' | 'perRow'> {
+export interface SectionUi extends Pick<TemplateSectionJson, 'kind' | 'single' | 'rowPdf' | 'showSummary' | 'layout' | 'perRow'> {
   columns?: Record<string, ColumnUi>;
   fields?: Record<string, FieldUi>;
 }
@@ -49,6 +50,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
     },
   },
   events: {
+    rowPdf: REPORT_FEATURES.EVENT_PDF, // cờ trong constants/reportFeatures.ts
     columns: {
       eventId: { readonly: true, default: 'EVT-{unit}-{n5}', align: 'center', width: 20 },
       type: { type: 'select', catalog: 'event_type', noNone: true, width: 18, default: 'KIEM_TRA_ATLD' },

@@ -62,6 +62,8 @@ export interface TableRow {
   id: string;
   isLocked?: boolean;
   values: Record<string, CellValue>;
+  /** Tên các file PDF đính kèm của dòng (mục có `rowPdf`, vd Sự kiện); file nằm ở pdf/eventlog/ của thư mục báo cáo. */
+  files?: string[];
 }
 
 export type FieldType = 'text' | 'textarea' | 'number' | 'select';
@@ -93,6 +95,7 @@ export interface ReportTable {
   summary: string;    // Tóm tắt | Summary
   showSummary: boolean; // có hiện ô Tóm tắt trên form nhập không
   single: boolean;    // bảng một dòng cố định: không thêm/xoá dòng
+  rowPdf?: boolean;   // mỗi dòng đính kèm được file PDF (hiện nút đính kèm + link PDF dưới dòng)
   columns: TableColumn[];
   rows: TableRow[];
   /** Trường văn bản của mục (in dạng "Nhãn: giá trị" dưới bảng). */

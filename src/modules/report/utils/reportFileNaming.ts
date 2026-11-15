@@ -105,6 +105,16 @@ export function getReportFileRelativePath(
  * Server relative path for the report photos subfolder:
  * <libraryPath>/data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos
  */
+/** Thư mục file PDF đính kèm của các dòng sự kiện: <thư mục báo cáo>/pdf/eventlog */
+export function getReportEventPdfFolderRelativePath(
+  libraryPath: string,
+  unit: string,
+  docId: string,
+  date: string | Date
+): string {
+  return `${getReportFolderRelativePath(libraryPath, unit, docId, date)}/pdf/eventlog`;
+}
+
 export function getReportPhotosFolderRelativePath(
   libraryPath: string,
   unit: string,

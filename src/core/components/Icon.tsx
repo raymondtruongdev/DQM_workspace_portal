@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   AddRegular,
   AppsRegular,
+  AttachRegular,
   ArrowDownloadRegular,
   ArrowLeftRegular,
   ArrowRightRegular,
@@ -16,6 +17,7 @@ import {
   ChevronRightRegular,
   ChevronUpRegular,
   CopyRegular,
+  DocumentPdfRegular,
   DeleteRegular,
   DismissRegular,
   DocumentArrowUpRegular,
@@ -46,6 +48,8 @@ import {
 const ICONS = {
   add: AddRegular,
   apps: AppsRegular,
+  attach: AttachRegular,
+  'document-pdf': DocumentPdfRegular,
   'arrow-left': ArrowLeftRegular,
   'arrow-right': ArrowRightRegular,
   building: BuildingRegular,

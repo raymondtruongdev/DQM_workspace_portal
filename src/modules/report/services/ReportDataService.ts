@@ -369,6 +369,34 @@ export class ReportDataService {
     return await this._fileService.uploadReportPhoto(unit, docId, dateStr, groupId, fileName, buffer);
   }
 
+  /** Thư mục file PDF đính kèm sự kiện (server-relative): <thư mục báo cáo>/pdf/eventlog */
+  public getEventPdfFolderPath(unit: string, docId: string, dateStr: string): string {
+    return this._fileService.getReportEventPdfFolderPath(unit, docId, dateStr);
+  }
+
+  /** Tên file PDF sẽ lưu (giữ nguyên tên gốc) và nó đã tồn tại trong pdf/eventlog của báo cáo chưa. Không đọc được thư mục thì coi là chưa có. */
+  public async checkEventPdf(unit: string, docId: string, dateStr: string, fileName: string): Promise<{ name: string; exists: boolean }> {
+    const name = ReportFileService.eventPdfStoredName(fileName);
+    try {
+      return { name, exists: await this._fileService.eventPdfExists(unit, docId, dateStr, name) };
+    } catch (err: unknown) {
+      console.warn('Could not check existing event PDF:', err);
+      return { name, exists: false };
+    }
+  }
+
+  /** Upload PDF đính kèm của một dòng sự kiện (giữ nguyên tên gốc, cùng tên thì ghi đè); trả về tên file đã lưu. Báo cáo đang khoá thì ném `ReportLockedError`. */
+  public async uploadEventPdf(unit: string, docId: string, dateStr: string, fileName: string, buffer: ArrayBuffer): Promise<string> {
+    await this.assertUnlocked(unit, docId, dateStr);
+    return await this._fileService.uploadEventPdf(unit, docId, dateStr, fileName, buffer);
+  }
+
+  /** Xoá một PDF đính kèm sự kiện theo tên file. Báo cáo đang khoá thì ném `ReportLockedError`. */
+  public async deleteEventPdf(unit: string, docId: string, dateStr: string, fileName: string): Promise<void> {
+    await this.assertUnlocked(unit, docId, dateStr);
+    await this._fileService.deleteReportPhoto(`${this._fileService.getReportEventPdfFolderPath(unit, docId, dateStr)}/${fileName}`);
+  }
+
   /**
    * Delete an uploaded photo by its server-relative URL
    */

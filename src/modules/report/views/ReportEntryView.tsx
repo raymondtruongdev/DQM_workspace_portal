@@ -534,6 +534,110 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     }
   };
 
+  // PDF đính kèm của dòng sự kiện: pdf/eventlog/<mã sự kiện>_<tên file>.pdf; danh sách tên lưu trong `files` của dòng khi bấm Lưu
+  const eventPdfFolder = dataService.getEventPdfFolderPath(role.unit, role.docId, dateStr);
+
+  const updateRowFiles = (sectionKey: string, rowId: string, update: (files: string[]) => string[]): void => {
+    setDoc((prev) =>
+      prev
+        ? {
+            ...prev,
+            sections: prev.sections.map((x) =>
+              x.kind === 'table' && x.key === sectionKey
+                ? { ...x, rows: x.rows.map((r) => (r.id === rowId ? { ...r, files: update(r.files || []) } : r)) }
+                : x
+            )
+          }
+        : null
+    );
+    setHasUnsavedChanges(true);
+  };
+
+  // Số dòng khác (kể cả mục khác) còn dùng file PDF này: file giữ tên gốc nên có thể dùng chung, chỉ xoá file khi không ai còn dùng
+  const isPdfUsedElsewhere = (sectionKey: string, rowId: string, name: string): boolean => {
+    const lower = name.toLowerCase();
+    return Boolean(
+      doc &&
+        doc.sections.some(
+          (x) =>
+            x.kind === 'table' &&
+            x.rows.some((r) => !(x.key === sectionKey && r.id === rowId) && (r.files || []).some((f) => f.toLowerCase() === lower))
+        )
+    );
+  };
+
+  // Hộp thoại "file đã tồn tại": Thay thế hoặc Huỷ (hỏi lần lượt từng file trùng tên)
+  const [pdfReplaceAsk, setPdfReplaceAsk] = React.useState<{ name: string; resolve: (replace: boolean) => void } | null>(null);
+  const askReplacePdf = (name: string): Promise<boolean> => new Promise<boolean>((resolve) => setPdfReplaceAsk({ name, resolve }));
+
+  const handleUploadRowPdf = async (sectionKey: string, rowId: string, files: FileList): Promise<void> => {
+    if (!doc || files.length === 0) return;
+    const picked: File[] = [];
+    for (let i = 0; i < files.length; i++) picked.push(files[i]);
+    const bad = picked.filter((f) => !/\.pdf$/i.test(f.name) && f.type !== 'application/pdf');
+    if (bad.length > 0) {
+      setToast({ type: 'error', text: `Chỉ nhận file PDF (bỏ qua: ${bad.map((f) => f.name).join(', ')}).` });
+      return;
+    }
+    if (await onCheckMaintenance()) return;
+    try {
+      const names: string[] = [];
+      let skipped = 0;
+      for (const file of picked) {
+        // Giữ nguyên tên file; trùng tên file đã có trong pdf/eventlog thì hỏi Thay thế / Huỷ
+        const chk = await dataService.checkEventPdf(role.unit, role.docId, dateStr, file.name);
+        if (chk.exists && !(await askReplacePdf(chk.name))) {
+          skipped += 1;
+          continue;
+        }
+        const buf = await file.arrayBuffer();
+        names.push(await dataService.uploadEventPdf(role.unit, role.docId, dateStr, file.name, buf));
+      }
+      if (names.length > 0) {
+        updateRowFiles(sectionKey, rowId, (cur) => {
+          const lower = cur.map((f) => f.toLowerCase());
+          return cur.concat(names.filter((n) => lower.indexOf(n.toLowerCase()) === -1));
+        });
+      }
+      if (names.length === 0) setToast({ type: 'success', text: 'Đã huỷ, không có file nào được đính kèm.' });
+      else
+        setToast({
+          type: 'success',
+          text: `Đã đính kèm ${names.length} file PDF${skipped > 0 ? ` (bỏ qua ${skipped} file trùng tên)` : ''}. Bấm Lưu báo cáo để ghi vào báo cáo.`
+        });
+    } catch (err: unknown) {
+      console.error('Error uploading event PDF:', err);
+      handleWriteError(err, 'Lỗi khi tải file PDF lên SharePoint');
+    }
+  };
+
+  const handleDeleteRowPdf = async (sectionKey: string, rowId: string, name: string): Promise<void> => {
+    if (await onCheckMaintenance()) return;
+    try {
+      // Dòng khác còn dùng file này thì chỉ gỡ khỏi dòng, giữ file
+      if (!isPdfUsedElsewhere(sectionKey, rowId, name)) await dataService.deleteEventPdf(role.unit, role.docId, dateStr, name);
+      updateRowFiles(sectionKey, rowId, (cur) => cur.filter((f) => f !== name));
+      setToast({ type: 'success', text: `Đã xoá file "${name}". Bấm Lưu báo cáo để ghi vào báo cáo.` });
+    } catch (err: unknown) {
+      console.error('Error deleting event PDF:', err);
+      handleWriteError(err, 'Lỗi khi xoá file PDF trên SharePoint');
+    }
+  };
+
+  // Xoá cả dòng sự kiện: xoá luôn các PDF của dòng (trừ file dòng khác còn dùng); lỗi thì ném ra để bảng giữ lại dòng
+  const handlePurgeRowPdf = async (sectionKey: string, rowId: string, names: string[]): Promise<void> => {
+    if (await onCheckMaintenance()) throw new Error('Portal đang bảo trì');
+    try {
+      for (const name of names) {
+        if (!isPdfUsedElsewhere(sectionKey, rowId, name)) await dataService.deleteEventPdf(role.unit, role.docId, dateStr, name);
+      }
+    } catch (err: unknown) {
+      console.error('Error deleting event PDFs:', err);
+      handleWriteError(err, 'Lỗi khi xoá file PDF trên SharePoint');
+      throw err;
+    }
+  };
+
   // Load new template when existing / previous-day report uses an outdated template
   const handleLoadLatestTemplate = async (): Promise<void> => {
     if (!doc) return;
@@ -882,6 +986,10 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             catalog={catalog}
             onAddCatalogItem={handleAddCatalogItem}
             onUpdateCatalogLink={handleUpdateCatalogLink}
+            eventPdfFolder={eventPdfFolder}
+            onUploadRowPdf={handleUploadRowPdf}
+            onDeleteRowPdf={handleDeleteRowPdf}
+            onPurgeRowPdf={handlePurgeRowPdf}
             showErrors={showRequiredErrors}
             onSectionChange={handleSectionChange}
             photosFolder={photosFolder}
@@ -956,6 +1064,23 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             onGoHome();
           }}
           onCancel={() => undefined}
+        />
+      )}
+
+      {pdfReplaceAsk && (
+        <ConfirmDialog
+          danger
+          title="File PDF đã tồn tại"
+          message={`File "${pdfReplaceAsk.name}" đã có trong thư mục pdf/eventlog của báo cáo này. Thay thế sẽ ghi đè file cũ (dòng sự kiện nào đang dùng file này cũng thấy nội dung mới). Huỷ thì giữ file cũ và không đính kèm file này.`}
+          confirmLabel="Thay thế"
+          onConfirm={() => {
+            pdfReplaceAsk.resolve(true);
+            setPdfReplaceAsk(null);
+          }}
+          onCancel={() => {
+            pdfReplaceAsk.resolve(false);
+            setPdfReplaceAsk(null);
+          }}
         />
       )}
 

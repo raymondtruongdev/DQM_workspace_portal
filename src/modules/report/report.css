@@ -2166,3 +2166,39 @@
 @media (max-width: 640px) {
   .report-lock-note { padding: var(--space-3); }
 }
+
+/* PDF đính kèm dưới dòng (mục có rowPdf, vd Sự kiện): hàng link chỉ hiện khi dòng có file */
+.report-row-pdf td {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-subtle);
+}
+.report-row-pdf__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.report-row-pdf__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.report-row-pdf__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.report-row-pdf__name {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .report-row-pdf__name { max-width: 180px; }
+}
