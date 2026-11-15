@@ -77,6 +77,7 @@ export interface FormField {
   lines?: number;               // số dòng kẻ của textarea khi in (UI vẫn hiện `rows` dòng)
   placeholder?: string;
   defaultValue?: string;        // giá trị khi trống; {user} {siteManager} {unit} được điền tự động
+  auto?: boolean;               // true: báo cáo mới (kế thừa ngày trước) bỏ giá trị cũ và điền lại từ `defaultValue`
   required?: boolean;
   value: CellValue;
 }

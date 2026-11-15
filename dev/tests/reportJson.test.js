@@ -51,11 +51,11 @@ test('mã tài liệu đã lưu được giữ nguyên dù template đổi mẫu
 });
 
 test('báo cáo mới từ template: đủ mục, số báo cáo 00001, mặc định {user}', () => {
-  const t = J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST02_20261114.json'));
-  const doc = J.docFromTemplate(t, { docId: 'DailyReport', unit: 'ST02', dateStr: '2026-11-15', email: 'a@b.c', siteManager: 'Sếp', version: 'template_DRP_ST02_20261114' });
+  const t = J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261114.json'));
+  const doc = J.docFromTemplate(t, { docId: 'DailyReport', unit: 'ST01', dateStr: '2026-11-15', email: 'a@b.c', siteManager: 'Sếp', version: 'template_DRP_ST01_20261114' });
   assert.equal(doc.sections.length, 11);
   assert.equal(doc.metadata.reportNo, '00001');
-  assert.match(doc.metadata.docCode, /-ST02-CWS-DRP-00001$/);
+  assert.match(doc.metadata.docCode, /-ST01-CWS-DRP-00001$/);
   const sign = doc.sections.find((s) => s.key === 'signOff');
   assert.equal(sign.kind, 'form');
   assert.equal(sign.fields.find((f) => f.key === 'preparedBy').value, 'a@b.c');
@@ -94,6 +94,48 @@ test('Apply template mới: thêm cột/mục mới, giữ dữ liệu cũ, bỏ
   assert.equal(next.sections[next.sections.length - 1].key, 'extra');
   assert.equal(next.metadata.templateVersion, 'template_DRP_ST01_29991231');
   assert.equal(next.sections.find((s) => s.key === 'photos').groups.length, 2);
+});
+
+test('template chỉ chứa dữ liệu: không có thuộc tính UI, UI do code (reportUiSchema) mở rộng khi đọc', () => {
+  const file = JSON.parse(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261114.json'));
+  const uiKeys = ['type', 'catalog', 'catalogBy', 'from', 'options', 'noNone', 'formula', 'readonly', 'key', 'total', 'align', 'width', 'default', 'reset', 'carry', 'tones',
+    'kind', 'single', 'showSummary', 'layout', 'perRow', 'full', 'span', 'lines', 'placeholder'];
+  const bad = [];
+  // Template cùng định dạng file báo cáo: cùng bộ khoá cấp cao nhất và cấp mục
+  assert.deepEqual(Object.keys(file), Object.keys(JSON.parse(sampleText)));
+  file.sections.forEach((s) => {
+    uiKeys.filter((k) => k !== 'type').forEach((k) => { if (k in s) bad.push(`${s.id}.${k}`); });
+    (s.columns || []).concat(s.fields || []).forEach((c) => uiKeys.forEach((k) => { if (k in c) bad.push(`${s.id}.${c.id}.${k}`); }));
+  });
+  assert.deepEqual(bad, []);
+  const t = tpl();
+  const wq = t.sections.find((s) => s.id === 'workQty');
+  assert.equal(wq.columns.find((c) => c.id === 'progress').formula, 'round((daily+prevCum)/planned*100)');
+  assert.equal(wq.columns.find((c) => c.id === 'activityId').catalog, 'ActivityP6_ID');
+  assert.equal(t.sections.find((s) => s.id === 'photos').kind, 'photo');
+  assert.equal(t.docCodePattern, file.docCodeTemplate); // mẫu mã tài liệu có {unit}/{reportNo}
+  assert.match(t.docCodePattern, /\{unit\}.*\{reportNo\}/);
+  assert.equal(t.sections.find((s) => s.id === 'signOff').fields.find((f) => f.id === 'preparedBy').auto, '{user}');
+  // Mục/cột không khai báo UI trong code vẫn dùng được như văn bản thường
+  const extra = J.parseTemplateJson(JSON.stringify({ schema: 1, docId: 'DailyReport', title: {}, docCodePattern: '', sections: [{ id: 'zz', title: { vi: 'Z' }, columns: [{ id: 'a', label: { vi: 'A' } }] }] }));
+  assert.equal(extra.sections[0].columns[0].type, undefined);
+});
+
+test('báo cáo đã lưu dùng thẳng làm template: mã tài liệu tính lại theo đơn vị đang mở, người lập/trưởng ga theo người dùng hiện tại', () => {
+  const t = J.parseTemplateJson(sampleText); // sampleText = báo cáo đã lưu (docCodeTemplate + docCode thật, preparedBy/siteManager là tên người cũ)
+  assert.equal(t.docCodePattern, 'HCM2_1-23_CS-THAC_DCEM-CPZZ-{unit}-CWS-DRP-{reportNo}');
+  const doc = J.docFromTemplate(t, { docId: 'DailyReport', unit: 'ST02', dateStr: '2026-11-15', email: 'moi@b.c', siteManager: 'Sếp mới', version: 'x' });
+  assert.equal(doc.metadata.docCode, 'HCM2_1-23_CS-THAC_DCEM-CPZZ-ST02-CWS-DRP-00001');
+  // File lưu ghi lại docCodeTemplate để tự dùng làm template được
+  assert.equal(J.docToJson(doc).docCodeTemplate, t.docCodePattern);
+  const sign = doc.sections.find((s) => s.key === 'signOff');
+  assert.equal(sign.fields.find((f) => f.key === 'preparedBy').value, 'moi@b.c');
+  assert.equal(sign.fields.find((f) => f.key === 'siteManager').value, 'Sếp mới');
+  // Kế thừa từ báo cáo ngày trước cũng điền lại người lập (không giữ tên người cũ); mở lại báo cáo đã lưu thì giữ giá trị đã lưu
+  const prev = J.jsonToDoc(J.parseReportJson(sampleText), tpl());
+  assert.equal(prev.sections.find((s) => s.key === 'signOff').fields.find((f) => f.key === 'preparedBy').value, 'user@example.com');
+  const next = J.carryForwardDoc(prev, '2026-11-11', 'moi@b.c');
+  assert.equal(next.sections.find((s) => s.key === 'signOff').fields.find((f) => f.key === 'preparedBy').value, '');
 });
 
 test('mã dòng mới = số lớn nhất + 1, không trùng', () => {

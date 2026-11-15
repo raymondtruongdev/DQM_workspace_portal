@@ -3,8 +3,11 @@
  * Hợp đồng đầy đủ: docs/REPORT_JSON_PLAN.md và mẫu docs/sample/DailyReport.sample.data.json.
  *
  * Nguyên tắc: file báo cáo chỉ chứa định danh, nhãn và GIÁ TRỊ THẬT (kể cả ô đã tính và dòng Tổng) để mở một mình đọc được.
- * Mọi thứ quyết định cách NHẬP/TRÌNH BÀY (kiểu ô, danh mục dropdown, công thức, mặc định, căn lề, độ rộng, bố cục) nằm ở template,
- * ghép với báo cáo theo `id` cột / `id` trường / `id` mục.
+ * Cách NHẬP/TRÌNH BÀY (kiểu ô, danh mục dropdown, công thức, mặc định, căn lề, độ rộng, bố cục) do CODE quyết định
+ * (utils/reportUiSchema.ts), ghép với báo cáo theo `id` mục / `id` cột / `id` trường. File template JSON có CÙNG định dạng
+ * với file báo cáo (`ReportJson`), chỉ khác dữ liệu: `unit`, `date`, `reportNo`, `docCode` chỉ là chỗ giữ (cấp lại khi import), `docCodeTemplate`
+ * là mẫu mã tài liệu có {unit} {reportNo}, trường có thể chứa token {user} {siteManager} {unit}. `ReportTemplateJson` bên dưới là dạng đã mở rộng
+ * trong bộ nhớ (template + bảng UI) mà phần còn lại của code dùng.
  */
 
 export const REPORT_JSON_SCHEMA = 1;
@@ -77,6 +80,8 @@ export interface ReportJson {
   /** yyyy-MM-dd */
   date: string;
   reportNo: number;
+  /** Mẫu mã tài liệu có chỗ giữ {unit} {reportNo}; docCode = mẫu này đã thay. Có trong file lưu để file tự dùng làm template được. */
+  docCodeTemplate: string;
   docCode: string;
   title: { vi: string; en: string; sub: string };
   /** Tên template đã dùng (vd template_DRP_ST01_20261114): so với bản mới nhất để báo cập nhật. */
@@ -89,7 +94,7 @@ export interface ReportJson {
   tasks?: Array<{ id: string; taskName: string; completionRate?: number; quantity?: number; unit: string; parentId?: string; level: number; isLeaf: boolean }>;
 }
 
-/* -------------------------------- Template -------------------------------- */
+/* ------------- Template đã mở rộng (file template + bảng UI trong code) ------------- */
 
 export type TemplateColumnType = 'text' | 'number' | 'date' | 'select' | 'calc';
 export type TemplateTone = 'danger' | 'warning' | 'success' | 'info' | 'muted';
@@ -137,6 +142,11 @@ export interface TemplateFieldJson {
   placeholder?: string;
   /** Có thể dùng {user} {siteManager} {unit}; chỉ điền khi trường đang trống. */
   default?: string | number;
+  /**
+   * Token (vd {user}, {siteManager}) luôn tính lại cho báo cáo MỚI (từ template hoặc kế thừa ngày trước), bỏ qua giá trị đã
+   * lưu trong template/báo cáo trước. Mở lại báo cáo đã lưu thì vẫn giữ giá trị đã lưu. Khai báo trong utils/reportUiSchema.ts.
+   */
+  auto?: string;
 }
 
 export interface TemplateSectionJson {

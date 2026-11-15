@@ -28,12 +28,15 @@ import {
 } from '../types/reportJson.types';
 import { applyFormDefaults } from './reportForm';
 import { formatReportNo, syncMetadata } from './reportMeta';
+import { REPORT_UI } from './reportUiSchema';
 import { carryForwardTable, columnTotal, defaultCellValue, recalcTable, splitLabel } from './reportTable';
 
 /**
  * Chuyển đổi giữa ba dạng:
  *   - file báo cáo `.json` (ReportJson): nhãn + giá trị thật, gọn, đọc được một mình;
- *   - template `.json` (ReportTemplateJson): cấu trúc + cách nhập (kiểu ô, danh mục, công thức, mặc định…);
+ *   - template `.json`: CÙNG định dạng với file báo cáo (ReportJson) nhưng là khung rỗng (định danh trống, `docCodeTemplate` là mẫu mã, dòng mẫu,
+ *     trường có thể chứa token), KHÔNG có thuộc tính UI; được mở rộng bằng bảng UI trong code (reportUiSchema.ts: kiểu ô, danh mục,
+ *     công thức, mặc định…) thành ReportTemplateJson;
  *   - mô hình đang sửa trên web (ReportDoc): file báo cáo ghép với template theo `id` mục / `id` cột / `id` trường.
  * Cột/mục/trường có trong file báo cáo mà template không có (hoặc chưa tải được template) vẫn hiển thị như ô văn bản thường.
  */
@@ -87,6 +90,10 @@ function templateField(tf: TemplateFieldJson, value: CellValue): FormField {
   if (tf.lines) f.lines = tf.lines;
   if (tf.placeholder) f.placeholder = tf.placeholder;
   if (tf.default !== undefined) f.defaultValue = String(tf.default);
+  if (tf.auto !== undefined) {
+    f.defaultValue = tf.auto;
+    f.auto = true;
+  }
   return f;
 }
 
@@ -249,7 +256,7 @@ export function jsonToDoc(json: ReportJson, tpl?: ReportTemplateJson): ReportDoc
       docTitleEn: json.title.en,
       subTitle: json.title.sub,
       docCode: json.docCode,
-      docCodePattern: tpl ? tpl.docCodePattern : undefined,
+      docCodePattern: (tpl && tpl.docCodePattern) || json.docCodeTemplate || undefined,
       templateVersion: json.template,
       location: json.unit,
       reportNo: formatReportNo(json.reportNo),
@@ -332,6 +339,7 @@ export function docToJson(doc: ReportDoc): ReportJson {
     docId: doc.docId,
     date: doc.dateStr,
     reportNo: isNaN(reportNo) ? 1 : reportNo,
+    docCodeTemplate: m.docCodePattern || '',
     docCode: m.docCode,
     title: { vi: m.docTitle, en: m.docTitleEn, sub: m.subTitle },
     template: m.templateVersion || '',
@@ -377,6 +385,7 @@ export function parseReportJson(text: string): ReportJson {
   return {
     ...(j as ReportJson),
     reportNo: Number(j.reportNo) || 1,
+    docCodeTemplate: j.docCodeTemplate || '',
     docCode: j.docCode || '',
     title: { vi: t.vi || '', en: t.en || '', sub: t.sub || '' },
     template: j.template || '',
@@ -386,7 +395,38 @@ export function parseReportJson(text: string): ReportJson {
   };
 }
 
-/** Đọc template JSON; sai cấu trúc cơ bản thì ném lỗi dễ hiểu. */
+/** Phần của file template mà `expandTemplate` dùng: cùng hình dạng file báo cáo, các khoá định danh có thể thiếu. */
+export type TemplateSource = Pick<ReportJson, 'schema' | 'docId' | 'title' | 'docCodeTemplate' | 'sections'>;
+
+/** Mở rộng template (chỉ dữ liệu) bằng bảng UI của code thành dạng mà phần còn lại dùng. Thuộc tính UI lỡ có trong file bị bỏ qua. */
+export function expandTemplate(file: TemplateSource): ReportTemplateJson {
+  const uiOf = REPORT_UI[file.docId] || {};
+  const sections = file.sections.map((fs): TemplateSectionJson => {
+    const ui = uiOf[fs.id] || {};
+    const s: TemplateSectionJson = { id: fs.id, title: fs.title };
+    if (ui.kind) s.kind = ui.kind;
+    if (ui.single !== undefined) s.single = ui.single;
+    if (ui.showSummary !== undefined) s.showSummary = ui.showSummary;
+    if (ui.layout) s.layout = { ...ui.layout };
+    if (ui.perRow !== undefined) s.perRow = ui.perRow;
+    if (fs.columns) {
+      s.columns = fs.columns.map((c) => ({ ...(ui.columns && ui.columns[c.id]), id: c.id, label: c.label }));
+    }
+    // Mục ảnh: `rows` là các bộ phận ảnh, báo cáo mới luôn bắt đầu không có ảnh
+    if (fs.rows && fs.type !== 'photo') s.rows = fs.rows.filter((r): r is ReportJsonRow => !isPhotoRow(r));
+    if (fs.fields) {
+      s.fields = fs.fields.map((f) => {
+        const tf: TemplateFieldJson = { ...(ui.fields && ui.fields[f.id]), id: f.id, label: f.label };
+        if (f.value !== undefined && f.value !== '' && tf.auto === undefined) tf.default = f.value;
+        return tf;
+      });
+    }
+    return s;
+  });
+  return { schema: file.schema, docId: file.docId, title: file.title, docCodePattern: file.docCodeTemplate, sections };
+}
+
+/** Đọc template JSON (cùng định dạng file báo cáo) rồi mở rộng bằng bảng UI; sai cấu trúc cơ bản thì ném lỗi dễ hiểu. */
 export function parseTemplateJson(text: string): ReportTemplateJson {
   let raw: unknown;
   try {
@@ -394,16 +434,17 @@ export function parseTemplateJson(text: string): ReportTemplateJson {
   } catch {
     return fail('Template', 'không phải JSON');
   }
-  const t = raw as Partial<ReportTemplateJson>;
+  const t = raw as Partial<ReportJson>;
   if (!t || typeof t !== 'object' || !Array.isArray(t.sections)) return fail('Template', 'thiếu danh sách mục (sections)');
   if (typeof t.schema !== 'number' || t.schema > REPORT_JSON_SCHEMA) return fail('Template', 'phiên bản định dạng (schema) chưa được hỗ trợ');
-  const title = (t.title || {}) as Partial<ReportTemplateJson['title']>;
-  return {
-    ...(t as ReportTemplateJson),
+  const title = (t.title || {}) as Partial<ReportJson['title']>;
+  return expandTemplate({
+    schema: t.schema,
     docId: t.docId || 'DailyReport',
-    docCodePattern: t.docCodePattern || '',
-    title: { vi: title.vi || '', en: title.en || '', sub: title.sub || '' }
-  };
+    docCodeTemplate: t.docCodeTemplate || '',
+    title: { vi: title.vi || '', en: title.en || '', sub: title.sub || '' },
+    sections: t.sections
+  });
 }
 
 /* ------------------------------ Apply template ------------------------------ */
@@ -468,6 +509,11 @@ export function applyTemplate(doc: ReportDoc, tpl: ReportTemplateJson, version: 
 
 /* --------------------------- Tạo từ báo cáo ngày trước --------------------------- */
 
+/** Trường `auto` (người lập, trưởng ga…) bỏ giá trị cũ để `applyFormDefaults` điền lại theo người dùng hiện tại. */
+function freshFields(fields: FormField[] | undefined): FormField[] | undefined {
+  return fields ? fields.map((f) => (f.auto ? { ...f, value: '' } : f)) : fields;
+}
+
 /**
  * Báo cáo của `dateStr` khởi tạo từ báo cáo ngày trước: luỹ kế (cột carry) và reset (cột reset) theo template,
  * ảnh không sao chép; các trường văn bản giữ nguyên. Số báo cáo/mã tài liệu do nơi gọi cấp lại.
@@ -480,9 +526,12 @@ export function carryForwardDoc(prev: ReportDoc, dateStr: string, email: string)
     isExisting: false,
     eTag: undefined,
     copiedFromDate: prev.dateStr,
-    sections: prev.sections.map((s) =>
-      s.kind === 'photo' ? { ...s, groups: [] } : s.kind === 'table' ? carryForwardTable(s) : s
-    ),
+    sections: prev.sections.map((s) => {
+      if (s.kind === 'photo') return { ...s, groups: [] };
+      if (s.kind === 'form') return { ...s, fields: freshFields(s.fields) as FormField[] };
+      const t = carryForwardTable(s);
+      return t.fields ? { ...t, fields: freshFields(t.fields) } : t;
+    }),
     metadata: { ...prev.metadata, email, updateTime: now, created: undefined }
   };
 }

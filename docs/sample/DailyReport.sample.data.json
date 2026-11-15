@@ -4,6 +4,7 @@
   "docId": "DailyReport",
   "date": "2026-11-10",
   "reportNo": 1,
+  "docCodeTemplate": "HCM2_1-23_CS-THAC_DCEM-CPZZ-{unit}-CWS-DRP-{reportNo}",
   "docCode": "HCM2_1-23_CS-THAC_DCEM-CPZZ-ST01-CWS-DRP-00001",
   "title": {
     "vi": "BÁO CÁO NGÀY",

@@ -10,7 +10,8 @@ export interface LoadedTemplate {
 
 /**
  * Template báo cáo (JSON) trong thư viện: `_template/template_<DRP|WRP>_<Unit>_<yyyyMMdd>.json`, ngày trong tên file càng mới càng ưu tiên.
- * Template quyết định cách nhập (kiểu ô, danh mục, công thức, mặc định, luỹ kế…) và các dòng mẫu của báo cáo mới.
+ * Template có cùng định dạng file báo cáo, chỉ là khung rỗng (mục, cột, nhãn, dòng mẫu, giá trị khởi tạo của trường). Cách nhập (kiểu ô, danh mục, công thức,
+ * mặc định, luỹ kế…) do code quyết định (utils/reportUiSchema.ts), `parseTemplateJson` ghép hai phần lại.
  */
 export class ReportTemplateService {
   private _fileService: ReportFileService;
