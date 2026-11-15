@@ -96,7 +96,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   equipment: {
     columns: {
       activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', width: 16 },
-      resId: { type: 'select', catalog: 'ResEquip_ID', default: '---', align: 'center', width: 22 },
+      resId: { type: 'select', catalog: 'ResEquip_ID', noNone: true, align: 'center', width: 22 },
       equipment: { readonly: true, from: 'resId', fromField: 'nameVn', width: 34 },
       qty: { type: 'number', default: 1, width: 10 },
       status: { type: 'select', catalog: 'equipment_status', noNone: true, default: 'Active', align: 'center', width: 14 },
