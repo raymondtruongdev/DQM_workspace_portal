@@ -18,6 +18,7 @@ import { ReportSignedDocument } from '../components/ReportSignedDocument';
 import { getReportFolderName } from '../utils/reportFileNaming';
 import { ReportPrintPreviewModal } from '../components/ReportPrintPreviewModal';
 import { Icon, PageHeader, LoadingState, EmptyState, ConfirmDialog } from '../../../core/components';
+import { SelectOpenContext } from '../../../core/components/CreatableSelect';
 
 /** "YYYY-MM-DD" -> "dd/MM" */
 const tplDM = (d?: string): string => (d ? d.split('-').reverse().slice(0, 2).join('/') : '');
@@ -98,6 +99,35 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     };
   }, [dataService, role.unit]);
 
+  // Đọc lại danh mục khi người dùng bấm vào một dropdown (thấy ngay giá trị người khác vừa thêm). Tối đa 1 lần / 5 giây,
+  // không chạy chồng; chỉ cập nhật khi danh mục thật sự đổi (tránh dựng lại danh sách đang mở); bỏ kết quả cũ nếu giữa chừng có thêm mục.
+  const catalogRef = React.useRef<ReportCatalog | undefined>(undefined);
+  catalogRef.current = catalog;
+  const catalogStamp = React.useRef({ busy: false, last: 0, version: 0 });
+  const refreshCatalog = React.useCallback((): void => {
+    const st = catalogStamp.current;
+    if (st.busy || Date.now() - st.last < 5000 || !catalogRef.current) return;
+    st.busy = true;
+    st.last = Date.now();
+    const version = st.version;
+    dataService
+      .getCatalog(role.unit)
+      .then((c) => {
+        if (version !== st.version) return;
+        const cur = catalogRef.current;
+        if (cur && JSON.stringify(cur.tables) !== JSON.stringify(c.tables)) setCatalog(c);
+      })
+      .catch(() => {})
+      .then(
+        () => {
+          st.busy = false;
+        },
+        () => {
+          st.busy = false;
+        }
+      );
+  }, [dataService, role.unit]);
+
   React.useEffect(() => {
     loadData(dateStr).catch(() => {});
   }, [loadData, dateStr]);
@@ -168,6 +198,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       const res = await dataService.addCatalogItem(role.unit, { table: ref, code: byLink ? '' : clean, link: byLink ? clean : link });
       const saved = byLink ? res.row.link : res.row.code;
       const next = catalogWithRow(catalog, role.unit, res.row);
+      catalogStamp.current.version++;
       setCatalog(next);
       setToast({
         type: 'success',
@@ -519,6 +550,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   const reportMainTitle = doc?.metadata.docTitle || (isWeekly ? 'Báo cáo tuần' : 'Báo cáo ngày');
 
   return (
+    <SelectOpenContext.Provider value={refreshCatalog}>
     <div className="report-entry-container">
       {/* 1. Header (thành phần chung PageHeader) */}
       <PageHeader
@@ -792,5 +824,6 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
         />
       )}
     </div>
+    </SelectOpenContext.Provider>
   );
 };

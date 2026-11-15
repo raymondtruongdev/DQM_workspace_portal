@@ -11,6 +11,9 @@ type Col = (typeof COLS)[number];
 /** `Unit` của các mục dùng chung cho mọi nhà ga (vd mã nhân lực, thiết bị): nhập một dòng, mọi nhà ga đều thấy. */
 export const CATALOG_SHARED_UNIT = 'ALL';
 
+/** Danh sách chọn dùng chung mọi nhà ga: giá trị người dùng thêm bằng "Khác…" ghi với `Unit = ALL` để nhà ga khác cũng thấy. */
+export const SHARED_LIST_TABLES = ['weather', 'event_type', 'event_status', 'supplier', 'equipment_status', 'issue_severity', 'issue_status', 'subcontractor'];
+
 const esc = (v: string): string => v.replace(/'/g, "''");
 
 /** Mục có phải đã tồn tại không (SharePoint từ chối vì khoá duy nhất `Title` bị trùng). */
@@ -82,6 +85,7 @@ export class ReportCatalogService {
    * trả về mục sẵn có với `created = false`.
    */
   public async addRow(unit: string, row: CatalogRow): Promise<{ row: CatalogRow; created: boolean }> {
+    if (SHARED_LIST_TABLES.indexOf(row.table.toLowerCase()) !== -1) unit = CATALOG_SHARED_UNIT;
     const n = await this.names();
     const key = ReportCatalogService.keyOf(unit, row.table, row);
     const find = async (): Promise<CatalogRow | undefined> => {

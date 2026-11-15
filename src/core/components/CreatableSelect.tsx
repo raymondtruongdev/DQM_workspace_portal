@@ -29,6 +29,13 @@ export interface CreatableSelectProps {
 const OTHER = '__other__';
 
 /**
+ * Báo cho các CreatableSelect bên trong biết nơi cần làm mới danh sách chọn: được gọi khi người dùng bấm/focus vào ô
+ * (nơi cung cấp tự giới hạn tần suất). Không có Provider thì không làm gì.
+ * @example <SelectOpenContext.Provider value={refreshOptions}>…</SelectOpenContext.Provider>
+ */
+export const SelectOpenContext = React.createContext<(() => void) | undefined>(undefined);
+
+/**
  * Ô chọn (dropdown) có mục cuối "Khác…": chọn mục này mở hộp thoại nhập giá trị mới.
  * Giá trị mới được chọn ngay và báo lại qua `onChange(value, true)` để nơi gọi thêm vào danh sách.
  * Danh sách cố định: `allowOther={false}`; hiển thị nhãn khác giá trị: `optionLabels`.
@@ -51,6 +58,7 @@ export const CreatableSelect: React.FC<CreatableSelectProps> = ({
   optionLabels
 }) => {
   const [open, setOpen] = React.useState(false);
+  const onSelectOpen = React.useContext(SelectOpenContext);
   const list = value && options.indexOf(value) === -1 ? [value].concat(options) : options;
 
   const handleAdd = (raw: string): void => {
@@ -70,6 +78,8 @@ export const CreatableSelect: React.FC<CreatableSelectProps> = ({
         disabled={disabled}
         aria-invalid={ariaInvalid || undefined}
         title={title}
+        onMouseDown={() => onSelectOpen?.()}
+        onFocus={() => onSelectOpen?.()}
         onChange={(e) => {
           if (e.target.value === OTHER) setOpen(true);
           else onChange(e.target.value, false);
