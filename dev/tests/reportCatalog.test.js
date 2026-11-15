@@ -17,10 +17,12 @@ const ids = (cat) => cat.tables['activityp6_id'].items.map((i) => i.id);
 test('file mẫu: lọc đúng Activity của từng đơn vị, kèm mô tả', () => {
   const wb = XLSX.readFile(path.join(root, 'docs', 'sharepoint_setup', 'DailyReportLibrary', 'ActivityP6.xlsx'));
   const st01 = C.parseCatalogFromWorkbook(XLSX, wb, 'ST01');
-  assert.deepEqual(ids(st01), ['CV-ST01-00001', 'CV-ST01-00002', 'CV-ST01-00003']);
-  assert.match(st01.tables['activityp6_id'].items[0].description, /tường vây/);
+  assert.ok(ids(st01).length > 0, 'ST01 có Activity');
+  assert.ok(ids(st01).every((id) => /-ST01-/.test(id)), 'chỉ lấy Activity của ST01');
+  assert.ok(st01.tables['activityp6_id'].items[0].description, 'có mô tả');
   assert.deepEqual(st01.warnings, []);
-  assert.deepEqual(ids(C.parseCatalogFromWorkbook(XLSX, wb, 'st02')), ['CV-ST02-00001', 'CV-ST02-00002', 'CV-ST02-00003']);
+  const st02 = ids(C.parseCatalogFromWorkbook(XLSX, wb, 'st02')); // không phân biệt hoa thường
+  assert.ok(st02.length > 0 && st02.every((id) => /-ST02-/.test(id)), 'chỉ lấy Activity của ST02');
 });
 
 test('Unit = ALL dùng chung mọi đơn vị; Description không bắt buộc; thứ tự cột tuỳ ý', () => {

@@ -45,6 +45,8 @@ export interface CatalogRow {
   nameVn?: string;
   /** Cột `NameEN` của list (không bắt buộc). */
   nameEn?: string;
+  /** Cột `AddedByAdmin` = 0: mục do người dùng thêm bằng "Khác…"; trống/1 = admin tạo sẵn. Chỉ để phân biệt, không ảnh hưởng hiển thị. */
+  addedByUser?: boolean;
   /** Cột `Note` của list (không bắt buộc). */
   note?: string;
 }

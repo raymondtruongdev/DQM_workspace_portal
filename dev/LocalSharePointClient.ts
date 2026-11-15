@@ -135,7 +135,7 @@ function evalFilter(filter: string, row: Record<string, unknown>): boolean {
 const FIELD_MAPS: Record<string, string[]> = {
   DRPRole: ['DisplayName=Title', 'Email', 'Unit', 'DocID', 'DocTitle', 'Active'],
   DRPRegistry: ['Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy'],
-  DRPCatalogItems: ['Title', 'Unit', 'Catalog', 'Code', 'Link', 'NameVN', 'NameEN', 'Note']
+  DRPCatalogItems: ['Title', 'Unit', 'Catalog', 'Code', 'Link', 'NameVN', 'NameEN', 'Note', 'Active', 'AddedByAdmin']
 };
 
 export class SharePointClient implements ISharePointClient {

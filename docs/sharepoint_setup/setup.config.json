@@ -85,7 +85,8 @@
         { "name": "NameVN", "type": "Text" },
         { "name": "NameEN", "type": "Text" },
         { "name": "Note", "type": "Text" },
-        { "name": "Active", "type": "Number", "decimals": 0, "default": 1 }
+        { "name": "Active", "type": "Number", "decimals": 0, "default": 1 },
+        { "name": "AddedByAdmin", "type": "Number", "decimals": 0 }
       ],
       "seed": { "mode": "sample", "file": "docs/sharepoint_setup/DRPCatalogItems_list.xlsx", "sheet": "DRPCatalogItems", "default": true }
     }

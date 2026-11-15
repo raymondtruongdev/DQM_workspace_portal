@@ -6,7 +6,7 @@ import { parseActive } from '../utils/reportRole';
 export const REPORT_CATALOG_LIST = 'DRPCatalogItems';
 
 /** Tên (tiêu đề) các cột của list; tên nội bộ thật được tra từ list vì có thể khác. */
-const COLS = ['Title', 'Unit', 'Catalog', 'Code', 'Link', 'NameVN', 'NameEN', 'Note', 'Active'] as const;
+const COLS = ['Title', 'Unit', 'Catalog', 'Code', 'Link', 'NameVN', 'NameEN', 'Note', 'Active', 'AddedByAdmin'] as const;
 type Col = (typeof COLS)[number];
 
 /** `Unit` của các mục dùng chung cho mọi nhà ga (vd mã nhân lực, thiết bị): nhập một dòng, mọi nhà ga đều thấy. */
@@ -40,6 +40,8 @@ export class ReportCatalogService {
   private _hasNameEn = false;
   /** List đã có cột Note chưa (tuỳ chọn, như NameEN). */
   private _hasNote = false;
+  /** List đã có cột AddedByAdmin chưa (tuỳ chọn): có thì mục người dùng thêm bằng "Khác…" ghi AddedByAdmin = 0; thiếu cột thì bỏ qua. */
+  private _hasAddedByAdmin = false;
 
   constructor(client: ISharePointClient, siteUrl: string) {
     this._client = client;
@@ -63,6 +65,7 @@ export class ReportCatalogService {
           this._hasNameVn = map.namevn !== undefined;
           this._hasNameEn = map.nameen !== undefined;
           this._hasNote = map.note !== undefined;
+          this._hasAddedByAdmin = map.addedbyadmin !== undefined;
           COLS.forEach((c) => {
             out[c] = map[c.toLowerCase()] || c;
           });
@@ -83,7 +86,9 @@ export class ReportCatalogService {
     const nameEn = str('NameEN');
     const note = str('Note');
     const row: CatalogRow = { table: str('Catalog').toLowerCase(), code: str('Code'), link: str('Link') };
-    return { ...row, ...(nameVn ? { nameVn } : {}), ...(nameEn ? { nameEn } : {}), ...(note ? { note } : {}) };
+    // AddedByAdmin = 0 (hoặc false/no): người dùng thêm; trống hoặc 1: admin tạo sẵn
+    const byUser = /^(0|false|no)$/i.test(str('AddedByAdmin'));
+    return { ...row, ...(byUser ? { addedByUser: true } : {}), ...(nameVn ? { nameVn } : {}), ...(nameEn ? { nameEn } : {}), ...(note ? { note } : {}) };
   }
 
   /** Mọi mục của một nhà ga cộng các mục dùng chung (`Unit = ALL`). Lỗi (chưa tạo list, thiếu quyền…) thì ném ra để nơi gọi báo cảnh báo. */
@@ -129,6 +134,7 @@ export class ReportCatalogService {
         ...(this._hasNameVn && row.nameVn ? { [n.NameVN]: row.nameVn } : {}),
         ...(this._hasNameEn && row.nameEn ? { [n.NameEN]: row.nameEn } : {}),
         ...(this._hasNote && row.note ? { [n.Note]: row.note } : {}),
+        ...(this._hasAddedByAdmin ? { [n.AddedByAdmin]: 0 } : {}),
         ...(this._hasActive ? { [n.Active]: 1 } : {})
       });
       return { row, created: true };
