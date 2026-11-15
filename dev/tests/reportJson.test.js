@@ -169,6 +169,19 @@ test('template_DRP_default.json: sạch dữ liệu riêng của ST01, tạo bá
   assert.equal(doc.sections.find((s) => s.key === 'hse').fields.find((f) => f.key === 'engineerInstructions').value, '');
 });
 
+test('cột Luỹ kế hôm qua chỉ đọc ở mọi dòng (Khối lượng và Nhân lực) nhưng vẫn cộng dồn khi kế thừa', () => {
+  const t = tpl();
+  ['workQty', 'manpower'].forEach((id) => {
+    const col = t.sections.find((s) => s.id === id).columns.find((c) => c.id === 'prevCum');
+    assert.equal(col.readonly, true, `${id}.prevCum readonly`);
+    assert.equal(col.carry, 'daily+prevCum');
+  });
+  const doc = J.jsonToDoc(J.parseReportJson(sampleText), t);
+  const mp = doc.sections.find((s) => s.key === 'manpower');
+  assert.equal(mp.columns.find((c) => c.code === 'prevCum').readonly, true);
+  assert.equal(J.carryForwardDoc(doc, '2026-11-11', 'x@y.z').sections.find((s) => s.key === 'manpower').rows[0].values.prevCum, 108);
+});
+
 test('mã dòng mới = số lớn nhất + 1, không trùng', () => {
   const doc = J.jsonToDoc(J.parseReportJson(sampleText), tpl());
   const ev = doc.sections.find((s) => s.key === 'events');
