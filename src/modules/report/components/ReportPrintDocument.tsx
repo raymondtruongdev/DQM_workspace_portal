@@ -7,6 +7,7 @@ import { ReportPrintTable } from './ReportPrintTable';
 import { ReportPrintForm } from './ReportPrintForm';
 import { ReportPrintPhoto } from './ReportPrintPhoto';
 import { ReportPrintLayout } from './ReportPrintLayout';
+import { REPORT_FEATURES } from '../constants/reportFeatures';
 
 export interface IReportPrintDocumentProps {
   doc: ReportDoc;
@@ -132,16 +133,18 @@ export const ReportPrintDocument: React.FC<IReportPrintDocumentProps> = ({ doc, 
         )
       )}
 
-      <div className="bcn-keep-together">
-        <div className="bcn-footer-note">
-          <div>Sinh tự động từ Microsoft 365 (SharePoint)</div>
-          <div>
-            Ảnh: {`data/${doc.unit}/${getReportFolderName(doc.docId, doc.unit, doc.dateStr)}/photos/`}
-            {' | '}
-            Template version: {formatTemplateVersionDisplay(m.templateVersion || doc.latestTemplateInfo?.version)}
+      {REPORT_FEATURES.PRINT_FOOTER_NOTE && (
+        <div className="bcn-keep-together">
+          <div className="bcn-footer-note">
+            <div>Sinh tự động từ Microsoft 365 (SharePoint)</div>
+            <div>
+              Ảnh: {`data/${doc.unit}/${getReportFolderName(doc.docId, doc.unit, doc.dateStr)}/photos/`}
+              {' | '}
+              Template version: {formatTemplateVersionDisplay(m.templateVersion || doc.latestTemplateInfo?.version)}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
