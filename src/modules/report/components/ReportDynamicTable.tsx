@@ -104,13 +104,20 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     { title: string; label: string; options?: string[]; field?: 'note' | 'nameVn'; resolve: (v: { link: string; field?: 'note' | 'nameVn' } | undefined) => void } | undefined
   >(undefined);
 
+  /** Cột mã mà mục mới phải kèm tên Việt (vật tư, nhân lực, thiết bị): hộp thoại đầu hỏi "Nhập <tên cột> mới" thay vì "Thêm giá trị mới". */
+  const codeDialogTitle = (col: TableColumn): string => {
+    const label = splitLabel(col.label).vi;
+    const asksName = col.askName === 'nameVn' || columns.some((c) => c.from && c.from.toLowerCase() === col.code.toLowerCase() && c.fromField === 'nameVn');
+    return asksName ? `Nhập ${label.charAt(0).toLowerCase()}${label.slice(1)} mới` : `Thêm giá trị mới – ${label}`;
+  };
+
   /** Cột phụ thuộc vào cột mã `col` (có from=<col>) mà mục mới cần liên kết; hỏi người dùng giá trị (có thể bỏ qua). */
   const makeAskLink = (col: TableColumn, value: string): AskCatalogLink | undefined => {
     const dep = columns.filter((c) => c.from && c.from.toLowerCase() === col.code.toLowerCase())[0];
     if (!dep && col.askName) {
       return () =>
         new Promise<{ link: string; field?: 'note' | 'nameVn' } | undefined>((resolve) =>
-          setLinkAsk({ title: `Thêm "${value}"`, label: `Tên tiếng Việt (NameVN) của mã "${value}"`, field: col.askName, resolve })
+          setLinkAsk({ title: 'Nhập tên VN', label: `Tên tiếng Việt của mã "${value}"`, field: col.askName, resolve })
         );
     }
     if (!dep) return undefined;
@@ -122,8 +129,10 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     return () =>
       new Promise<{ link: string; field?: 'note' | 'nameVn' } | undefined>((resolve) =>
         setLinkAsk({
-          title: `Thêm "${value}"`,
-          label: dep.fromField
+          title: dep.fromField === 'nameVn' ? 'Nhập tên VN' : `Thêm "${value}"`,
+          label: dep.fromField === 'nameVn'
+            ? `Tên tiếng Việt của mã "${value}"`
+            : dep.fromField
             ? `${splitLabel(dep.label).vi} của mã "${value}"`
             : `${splitLabel(dep.label).vi} của "${value}" (không bắt buộc, bỏ trống nếu chưa có)`,
           options,
@@ -309,7 +318,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
               selectValue(idx, col, v, isNew).catch(() => undefined);
             }}
             disabled={disabled || locked}
-            dialogTitle={`Thêm giá trị mới – ${splitLabel(col.label).vi}`}
+            dialogTitle={codeDialogTitle(col)}
           />
         </td>
       );
