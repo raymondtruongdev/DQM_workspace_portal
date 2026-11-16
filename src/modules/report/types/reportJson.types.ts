@@ -91,6 +91,10 @@ export interface ReportJson {
   created: ReportJsonStamp;
   updated: ReportJsonStamp;
   subcontractors: string[];
+  /** Tọa độ công trường (tuỳ chọn; file cũ không có = ''). */
+  geoTag?: string;
+  /** Tài liệu đính kèm (tuỳ chọn; mỗi dòng một tài liệu). */
+  attachedDocs?: string;
   sections: ReportJsonSection[];
   /** Chỉ báo cáo tuần (placeholder). */
   tasks?: Array<{ id: string; taskName: string; completionRate?: number; quantity?: number; unit: string; parentId?: string; level: number; isLeaf: boolean }>;
@@ -187,5 +191,8 @@ export interface ReportTemplateJson {
   title: { vi: string; en: string; sub: string };
   /** Mẫu mã tài liệu: {unit} = mã đơn vị, {reportNo} = số báo cáo 5 chữ số. */
   docCodePattern: string;
+  /** Giá trị mặc định cho báo cáo mới (tuỳ chọn). */
+  geoTag?: string;
+  attachedDocs?: string;
   sections: TemplateSectionJson[];
 }

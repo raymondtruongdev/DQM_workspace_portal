@@ -25,7 +25,9 @@ export interface ReportMetadata {
   templateVersion?: string;     // e.g. "template_DRP_ST01_20261115"
   location: string;             // Luôn = mã đơn vị (ST01), tự điền, không sửa được
   reportNo: string;             // Số báo cáo 5 chữ số, tự tăng độc lập theo từng đơn vị, e.g. "00001"
+  geoTag: string;               // Tọa độ (vd "10.771091, 106.698838"): chọn từ danh mục `location`, '' = chưa chọn
   subcontractors: string[];     // Các đơn vị thi công được chọn trong báo cáo này
+  attachedDocs: string;         // Tài liệu đính kèm: văn bản tự nhập, mỗi dòng một tài liệu
   email: string;                // Người lưu gần nhất (updated.by)
   updateTime: string;           // Thời điểm lưu gần nhất (updated.at, ISO 8601)
   created?: ReportStamp;        // Người/thời điểm lưu lần đầu (không đổi ở các lần lưu sau)

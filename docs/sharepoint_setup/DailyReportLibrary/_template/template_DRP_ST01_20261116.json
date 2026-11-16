@@ -21,6 +21,8 @@
     "at": ""
   },
   "subcontractors": [],
+  "geoTag": "10.771091, 106.698838",
+  "attachedDocs": "- Bản vẽ thiết kế (Design Drawings)\n- Bản vẽ thi công (Shop Drawings)\n- Biên bản kiểm tra (Inspection Records)",
   "sections": [
     {
       "id": "weather",

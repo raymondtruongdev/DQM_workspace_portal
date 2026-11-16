@@ -259,8 +259,19 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   };
 
   /** Thêm đơn vị thi công mới vào danh mục dùng chung `subcontractor`; trả về giá trị để chọn. */
+  // Danh mục `location`: Code = tọa độ (giá trị lưu), NameVN = tên vị trí; dropdown hiện "Tên - Tọa độ"
+  const locationOptions = ((catalog && catalog.tables.location && catalog.tables.location.items) || [])
+    .filter((i) => i.id)
+    .map((i) => ({ value: i.id, label: i.nameVn ? `${i.nameVn} - ${i.id}` : i.id }));
+
   const handleAddSubcontractor = async (value: string): Promise<string | undefined> => {
     const res = await handleAddCatalogItem('subcontractor', value, false);
+    return res && !res.cancelled ? res.value : undefined;
+  };
+
+  /** Thêm tọa độ mới (kèm tên vị trí vào NameVN) vào danh mục dùng chung `location`; trả về tọa độ để chọn. */
+  const handleAddLocation = async (geoTag: string, name: string): Promise<string | undefined> => {
+    const res = await handleAddCatalogItem('location', geoTag, false, () => Promise.resolve({ link: name, field: 'nameVn' }));
     return res && !res.cancelled ? res.value : undefined;
   };
 
@@ -975,6 +986,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             isExisting={!!doc.isExisting}
             subcontractorOptions={catalogOptions(catalog, 'subcontractor', false, true)}
             onAddSubcontractor={handleAddSubcontractor}
+            locationOptions={locationOptions}
+            onAddLocation={handleAddLocation}
             disabled={editDisabled}
             showErrors={showRequiredErrors}
           />

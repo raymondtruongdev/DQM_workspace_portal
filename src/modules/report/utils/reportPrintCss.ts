@@ -124,6 +124,58 @@ body {
   font-weight: 400;
   color: #6b7280;
 }
+/* Bảng thông tin tài liệu (header kiểu mới): ô nhãn xanh như hàng tiêu đề bảng, tiếng Việt đậm trên / tiếng Anh nghiêng dưới */
+.bcn-meta-label--stack {
+  width: auto;
+  background: #dbe6f1;
+  color: #1f2937;
+  font-size: 11px;
+  line-height: 1.25;
+}
+.bcn-meta-label--stack b,
+.bcn-meta-label--stack span {
+  display: block;
+}
+.bcn-meta-label--stack span {
+  font-style: italic;
+  font-weight: 400;
+  color: #4b5563;
+}
+.bcn-meta-label--inline b,
+.bcn-meta-label--inline span {
+  display: inline;
+}
+.bcn-meta-doccode {
+  font-weight: 700;
+  color: #014a94;
+  word-break: break-all;
+}
+.bcn-meta-doccode em {
+  font-style: normal;
+  color: #c00000;
+}
+.bcn-meta-hot {
+  text-align: center;
+  font-weight: 800;
+  color: #c00000;
+}
+.bcn-meta-hot--xl {
+  font-size: 17px;
+}
+.bcn-meta-geo {
+  font-weight: 400;
+}
+.bcn-meta-subs {
+  text-align: center;
+  vertical-align: top;
+}
+.bcn-meta-docs {
+  vertical-align: top;
+  white-space: pre-line;
+}
+.bcn-meta-tall td {
+  height: 15mm;
+}
 .bcn-sec-title {
   background: #014a94 !important;
   color: #ffffff !important;

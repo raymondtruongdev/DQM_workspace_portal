@@ -243,7 +243,9 @@ export class ReportDataService {
         templateVersion: `default_${unit}`,
         location: unit,
         reportNo: formatReportNo(1),
+        geoTag: '',
         subcontractors: [],
+        attachedDocs: '',
         email,
         updateTime: new Date().toISOString()
       },

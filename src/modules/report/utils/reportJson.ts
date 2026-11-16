@@ -167,7 +167,9 @@ export function docFromTemplate(tpl: ReportTemplateJson, ctx: NewDocContext): Re
       templateVersion: ctx.version,
       location: ctx.unit,
       reportNo: formatReportNo(1),
+      geoTag: tpl.geoTag || '',
       subcontractors: [],
+      attachedDocs: tpl.attachedDocs || '',
       email: ctx.email,
       updateTime: new Date().toISOString()
     },
@@ -269,7 +271,9 @@ export function jsonToDoc(json: ReportJson, tpl?: ReportTemplateJson): ReportDoc
       templateVersion: json.template,
       location: json.unit,
       reportNo: formatReportNo(json.reportNo),
+      geoTag: json.geoTag || '',
       subcontractors: (json.subcontractors || []).slice(),
+      attachedDocs: json.attachedDocs || '',
       email: json.updated.by,
       updateTime: json.updated.at,
       created: { ...json.created }
@@ -356,7 +360,9 @@ export function docToJson(doc: ReportDoc): ReportJson {
     template: m.templateVersion || '',
     created: m.created ? { ...m.created } : { by: m.email, at: m.updateTime },
     updated: { by: m.email, at: m.updateTime },
+    geoTag: m.geoTag || '',
     subcontractors: m.subcontractors.slice(),
+    attachedDocs: m.attachedDocs || '',
     sections: doc.sections.map(sectionToJson)
   };
   if (doc.tasks && doc.tasks.length > 0) json.tasks = doc.tasks.map((t) => ({ ...t }));
@@ -402,12 +408,14 @@ export function parseReportJson(text: string): ReportJson {
     template: j.template || '',
     created: stamp(j.created),
     updated: stamp(j.updated),
-    subcontractors: Array.isArray(j.subcontractors) ? j.subcontractors : []
+    geoTag: typeof j.geoTag === 'string' ? j.geoTag : '',
+    subcontractors: Array.isArray(j.subcontractors) ? j.subcontractors : [],
+    attachedDocs: typeof j.attachedDocs === 'string' ? j.attachedDocs : ''
   };
 }
 
 /** Phần của file template mà `expandTemplate` dùng: cùng hình dạng file báo cáo, các khoá định danh có thể thiếu. */
-export type TemplateSource = Pick<ReportJson, 'schema' | 'docId' | 'title' | 'docCodeTemplate' | 'sections'>;
+export type TemplateSource = Pick<ReportJson, 'schema' | 'docId' | 'title' | 'docCodeTemplate' | 'geoTag' | 'attachedDocs' | 'sections'>;
 
 /** Mở rộng template (chỉ dữ liệu) bằng bảng UI của code thành dạng mà phần còn lại dùng. Thuộc tính UI lỡ có trong file bị bỏ qua. */
 export function expandTemplate(file: TemplateSource): ReportTemplateJson {
@@ -435,7 +443,7 @@ export function expandTemplate(file: TemplateSource): ReportTemplateJson {
     }
     return s;
   });
-  return { schema: file.schema, docId: file.docId, title: file.title, docCodePattern: file.docCodeTemplate, sections };
+  return { schema: file.schema, docId: file.docId, title: file.title, docCodePattern: file.docCodeTemplate, geoTag: file.geoTag || '', attachedDocs: file.attachedDocs || '', sections };
 }
 
 /** Đọc template JSON (cùng định dạng file báo cáo) rồi mở rộng bằng bảng UI; sai cấu trúc cơ bản thì ném lỗi dễ hiểu. */
