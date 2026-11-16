@@ -219,7 +219,7 @@ npm run build
 
 1. **Do NOT import `@microsoft/power-apps`:** This project is deliberately detached from Power Apps to eliminate licensing costs.
 2. **UI & Style System:** mọi thay đổi giao diện phải tuân thủ **mục 8** (token, nút, icon, ô nhập, card, header, quy tắc đặt tên class, khung module). Chạy `npm run lint:styles` trước khi báo hoàn thành.
-3. **Git Commit & Push Policy:** DO NOT automatically run `git commit` or `git push`. Only commit and push when the user explicitly requests or approves it.
+3. **Git Commit & Push Policy:** DO NOT automatically run `git commit` or `git push`. Only commit and push when the user explicitly requests or approves it. Do NOT add `Co-Authored-By` (or any other attribution) lines to commit messages.
 4. **Responsive & Cross-Device UI Rules (BẮT BUỘC khi thêm/sửa giao diện):**
    - **Kiểm tra mọi cỡ màn hình:** desktop rộng (≥1440px), laptop (1024–1440px), **iPad mini / tablet dọc (768px)**, tablet ngang (1024px), điện thoại (≤480px). Mỗi thay đổi UI phải được rà lại ở các cỡ này, không chỉ ở desktop.
    - **Breakpoints chuẩn:** `≤1024px` (tablet), `≤768px` (iPad mini / tablet nhỏ), `≤640px` và `≤480px` (điện thoại). Đặt media query ở cuối file CSS chứa thành phần đó (`core/styles/components/*.css`, `core/styles/layout/*.css` hoặc `modules/<name>/<name>.css`). Token không dùng được trong `@media` nên ghi số trực tiếp theo đúng 4 mốc này. Lưu ý các quy tắc `@media` cũ có thể ghi đè; khi thêm quy tắc mới phải kiểm tra xung đột (đặc biệt tại đúng 768px).

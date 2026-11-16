@@ -2016,6 +2016,12 @@
   right: 0;
 }
 
+/* Dòng đầu danh sách: khung danh sách cắt phần tràn lên trên, nên chú thích mở xuống dưới */
+.report-ov-row:first-child .report-ov-tip::after {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+
 .report-ov-tip:hover::after,
 .report-ov-tip:focus-visible::after {
   opacity: 1;
