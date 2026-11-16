@@ -12,15 +12,15 @@ export interface CreatableSelectProps {
   /** Class cho khung ngoài (bố cục: flex, bề rộng…). */
   wrapperClassName?: string;
   disabled?: boolean;
-  /** Nhãn mục cuối danh sách (mặc định "Khác…"). */
+  /** Nhãn mục cuối danh sách (mặc định "Thêm mới…"). */
   otherLabel?: string;
-  /** Tiêu đề hộp thoại khi chọn "Khác…". */
+  /** Tiêu đề hộp thoại khi chọn "Thêm mới…". */
   dialogTitle?: string;
   ariaInvalid?: boolean;
   title?: string;
   /** Dòng gợi ý khi chưa chọn gì (value rỗng). */
   placeholder?: string;
-  /** false = ẩn mục "Khác…" (danh sách cố định, chỉ chọn trong danh sách). Mặc định true. */
+  /** false = ẩn mục "Thêm mới…" (danh sách cố định, chỉ chọn trong danh sách). Mặc định true. */
   allowOther?: boolean;
   /** Nhãn hiển thị thay cho giá trị của từng mục (giá trị lưu vẫn là `options[i]`), ví dụ { 'A1': 'A1 – Mô tả' }. */
   optionLabels?: Record<string, string>;
@@ -41,7 +41,7 @@ const OTHER = '__other__';
 export const SelectOpenContext = React.createContext<(() => void) | undefined>(undefined);
 
 /**
- * Ô chọn (dropdown) có mục cuối "Khác…": chọn mục này mở hộp thoại nhập giá trị mới.
+ * Ô chọn (dropdown) có mục cuối "Thêm mới…": chọn mục này mở hộp thoại nhập giá trị mới.
  * Giá trị mới được chọn ngay và báo lại qua `onChange(value, true)` để nơi gọi thêm vào danh sách.
  * Danh sách cố định: `allowOther={false}`; hiển thị nhãn khác giá trị: `optionLabels`.
  * @example <CreatableSelect value={v} options={opts} onChange={(val, isNew) => …} className="input" />
@@ -54,7 +54,7 @@ export const CreatableSelect: React.FC<CreatableSelectProps> = ({
   className = 'input',
   wrapperClassName,
   disabled = false,
-  otherLabel = 'Khác…',
+  otherLabel = 'Thêm mới…',
   dialogTitle = 'Thêm giá trị mới',
   ariaInvalid,
   title,

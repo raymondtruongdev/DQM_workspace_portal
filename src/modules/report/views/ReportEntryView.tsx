@@ -191,7 +191,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
 
   // Dynamic table handlers
   /**
-   * Người dùng chọn "Khác…" ở cột danh mục: chống trùng (mục đã có thì chọn mục sẵn có), chưa có thì ghi vào list DRPCatalogItems
+   * Người dùng chọn "Thêm mới…" ở cột danh mục: chống trùng (mục đã có thì chọn mục sẵn có), chưa có thì ghi vào list DRPCatalogItems
    * để mọi người cùng thấy; mục có mã thì hỏi thêm giá trị liên kết. Trả `{ cancelled }` khi người dùng huỷ, undefined khi không ghi được
    * (giá trị chỉ lưu trong báo cáo này).
    */

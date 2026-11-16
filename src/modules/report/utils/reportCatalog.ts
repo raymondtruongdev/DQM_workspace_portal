@@ -7,7 +7,7 @@ import { parseActive } from './reportRole';
  *  - File `ActivityP6.xlsx` (chỉ admin ghi, người dùng chỉ đọc): MỘT sheet, mỗi dòng một Activity với các cột
  *    `ActivityID` (mã), `Unit` (đơn vị, vd ST01; `ALL` = dùng chung mọi đơn vị) và `Description` (mô tả, không bắt buộc, hiện kèm mã
  *    trong dropdown) và `Active` (1/0, không bắt buộc; 0 = ẩn khỏi dropdown, trống = hiện). Web lọc theo đơn vị đang mở. Muốn bỏ một mã thì xoá dòng; báo cáo cũ vẫn giữ giá trị đã lưu.
- *  - SharePoint List `DRPCatalogItems` (người dùng được tự thêm bằng "Khác…", xem ReportCatalogService): Element, Resource, Vật tư,
+ *  - SharePoint List `DRPCatalogItems` (người dùng được tự thêm bằng "Thêm mới…", xem ReportCatalogService): Element, Resource, Vật tư,
  *    và các danh sách chọn dùng chung (thời tiết, trạng thái…).
  * Mã "---" luôn có sẵn trong dropdown làm giá trị "chưa chọn".
  */
@@ -25,7 +25,7 @@ export interface CatalogItem {
   nameEn?: string;
   /** Ghi chú ngắn (không bắt buộc): chỉ để gợi ý trong dropdown, KHÔNG lưu vào báo cáo. */
   note?: string;
-  /** true = người dùng thêm bằng "Khác…" (AddedByAdmin = 0): liên kết (vd Activity của cấu kiện) còn sửa được; mục admin tạo sẵn thì khoá. */
+  /** true = người dùng thêm bằng "Thêm mới…" (AddedByAdmin = 0): liên kết (vd Activity của cấu kiện) còn sửa được; mục admin tạo sẵn thì khoá. */
   addedByUser?: boolean;
 }
 
@@ -47,7 +47,7 @@ export interface CatalogRow {
   nameVn?: string;
   /** Cột `NameEN` của list (không bắt buộc). */
   nameEn?: string;
-  /** Cột `AddedByAdmin` = 0: mục do người dùng thêm bằng "Khác…"; trống/1 = admin tạo sẵn. Chỉ để phân biệt, không ảnh hưởng hiển thị. */
+  /** Cột `AddedByAdmin` = 0: mục do người dùng thêm bằng "Thêm mới…"; trống/1 = admin tạo sẵn. Chỉ để phân biệt, không ảnh hưởng hiển thị. */
   addedByUser?: boolean;
   /** Cột `Note` của list (không bắt buộc). */
   note?: string;
@@ -220,7 +220,7 @@ export function linkedValue(
 
 /**
  * Sau khi cột `changed` đổi giá trị (sửa `values` tại chỗ): mọi cột `from=<changed>` nhận giá trị ràng buộc của mã mới
- * (mã chưa có ràng buộc hoặc mã mới thêm bằng "Khác…": cột select về "---", cột text xoá để nhập tay; mã "---" thì giữ nguyên).
+ * (mã chưa có ràng buộc hoặc mã mới thêm bằng "Thêm mới…": cột select về "---", cột text xoá để nhập tay; mã "---" thì giữ nguyên).
  */
 export function applyCatalogLinks(
   columns: TableColumn[],
@@ -232,7 +232,7 @@ export function applyCatalogLinks(
   if (!src || !src.optionsRef) return;
   const current = String(values[changed] ?? '');
   if (current === CATALOG_NONE || current === '') return;
-  // Mã không có trong danh mục (giá trị mới thêm bằng "Khác…") thì chưa có ràng buộc: ô ràng buộc về "---" / để trống
+  // Mã không có trong danh mục (giá trị mới thêm bằng "Thêm mới…") thì chưa có ràng buộc: ô ràng buộc về "---" / để trống
   const item = src.optionsBy ? undefined : findCatalogItem(catalog, src.optionsRef, current);
   columns.forEach((c) => {
     if (c.from && c.from.toLowerCase() === changed.toLowerCase()) {
@@ -309,7 +309,7 @@ export function catalogWithLink(catalog: ReportCatalog, ref: string, code: strin
 /** Bảng chỉ admin được thêm/bớt (nằm trong ActivityP6.xlsx), dù file có đọc được hay không. */
 const ADMIN_ONLY_TABLES = ['activityp6_id'];
 
-/** Người dùng có được thêm giá trị mới ("Khác…") vào bảng này không: bảng admin-only hoặc đến từ file thì không; còn lại được. */
+/** Người dùng có được thêm giá trị mới ("Thêm mới…") vào bảng này không: bảng admin-only hoặc đến từ file thì không; còn lại được. */
 export function canAddToTable(catalog: ReportCatalog | undefined, ref: string): boolean {
   if (!catalog || ADMIN_ONLY_TABLES.indexOf(ref.toLowerCase()) !== -1) return false;
   const t = catalog.tables[ref.toLowerCase()];

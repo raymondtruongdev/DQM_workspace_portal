@@ -40,7 +40,7 @@ export interface IReportDynamicTableProps {
    */
   onUpdateCatalogLink?: (ref: string, code: string, link: string) => Promise<void>;
   /**
-   * Người dùng thêm giá trị mới ("Khác…") vào cột danh mục: ghi vào list DRPCatalogItems (chống trùng). Trả về giá trị cần gán cho ô
+   * Người dùng thêm giá trị mới ("Thêm mới…") vào cột danh mục: ghi vào list DRPCatalogItems (chống trùng). Trả về giá trị cần gán cho ô
    * và danh mục mới; trả undefined nếu không ghi được (khi đó giá trị chỉ lưu trong spec của báo cáo này), `{ cancelled }` nếu người dùng huỷ.
    * `askLink` hỏi giá trị liên kết của mục mới (vd Activity của cấu kiện mới; link '' = bỏ qua, undefined = huỷ).
    */
@@ -99,7 +99,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
 
   const setRows = (next: TableRow[]): void => onChange({ ...table, rows: next });
 
-  // Hộp thoại hỏi liên kết khi thêm mã mới (bước 2 của "Khác…")
+  // Hộp thoại hỏi liên kết khi thêm mã mới (bước 2 của "Thêm mới…")
   const [linkAsk, setLinkAsk] = React.useState<
     { title: string; label: string; options?: string[]; field?: 'note' | 'nameVn'; resolve: (v: { link: string; field?: 'note' | 'nameVn' } | undefined) => void } | undefined
   >(undefined);

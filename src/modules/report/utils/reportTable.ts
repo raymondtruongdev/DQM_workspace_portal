@@ -9,7 +9,7 @@ import {
 /**
  * Bảng động: định nghĩa cột (kiểu, danh mục, công thức, mặc định, luỹ kế…) đến từ template JSON, ghép với nhãn của báo cáo
  * theo `id` cột (xem reportJson.ts). Ô select dùng danh mục (list DRPCatalogItems) hoặc danh sách cố định `options`;
- * mọi ô select đều có mục cuối "Khác…" để thêm giá trị mới (danh mục thì ghi vào list dùng chung).
+ * mọi ô select đều có mục cuối "Thêm mới…" để thêm giá trị mới (danh mục thì ghi vào list dùng chung).
  * Mã tự tăng: cột text có default chứa {n<k>} (vd EVT-{unit}-{n5}) = số lớn nhất đang dùng + 1, đệm k chữ số.
  */
 

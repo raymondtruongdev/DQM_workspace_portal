@@ -12,7 +12,7 @@ type Col = (typeof COLS)[number];
 /** `Unit` của các mục dùng chung cho mọi nhà ga (vd mã nhân lực, thiết bị): nhập một dòng, mọi nhà ga đều thấy. */
 export const CATALOG_SHARED_UNIT = 'ALL';
 
-/** Danh sách chọn dùng chung mọi nhà ga: giá trị người dùng thêm bằng "Khác…" ghi với `Unit = ALL` để nhà ga khác cũng thấy. */
+/** Danh sách chọn dùng chung mọi nhà ga: giá trị người dùng thêm bằng "Thêm mới…" ghi với `Unit = ALL` để nhà ga khác cũng thấy. */
 export const SHARED_LIST_TABLES = ['weather', 'event_type', 'event_status', 'supplier', 'equipment_status', 'issue_severity', 'issue_status', 'subcontractor', 'material_id'];
 
 const esc = (v: string): string => v.replace(/'/g, "''");
@@ -40,7 +40,7 @@ export class ReportCatalogService {
   private _hasNameEn = false;
   /** List đã có cột Note chưa (tuỳ chọn, như NameEN). */
   private _hasNote = false;
-  /** List đã có cột AddedByAdmin chưa (tuỳ chọn): có thì mục người dùng thêm bằng "Khác…" ghi AddedByAdmin = 0; thiếu cột thì bỏ qua. */
+  /** List đã có cột AddedByAdmin chưa (tuỳ chọn): có thì mục người dùng thêm bằng "Thêm mới…" ghi AddedByAdmin = 0; thiếu cột thì bỏ qua. */
   private _hasAddedByAdmin = false;
 
   constructor(client: ISharePointClient, siteUrl: string) {

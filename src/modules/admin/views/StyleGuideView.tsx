@@ -166,7 +166,7 @@ export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
 
       <SectionBlock
         title="CreatableSelect · PromptDialog"
-        hint={<>Dropdown có mục cuối “Khác…” mở hộp thoại nhập giá trị mới; nơi gọi lưu giá trị mới vào danh sách (<code>onChange(value, isNew)</code>)</>}
+        hint={<>Dropdown có mục cuối “Thêm mới…” mở hộp thoại nhập giá trị mới; nơi gọi lưu giá trị mới vào danh sách (<code>onChange(value, isNew)</code>)</>}
       >
         <div className="admin-guide-row">
           <CreatableSelect

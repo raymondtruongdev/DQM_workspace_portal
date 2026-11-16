@@ -97,7 +97,7 @@ data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/
 ## 8. Dropdown từ SharePoint list
 
 - Dùng lại list `DRPCatalogItems`. Thêm danh mục cố định với `Unit = ALL`: `weather`, `event_type`, `event_status`, `severity`, `issue_status`, `equip_status`, `supplier`, `subcontractor`.
-- Template khai báo cột nào dùng danh mục nào theo `id` cột. "Khác…" ghi thẳng vào list.
+- Template khai báo cột nào dùng danh mục nào theo `id` cột. "Thêm mới…" ghi thẳng vào list.
 - Quyền như hiện nay: người báo cáo chỉ thêm, admin toàn quyền.
 
 ## 9. Phần code bị ảnh hưởng

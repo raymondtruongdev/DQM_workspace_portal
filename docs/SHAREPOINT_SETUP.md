@@ -116,8 +116,8 @@ Dòng 1: `ActivityID | Unit | Description | Active`; mỗi dòng sau một Activ
 
 - `1` hoặc để trống = hiện; `0` = ẩn (không cần xoá dòng, đổi về `1` để hiện lại). Chưa có cột `Active` thì mọi mục đều hiện.
 - Tạo cột một lần: `DRPCatalogItems` > Create column `Active`, kiểu **Number**, 0 số lẻ, mặc định 1. `ActivityP6.xlsx`: thêm cột `Active` ở dòng 1.
-- Mục người dùng thêm bằng "Khác…" tự ghi `Active = 1`.
-- Báo cáo đã lưu giữ nguyên giá trị cũ dù mục bị ẩn. Gõ lại đúng giá trị của mục đang ẩn bằng "Khác…" thì chọn lại mục đó, không tạo dòng mới.
+- Mục người dùng thêm bằng "Thêm mới…" tự ghi `Active = 1`.
+- Báo cáo đã lưu giữ nguyên giá trị cũ dù mục bị ẩn. Gõ lại đúng giá trị của mục đang ẩn bằng "Thêm mới…" thì chọn lại mục đó, không tạo dòng mới.
 - Chỉ là bộ lọc hiển thị, không phải bảo mật (quyền sửa cột do SharePoint quyết định).
 
 ## 4. `SiteAssets/portal_config.json` (chế độ bảo trì)
@@ -153,7 +153,7 @@ SharePoint Online thường buộc file `.html` trong thư viện **tải về**
 | 2 | Vào Quản lý Báo cáo | Tab "Tổng quan" hiện danh sách đơn vị (không có cảnh báo vàng về `DRPRegistry`) |
 | 3 | Mở một đơn vị, ngày hôm nay (chưa có báo cáo) | Form tạo từ template, số báo cáo `00001`, có đủ 11 mục |
 | 4 | Mở dropdown Activity ở mục Khối lượng | Có mã + mô tả của đúng đơn vị đó; không có cảnh báo danh mục |
-| 5 | Chọn "Khác…" ở một ô (vd Thời tiết), nhập giá trị mới | Giá trị được chọn; list `DRPCatalogItems` có thêm một dòng |
+| 5 | Chọn "Thêm mới…" ở một ô (vd Thời tiết), nhập giá trị mới | Giá trị được chọn; list `DRPCatalogItems` có thêm một dòng |
 | 6 | Chọn một mã nhân lực | Ô "Loại" tự điền và khoá |
 | 7 | Điền đơn vị thi công, bấm **Lưu báo cáo** | Thông báo "Đã lưu báo cáo số 00001"; thư mục `data/<Unit>/DRP_<yyyyMMdd>_<Unit>/` có `.json` và `.html`; `DRPRegistry` có 1 dòng `unsigned` |
 | 8 | Tải `.html` về và mở bằng trình duyệt (tắt mạng) | Hiện đủ bản in A4, nút In/Lưu PDF hoạt động |
