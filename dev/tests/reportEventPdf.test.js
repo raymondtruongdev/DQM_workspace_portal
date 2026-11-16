@@ -52,7 +52,7 @@ test('upload vào pdf/eventlog của thư mục báo cáo bằng đúng tên g�
 
 test('cờ REPORT_FEATURES.EVENT_PDF quyết định mục Sự kiện có rowPdf hay không', () => {
   assert.equal(typeof REPORT_FEATURES.EVENT_PDF, 'boolean');
-  const tpl = J.parseTemplateJson(require('fs').readFileSync(path.join(root, 'docs', 'sharepoint_setup', 'DailyReportLibrary', '_template', 'template_DRP_ST01_20261115.json'), 'utf8'));
+  const tpl = J.parseTemplateJson(require('fs').readFileSync(path.join(root, 'docs', 'sharepoint_setup', 'DailyReportLibrary', '_template', 'template_DRP_ST01_20261116.json'), 'utf8'));
   const ev = tpl.sections.find((s) => s.id === 'events');
   assert.equal(Boolean(ev.rowPdf), REPORT_FEATURES.EVENT_PDF);
 });

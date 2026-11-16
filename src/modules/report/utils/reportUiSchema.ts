@@ -33,7 +33,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
       pm: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', minPx: 110 },
       night: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', minPx: 110 },
       hrsLost: { type: 'number', reset: true, default: 0, align: 'center', minPx: 110 },
-      value: { reset: true, default: 'SV | EV | AC', align: 'center', width: 40 },
+      value: { reset: true, default: 'SV | EV | AC', align: 'left', width: 40 },
     },
   },
   hse: {
@@ -65,7 +65,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   },
   workQty: {
     columns: {
-      activityId: { type: 'select', catalog: 'ActivityP6_ID', from: 'element', default: '---', align: 'center', minPx: ACTIVITY_COL_PX },
+      activityId: { type: 'select', catalog: 'ActivityP6_ID', from: 'element', default: '---', align: 'left', minPx: ACTIVITY_COL_PX },
       element: { type: 'select', catalog: 'Element_ID', noNone: true, align: 'center', width: 18 },
       step: { width: 22 },
       unit: { default: 'm³', align: 'center', width: 6 },
@@ -80,8 +80,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   },
   materials: {
     columns: {
-      matId: { type: 'select', catalog: 'Material_ID', noNone: true, align: 'center', minPx: 150, fit: true },
-      material: { readonly: true, from: 'matId', fromField: 'nameVn', minPx: 190, fit: true },
+      matId: { type: 'select', catalog: 'Material_ID', noNone: true, align: 'left', askName: 'nameVn', minPx: 290, fit: true },
       unit: { default: 'm³', align: 'center', minPx: 70, fit: true },
       recv: { type: 'number', default: 0, minPx: 140, fit: true },
       supplier: { type: 'select', catalog: 'supplier', noNone: true, default: 'Thiên An', minPx: 130, fit: true },
@@ -100,7 +99,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   },
   equipment: {
     columns: {
-      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', minPx: ACTIVITY_COL_PX, fit: true },
+      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'left', minPx: ACTIVITY_COL_PX, fit: true },
       resId: { type: 'select', catalog: 'ResEquip_ID', noNone: true, align: 'center', minPx: 220, fit: true },
       equipment: { readonly: true, from: 'resId', fromField: 'nameVn', minPx: 260, fit: true },
       plate: { minPx: 170, placeholder: '51H12345, 62A11223' }, // Biển số: người dùng tự nhập (gợi ý viết liền, không dấu; nhiều biển cách nhau dấu phẩy)
@@ -110,7 +109,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
   },
   issues: {
     columns: {
-      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'center', minPx: ACTIVITY_COL_PX },
+      activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'left', minPx: ACTIVITY_COL_PX },
       issueId: { readonly: true, default: 'ISS-{unit}-{n5}', align: 'center', width: 20 },
       description: { width: 34 },
       severity: { type: 'select', catalog: 'issue_severity', noNone: true, default: 'Trung bình', align: 'center', width: 9 },

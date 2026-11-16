@@ -316,13 +316,6 @@
           }
         },
         {
-          "id": "material",
-          "label": {
-            "vi": "Vật tư",
-            "en": "Material"
-          }
-        },
-        {
           "id": "unit",
           "label": {
             "vi": "ĐV",

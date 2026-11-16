@@ -69,6 +69,7 @@ export function templateColumn(tc: TemplateColumnJson): TableColumn {
   if (tc.noNone) col.noNone = true;
   if (tc.from) col.from = tc.from;
   if (tc.fromField) col.fromField = tc.fromField;
+  if (tc.askName) col.askName = tc.askName;
   if (tc.formula) col.formula = tc.formula;
   if (tc.readonly) col.readonly = true;
   if (tc.key) col.key = true;

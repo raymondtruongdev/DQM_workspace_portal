@@ -17,7 +17,7 @@ const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 // Báo cáo mẫu đã lưu = template ST01 (cùng định dạng) + phần đầu của một báo cáo thật (ngày, người lập, đơn vị thi công…)
 const sampleText = (() => {
   const tplFile = JSON.parse(
-    read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261115.json')
+    read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261116.json')
       .replace(/\{user\}/g, 'user@example.com')
       .replace(/\{siteManager\}/g, 'Trưởng ga cũ')
   );
@@ -36,7 +36,7 @@ const sampleText = (() => {
     subcontractors: ['THAC_CRSG', 'THAC_THAN']
   });
 })();
-const tpl = () => J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261115.json'));
+const tpl = () => J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261116.json'));
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
 test('mở rồi lưu lại file mẫu không mất/đổi dữ liệu (round-trip)', () => {
@@ -73,7 +73,7 @@ test('mã tài liệu đã lưu được giữ nguyên dù template đổi mẫu
 });
 
 test('báo cáo mới từ template: đủ mục, số báo cáo 00001, mặc định {user}', () => {
-  const t = J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261115.json'));
+  const t = J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261116.json'));
   const doc = J.docFromTemplate(t, { docId: 'DailyReport', unit: 'ST01', dateStr: '2026-11-15', email: 'a@b.c', siteManager: 'Sếp', version: 'template_DRP_ST01_20261115' });
   assert.equal(doc.sections.length, 11);
   assert.equal(doc.metadata.reportNo, '00001');
@@ -119,7 +119,7 @@ test('Apply template mới: thêm cột/mục mới, giữ dữ liệu cũ, bỏ
 });
 
 test('template chỉ chứa dữ liệu: không có thuộc tính UI, UI do code (reportUiSchema) mở rộng khi đọc', () => {
-  const file = JSON.parse(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261115.json'));
+  const file = JSON.parse(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261116.json'));
   const uiKeys = ['type', 'catalog', 'catalogBy', 'from', 'options', 'noNone', 'formula', 'readonly', 'key', 'total', 'align', 'width', 'default', 'reset', 'carry', 'tones',
     'kind', 'single', 'showSummary', 'layout', 'perRow', 'full', 'span', 'lines', 'placeholder'];
   const bad = [];
@@ -178,7 +178,7 @@ test('không có template riêng của đơn vị thì dùng template_DRP_defaul
 });
 
 test('template_DRP_default.json: sạch dữ liệu riêng của ST01, tạo báo cáo cho đơn vị khác dùng được', () => {
-  const text = read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_default_20261115.json');
+  const text = read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_default.json');
   const t = J.parseTemplateJson(text);
   const doc = J.docFromTemplate(t, { docId: 'DailyReport', unit: 'ST02', dateStr: '2026-11-15', email: 'a@b.c', siteManager: 'Sếp', version: 'template_DRP_default' });
   assert.equal(doc.metadata.docCode, 'HCM2_1-23_CS-THAC_DCEM-CPZZ-ST02-CWS-DRP-00001');

@@ -57,6 +57,7 @@ export interface TableColumn {
   optionsRef?: string;                // tên danh mục (chữ thường): danh sách lấy từ danh mục lúc chạy
   optionsBy?: 'link';                 // dropdown liệt kê giá trị ràng buộc (vd tên vật tư); chọn thì cột from tự điền mã
   noNone?: boolean;                   // danh mục cố định: không có mục "---" đầu danh sách
+  askName?: 'nameVn';                 // cột mã: "Thêm mới…" bắt buộc nhập thêm tên, ghi vào NameVN của danh mục
   fromField?: 'note' | 'nameVn';      // với from: lấy/ghi cột Note hoặc NameVN của mã (mặc định Link)
   from?: string;                      // chọn mã ở cột này thì ô này tự điền giá trị ràng buộc của mã
 }

@@ -107,6 +107,12 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   /** Cột phụ thuộc vào cột mã `col` (có from=<col>) mà mục mới cần liên kết; hỏi người dùng giá trị (có thể bỏ qua). */
   const makeAskLink = (col: TableColumn, value: string): AskCatalogLink | undefined => {
     const dep = columns.filter((c) => c.from && c.from.toLowerCase() === col.code.toLowerCase())[0];
+    if (!dep && col.askName) {
+      return () =>
+        new Promise<{ link: string; field?: 'note' | 'nameVn' } | undefined>((resolve) =>
+          setLinkAsk({ title: `Thêm "${value}"`, label: `Tên tiếng Việt (NameVN) của mã "${value}"`, field: col.askName, resolve })
+        );
+    }
     if (!dep) return undefined;
     const options =
       dep.type === 'select'

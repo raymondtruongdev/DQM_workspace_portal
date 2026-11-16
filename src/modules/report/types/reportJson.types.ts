@@ -114,6 +114,8 @@ export interface TemplateColumnJson {
   from?: string;
   /** Với `from`: lấy cột này của mã (mặc định `link`) và ghi giá trị người dùng nhập cho mã mới vào cột đó. */
   fromField?: 'note' | 'nameVn';
+  /** Cột mã không có cột phụ thuộc nhưng mục mới BẮT BUỘC kèm tên: "Thêm mới…" hỏi tiếp tên và ghi vào cột này của danh mục (vd Mã vật tư → NameVN). */
+  askName?: 'nameVn';
   /** Danh sách chọn cố định (nếu không dùng danh mục). */
   options?: string[];
   /** true = không có mục "---" ở đầu danh sách (danh mục cố định như thời tiết). */

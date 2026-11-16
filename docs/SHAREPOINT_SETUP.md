@@ -28,7 +28,7 @@ Tạo thư viện tài liệu tên `DailyReportLibrary` rồi tạo cấu trúc 
 DailyReportLibrary/
 ├── ActivityP6.xlsx           danh mục Activity (một sheet)
 ├── _template/
-│   ├── template_DRP_ST01_20261115.json
+│   ├── template_DRP_ST01_20261116.json
 │   ├── template_DRP_ST02_20261114.json   (bản trống, cũ)
 │   ├── template_DRP_ST02_20261115.json   (bản mới nhất: cùng nội dung ST01, mã ST01 → ST02)
 │   ├── template_DRP_ST04_20261114.json / template_DRP_ST04_20261115.json
