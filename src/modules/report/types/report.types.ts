@@ -142,6 +142,8 @@ export interface ReportPhotoSection {
   summary: string;
   showSummary: boolean;
   columns: number;      // số ảnh mỗi hàng
+  /** 'layout' = mục SƠ ĐỒ LAYOUT: mỗi nhóm là một hàng (Tên sơ đồ = `department`, Mô tả = `summary`, Hình vẽ = `files`); id nhóm `layout/<id>` nên ảnh nằm ở photos/layout/<id>/. */
+  variant?: 'layout';
   groups: PhotoGroup[];
 }
 

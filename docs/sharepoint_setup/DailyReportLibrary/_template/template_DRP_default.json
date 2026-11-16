@@ -83,6 +83,17 @@
       ]
     },
     {
+      "id": "layout",
+      "title": {
+        "vi": "SƠ ĐỒ LAYOUT",
+        "en": "LAYOUT",
+        "short": "Layout"
+      },
+      "type": "photo",
+      "summary": "",
+      "rows": []
+    },
+    {
       "id": "hse",
       "title": {
         "vi": "AN TOÀN – CHẤT LƯỢNG – CHỈ THỊ TVGS",

@@ -5,6 +5,7 @@ import { buildSectionNumbering, sectionAnchor } from '../utils/reportSections';
 import { IReportDynamicTableProps, ReportDynamicTable } from './ReportDynamicTable';
 import { ReportDynamicForm } from './ReportDynamicForm';
 import { ReportPhotoSectionEditor } from './ReportPhotoSectionEditor';
+import { ReportLayoutSectionEditor } from './ReportLayoutSectionEditor';
 
 export interface IReportSectionsEditorProps {
   doc: ReportDoc;
@@ -81,8 +82,9 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
           );
         }
         if (sec.kind === 'photo') {
+          const Editor = sec.variant === 'layout' ? ReportLayoutSectionEditor : ReportPhotoSectionEditor;
           return (
-            <ReportPhotoSectionEditor
+            <Editor
               key={sec.key}
               section={sec}
               roman={roman}

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ReportDoc } from '../types/report.types';
 import { PRINT_CSS } from '../utils/reportPrintCss';
+import { photoSubfolder } from '../utils/reportFileNaming';
 import { ReportPrintDocument } from './ReportPrintDocument';
 
 export interface IReportPrintPreviewModalProps {
@@ -28,7 +29,7 @@ export const ReportPrintPreviewModal: React.FC<IReportPrintPreviewModalProps> = 
     [resourceFolder]
   );
   const photoSrc = React.useCallback(
-    (groupId: string, name: string): string => absoluteUrl(`${photosFolder}/${groupId}/${name}`),
+    (groupId: string, name: string): string => absoluteUrl(`${photosFolder}/${photoSubfolder(groupId)}/${name}`),
     [photosFolder]
   );
 

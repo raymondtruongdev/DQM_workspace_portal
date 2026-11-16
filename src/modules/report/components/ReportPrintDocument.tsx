@@ -6,6 +6,7 @@ import { isoToVN } from '../utils/reportTable';
 import { ReportPrintTable } from './ReportPrintTable';
 import { ReportPrintForm } from './ReportPrintForm';
 import { ReportPrintPhoto } from './ReportPrintPhoto';
+import { ReportPrintLayout } from './ReportPrintLayout';
 
 export interface IReportPrintDocumentProps {
   doc: ReportDoc;
@@ -122,6 +123,8 @@ export const ReportPrintDocument: React.FC<IReportPrintDocumentProps> = ({ doc, 
       {doc.sections.map((sec) =>
         sec.kind === 'table' ? (
           <ReportPrintTable key={sec.key} table={sec} roman={num.roman(sec.key)} dateStr={doc.dateStr} />
+        ) : sec.kind === 'photo' && sec.variant === 'layout' ? (
+          <ReportPrintLayout key={sec.key} section={sec} roman={num.roman(sec.key)} photoSrc={photoSrc} />
         ) : sec.kind === 'photo' ? (
           <ReportPrintPhoto key={sec.key} section={sec} roman={num.roman(sec.key)} photoSrc={photoSrc} />
         ) : (

@@ -264,6 +264,32 @@ body {
   page-break-inside: avoid;
   break-inside: avoid;
 }
+/* Mục SƠ ĐỒ LAYOUT (bản in): Tên sơ đồ | Hình vẽ | Mô tả */
+.bcn-layout-table .bcn-th-row th span {
+  display: block;
+}
+.bcn-layout-table td {
+  vertical-align: top;
+}
+.bcn-layout-name {
+  font-weight: 700;
+  color: #014a94;
+  white-space: pre-line;
+}
+.bcn-layout-img {
+  text-align: center;
+}
+.bcn-layout-img img {
+  display: block;
+  max-width: 100%;
+  max-height: 110mm;
+  height: auto;
+  margin: 0 auto 4px;
+  object-fit: contain;
+}
+.bcn-layout-desc {
+  white-space: pre-line;
+}
 .bcn-photo-item img {
   display: block;
   width: 100%;

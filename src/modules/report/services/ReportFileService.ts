@@ -9,6 +9,7 @@ import {
   getReportFileRelativePath,
   getReportEventPdfFolderRelativePath,
   getReportPhotosFolderRelativePath,
+  photoSubfolder,
   getUnitFolderRelativePath,
   matchDefaultTemplateFileName,
   matchUnitTemplateFileName,
@@ -237,7 +238,7 @@ export class ReportFileService {
 
   /** Nội dung một ảnh hiện trường (để nhúng vào bản HTML độc lập). */
   public async getReportPhotoBuffer(unit: string, docId: string, dateStr: string, groupId: string, name: string): Promise<ArrayBuffer | undefined> {
-    return await this._client.getFileBuffer(this._siteUrl, `${this.getReportPhotosFolderPath(unit, docId, dateStr)}/${groupId}/${name}`);
+    return await this._client.getFileBuffer(this._siteUrl, `${this.getReportPhotosFolderPath(unit, docId, dateStr)}/${photoSubfolder(groupId)}/${name}`);
   }
 
   /** Nội dung một file trong thư mục resource (logo bản in). */
@@ -269,12 +270,20 @@ export class ReportFileService {
     const reportFolder = getReportFolderRelativePath(this.getLibraryPath(), unit, docId, dateStr);
     await this._client.ensureFolder(this._siteUrl, reportFolder);
 
-    const groupFolder = `${this.getReportPhotosFolderPath(unit, docId, dateStr)}/${groupId}`;
+    const groupFolder = `${this.getReportPhotosFolderPath(unit, docId, dateStr)}/${photoSubfolder(groupId)}`;
     await this._client.ensureFolder(this._siteUrl, groupFolder);
 
     const safeName = sanitizeSharePointPath(fileName) || `photo_${Date.now()}.jpg`;
     await this._client.uploadFile(this._siteUrl, groupFolder, safeName, buffer, true);
     return safeName;
+  }
+
+  /** Tên ảnh sẽ lưu (giữ nguyên tên gốc, chỉ đổi ký tự SharePoint cấm) và đã có trong thư mục ảnh của nhóm chưa (không phân biệt hoa thường). */
+  public async photoExists(unit: string, docId: string, dateStr: string, groupId: string, fileName: string): Promise<{ name: string; exists: boolean }> {
+    const name = sanitizeSharePointPath(fileName) || fileName;
+    const files = await this._client.getFolderFiles(this._siteUrl, `${this.getReportPhotosFolderPath(unit, docId, dateStr)}/${photoSubfolder(groupId)}`);
+    const k = name.toLowerCase();
+    return { name, exists: files.some((f) => f.name.toLowerCase() === k) };
   }
 
   /** Thư mục file PDF đính kèm sự kiện: <thư mục báo cáo>/pdf/eventlog */

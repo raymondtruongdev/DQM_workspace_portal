@@ -17,12 +17,12 @@ const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 // Báo cáo mẫu đã lưu = template ST01 (cùng định dạng) + phần đầu của một báo cáo thật (ngày, người lập, đơn vị thi công…)
 const sampleText = (() => {
   const tplFile = JSON.parse(
-    read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261116.json')
+    read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261117.json')
       .replace(/\{user\}/g, 'user@example.com')
       .replace(/\{siteManager\}/g, 'Trưởng ga cũ')
   );
   tplFile.sections.forEach((sec) => (sec.rows || []).forEach((r) => { if (r.locked === false) delete r.locked; }));
-  tplFile.sections.find((sec) => sec.type === 'photo').rows = [
+  tplFile.sections.find((sec) => sec.id === 'photos').rows = [
     { id: 'g1', department: 'DCEM', summary: 'Hố đào tấm P-12', files: ['img1.jpeg', 'img2.jpeg', 'img3.jpeg'] },
     { id: 'g2', department: 'HSE', summary: 'Kiểm tra an toàn hiện trường', files: ['img4.jpeg', 'img5.jpeg', 'img6.jpeg'] }
   ];
@@ -36,7 +36,7 @@ const sampleText = (() => {
     subcontractors: ['THAC_CRSG', 'THAC_THAN']
   });
 })();
-const tpl = () => J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261116.json'));
+const tpl = () => J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261117.json'));
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
 test('mở rồi lưu lại file mẫu không mất/đổi dữ liệu (round-trip)', () => {
@@ -73,9 +73,9 @@ test('mã tài liệu đã lưu được giữ nguyên dù template đổi mẫu
 });
 
 test('báo cáo mới từ template: đủ mục, số báo cáo 00001, mặc định {user}', () => {
-  const t = J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261116.json'));
+  const t = J.parseTemplateJson(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261117.json'));
   const doc = J.docFromTemplate(t, { docId: 'DailyReport', unit: 'ST01', dateStr: '2026-11-15', email: 'a@b.c', siteManager: 'Sếp', version: 'template_DRP_ST01_20261115' });
-  assert.equal(doc.sections.length, 11);
+  assert.equal(doc.sections.length, 12);
   assert.equal(doc.metadata.reportNo, '00001');
   assert.match(doc.metadata.docCode, /-ST01-CWS-DRP-00001$/);
   const sign = doc.sections.find((s) => s.key === 'signOff');
@@ -119,7 +119,7 @@ test('Apply template mới: thêm cột/mục mới, giữ dữ liệu cũ, bỏ
 });
 
 test('template chỉ chứa dữ liệu: không có thuộc tính UI, UI do code (reportUiSchema) mở rộng khi đọc', () => {
-  const file = JSON.parse(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261116.json'));
+  const file = JSON.parse(read('docs/sharepoint_setup/DailyReportLibrary/_template/template_DRP_ST01_20261117.json'));
   const uiKeys = ['type', 'catalog', 'catalogBy', 'from', 'options', 'noNone', 'formula', 'readonly', 'key', 'total', 'align', 'width', 'default', 'reset', 'carry', 'tones',
     'kind', 'single', 'showSummary', 'layout', 'perRow', 'full', 'span', 'lines', 'placeholder'];
   const bad = [];
@@ -260,4 +260,25 @@ test('Thiết bị: tách Biển số (plate) thành cột riêng người dùng
   table.rows[0].values.plate = '51C-999.99';
   const back = J.docToJson(doc).sections.find((s) => s.id === 'equipment');
   assert.equal(back.rows[0].cells.plate, '51C-999.99');
+});
+
+test('mục SƠ ĐỒ LAYOUT: nằm sau Thời tiết, là mục ảnh variant layout, giữ nguyên khi lưu/mở lại và bỏ khi kế thừa ngày trước', () => {
+  const t = tpl();
+  const doc = J.docFromTemplate(t, { docId: 'DailyReport', unit: 'ST01', dateStr: '2026-11-15', email: 'a@b.c', siteManager: 'S', version: 'v' });
+  assert.deepEqual(doc.sections.slice(0, 2).map((s) => s.key), ['weather', 'layout']);
+  const lay = doc.sections[1];
+  assert.equal(lay.kind, 'photo');
+  assert.equal(lay.variant, 'layout');
+  lay.groups.push({ id: 'layout-1', department: 'Mặt bằng GĐ2', summary: 'Mô tả', files: ['mb.png'] });
+  const json = J.docToJson(doc);
+  assert.equal(json.sections[1].type, 'photo');
+  assert.deepEqual(json.sections[1].rows, [{ id: 'layout-1', department: 'Mặt bằng GĐ2', summary: 'Mô tả', files: ['mb.png'] }]);
+  const back = J.jsonToDoc(json, t);
+  assert.equal(back.sections[1].variant, 'layout');
+  assert.equal(back.sections[1].groups[0].files[0], 'mb.png');
+  // chưa có template: vẫn nhận ra mục Layout qua id
+  assert.equal(J.jsonToDoc(json).sections[1].variant, 'layout');
+  const next = J.carryForwardDoc(back, '2026-11-16', 'x@y.z');
+  assert.equal(next.sections[1].groups.length, 0);
+  assert.equal(next.sections[1].variant, 'layout');
 });

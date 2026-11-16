@@ -115,6 +115,18 @@ export function getReportEventPdfFolderRelativePath(
   return `${getReportFolderRelativePath(libraryPath, unit, docId, date)}/pdf/eventlog`;
 }
 
+/** Tiền tố `id` của hàng mục SƠ ĐỒ LAYOUT; ảnh của mọi hàng Layout nằm chung trong photos/layout/ (giữ nguyên tên file, không thư mục con theo hàng). */
+export const LAYOUT_GROUP_PREFIX = 'layout-';
+
+export function isLayoutGroupId(groupId: string): boolean {
+  return groupId.indexOf(LAYOUT_GROUP_PREFIX) === 0;
+}
+
+/** Thư mục con của photos/ chứa ảnh của nhóm: `layout` cho hàng Layout, còn lại là chính `id` nhóm (bộ phận). */
+export function photoSubfolder(groupId: string): string {
+  return isLayoutGroupId(groupId) ? 'layout' : groupId;
+}
+
 export function getReportPhotosFolderRelativePath(
   libraryPath: string,
   unit: string,

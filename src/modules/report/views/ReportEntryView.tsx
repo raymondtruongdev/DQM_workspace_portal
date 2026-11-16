@@ -16,7 +16,7 @@ import { ReportCatalog, canAddToTable, catalogOptions, catalogWithLink, catalogW
 import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
 import { ReportReadOnlyContext } from '../components/ReportReadOnlyContext';
 import { ReportSignedDocument } from '../components/ReportSignedDocument';
-import { getReportFolderName } from '../utils/reportFileNaming';
+import { getReportFolderName, isLayoutGroupId, photoSubfolder } from '../utils/reportFileNaming';
 import { ReportPrintPreviewModal } from '../components/ReportPrintPreviewModal';
 import { Icon, PageHeader, LoadingState, EmptyState, ConfirmDialog } from '../../../core/components';
 import { SelectOpenContext } from '../../../core/components/CreatableSelect';
@@ -468,6 +468,18 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     return sec && sec.kind === 'photo' ? sec.groups.filter((g) => g.id === groupId)[0] : undefined;
   };
 
+  // Hình Layout dùng chung thư mục photos/layout/: hàng khác còn dùng cùng tên file thì chỉ gỡ khỏi hàng này, giữ file trên SharePoint
+  const isLayoutPhotoUsedElsewhere = (sectionKey: string, groupId: string, name: string): boolean => {
+    if (!isLayoutGroupId(groupId)) return false;
+    const sec = doc?.sections.filter((x) => x.kind === 'photo' && x.key === sectionKey)[0];
+    const k = name.toLowerCase();
+    return !!sec && sec.kind === 'photo' && sec.groups.some((g) => g.id !== groupId && g.files.some((f) => f.toLowerCase() === k));
+  };
+
+  // Hộp thoại hình Layout trùng tên: Thay thế hoặc Huỷ (hỏi lần lượt từng file trùng)
+  const [photoReplaceAsk, setPhotoReplaceAsk] = React.useState<{ name: string; resolve: (replace: boolean) => void } | null>(null);
+  const askReplacePhoto = (name: string): Promise<boolean> => new Promise<boolean>((resolve) => setPhotoReplaceAsk({ name, resolve }));
+
   // Tải ảnh của một bộ phận lên data/<Unit>/<DRP|WRP>_<yyyyMMdd>_<Unit>/photos/<groupId>/
   const handleUploadGroupPhotos = async (sectionKey: string, groupId: string, files: FileList): Promise<void> => {
     if (!doc || files.length === 0) return;
@@ -475,8 +487,17 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     setIsUploadingPhoto(true);
     try {
       const names: string[] = [];
+      let skipped = 0;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        // Hình Layout giữ nguyên tên và nằm chung photos/layout/: trùng tên file đã có thì hỏi Thay thế / Huỷ
+        if (isLayoutGroupId(groupId)) {
+          const chk = await dataService.checkPhoto(role.unit, role.docId, dateStr, groupId, file.name);
+          if (chk.exists && !(await askReplacePhoto(chk.name))) {
+            skipped += 1;
+            continue;
+          }
+        }
         const buf = await file.arrayBuffer();
         names.push(await dataService.uploadPhoto(role.unit, role.docId, dateStr, groupId, file.name, buf));
       }
@@ -488,7 +509,13 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
           return { ...g, files: g.files.concat(names.filter((n) => lower.indexOf(n.toLowerCase()) === -1)) };
         })
       }));
-      setToast({ type: 'success', text: `Đã tải lên ${files.length} ảnh.` });
+      setToast({
+        type: 'success',
+        text:
+          names.length === 0
+            ? 'Đã huỷ, không có hình nào được tải lên.'
+            : `Đã tải lên ${names.length} ảnh${skipped > 0 ? ` (bỏ qua ${skipped} hình trùng tên)` : ''}.`
+      });
     } catch (err: unknown) {
       console.error('Error uploading photo:', err);
       handleWriteError(err, 'Lỗi khi tải ảnh lên SharePoint');
@@ -504,7 +531,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     if (await onCheckMaintenance()) return;
     setIsUploadingPhoto(true);
     try {
-      await dataService.deletePhoto(`${photosFolder}/${groupId}/${name}`);
+      if (!isLayoutPhotoUsedElsewhere(sectionKey, groupId, name)) await dataService.deletePhoto(`${photosFolder}/${photoSubfolder(groupId)}/${name}`);
       updatePhotoSection(sectionKey, (s) => ({
         ...s,
         groups: s.groups.map((g) => (g.id === groupId ? { ...g, files: g.files.filter((f) => f !== name) } : g))
@@ -533,7 +560,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     setIsUploadingPhoto(true);
     try {
       for (let i = 0; i < group.files.length; i++) {
-        await dataService.deletePhoto(`${photosFolder}/${groupId}/${group.files[i]}`);
+        if (!isLayoutPhotoUsedElsewhere(sectionKey, groupId, group.files[i])) await dataService.deletePhoto(`${photosFolder}/${photoSubfolder(groupId)}/${group.files[i]}`);
       }
       updatePhotoSection(sectionKey, (s) => ({ ...s, groups: s.groups.filter((g) => g.id !== groupId) }));
     } catch (err: unknown) {
@@ -1077,6 +1104,23 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             onGoHome();
           }}
           onCancel={() => undefined}
+        />
+      )}
+
+      {photoReplaceAsk && (
+        <ConfirmDialog
+          danger
+          title="Hình đã tồn tại"
+          message={`Hình "${photoReplaceAsk.name}" đã có trong thư mục photos/layout của báo cáo này. Thay thế sẽ ghi đè hình cũ (hàng Layout nào đang dùng hình này cũng thấy hình mới). Huỷ thì giữ hình cũ và không tải hình này lên.`}
+          confirmLabel="Thay thế"
+          onConfirm={() => {
+            photoReplaceAsk.resolve(true);
+            setPhotoReplaceAsk(null);
+          }}
+          onCancel={() => {
+            photoReplaceAsk.resolve(false);
+            setPhotoReplaceAsk(null);
+          }}
         />
       )}
 

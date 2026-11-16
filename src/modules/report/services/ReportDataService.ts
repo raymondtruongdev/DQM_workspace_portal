@@ -371,6 +371,16 @@ export class ReportDataService {
     return await this._fileService.uploadReportPhoto(unit, docId, dateStr, groupId, fileName, buffer);
   }
 
+  /** Ảnh cùng tên đã có trong thư mục ảnh của nhóm chưa (không đọc được thư mục thì coi là chưa có). */
+  public async checkPhoto(unit: string, docId: string, dateStr: string, groupId: string, fileName: string): Promise<{ name: string; exists: boolean }> {
+    try {
+      return await this._fileService.photoExists(unit, docId, dateStr, groupId, fileName);
+    } catch (err: unknown) {
+      console.warn('Could not check existing photo:', err);
+      return { name: fileName, exists: false };
+    }
+  }
+
   /** Thư mục file PDF đính kèm sự kiện (server-relative): <thư mục báo cáo>/pdf/eventlog */
   public getEventPdfFolderPath(unit: string, docId: string, dateStr: string): string {
     return this._fileService.getReportEventPdfFolderPath(unit, docId, dateStr);

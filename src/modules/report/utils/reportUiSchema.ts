@@ -15,7 +15,7 @@ import { REPORT_FEATURES } from '../constants/reportFeatures';
 export type ColumnUi = Omit<TemplateColumnJson, 'id' | 'label'>;
 export type FieldUi = Omit<TemplateFieldJson, 'id' | 'label' | 'default'>;
 
-export interface SectionUi extends Pick<TemplateSectionJson, 'kind' | 'single' | 'rowPdf' | 'showSummary' | 'layout' | 'perRow'> {
+export interface SectionUi extends Pick<TemplateSectionJson, 'kind' | 'variant' | 'single' | 'rowPdf' | 'showSummary' | 'layout' | 'perRow'> {
   columns?: Record<string, ColumnUi>;
   fields?: Record<string, FieldUi>;
 }
@@ -119,6 +119,12 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
       status: { type: 'select', catalog: 'issue_status', noNone: true, default: 'Mở', align: 'center', width: 10 },
       todayUpdate: { default: '---', width: 22 },
     },
+  },
+  layout: {
+    kind: 'photo',
+    variant: 'layout',
+    showSummary: false,
+    perRow: 1,
   },
   photos: {
     kind: 'photo',

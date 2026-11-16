@@ -118,7 +118,7 @@ const sectionTitle = (t: { vi: string; en?: string; short?: string }): { title: 
 export function templateSection(ts: TemplateSectionJson): ReportSection {
   const head = { key: ts.id, ...sectionTitle(ts.title), summary: '', showSummary: ts.showSummary !== false };
   if (ts.kind === 'photo') {
-    return { kind: 'photo', ...head, columns: ts.perRow || 2, groups: [] };
+    return { kind: 'photo', ...head, columns: ts.perRow || 2, ...(ts.variant ? { variant: ts.variant } : {}), groups: [] };
   }
   if (ts.columns && ts.columns.length > 0) {
     const table: ReportTable = {
@@ -229,7 +229,9 @@ function jsonSection(js: ReportJsonSection, ts: TemplateSectionJson | undefined)
       summary: r.summary || '',
       files: r.files.slice()
     }));
-    const photo: ReportPhotoSection = { kind: 'photo', ...head, columns: (ts && ts.perRow) || 2, groups };
+    // Mục Layout: theo template; chưa có template thì nhận ra qua id mục
+    const variant = ts ? ts.variant : js.id === 'layout' ? 'layout' : undefined;
+    const photo: ReportPhotoSection = { kind: 'photo', ...head, columns: (ts && ts.perRow) || 2, ...(variant ? { variant } : {}), groups };
     return photo;
   }
   const fields = (js.fields || []).map((jf) => jsonField(jf, ts && ts.fields ? ts.fields.filter((f) => f.id === jf.id)[0] : undefined));
@@ -424,6 +426,7 @@ export function expandTemplate(file: TemplateSource): ReportTemplateJson {
     const ui = uiOf[fs.id] || {};
     const s: TemplateSectionJson = { id: fs.id, title: fs.title };
     if (ui.kind) s.kind = ui.kind;
+    if (ui.variant) s.variant = ui.variant;
     if (ui.single !== undefined) s.single = ui.single;
     if (ui.rowPdf) s.rowPdf = true;
     if (ui.showSummary !== undefined) s.showSummary = ui.showSummary;

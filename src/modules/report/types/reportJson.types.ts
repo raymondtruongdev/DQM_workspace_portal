@@ -169,6 +169,8 @@ export interface TemplateSectionJson {
   id: string;
   title: SectionTitleJson;
   kind?: 'photo';
+  /** 'layout' = mục SƠ ĐỒ LAYOUT (mục ảnh trình bày dạng bảng Tên sơ đồ | Hình vẽ | Mô tả); thuộc tính UI do code quyết định. */
+  variant?: 'layout';
   /** Bảng một dòng cố định: không thêm/xoá dòng. */
   single?: boolean;
   /** true = mỗi dòng đính kèm được file PDF (thuộc tính UI do code quyết định, không nằm trong file template). */

@@ -898,6 +898,33 @@
   height: 15mm;
 }
 
+/* Mục SƠ ĐỒ LAYOUT (bản in): Tên sơ đồ | Hình vẽ | Mô tả */
+.bcn-layout-table .bcn-th-row th span {
+  display: block;
+}
+.bcn-layout-table td {
+  vertical-align: top;
+}
+.bcn-layout-name {
+  font-weight: 700;
+  color: #014a94;
+  white-space: pre-line;
+}
+.bcn-layout-img {
+  text-align: center;
+}
+.bcn-layout-img img {
+  display: block;
+  max-width: 100%;
+  max-height: 110mm;
+  height: auto;
+  margin: 0 auto 4px;
+  object-fit: contain;
+}
+.bcn-layout-desc {
+  white-space: pre-line;
+}
+
 .bcn-sec-title {
   background: #014a94;
   color: #ffffff;
@@ -2265,3 +2292,67 @@
 /* Bảng một dòng (thời tiết, HSE): bề rộng cột theo tỉ lệ bề rộng tối thiểu của từng cột (minPx/width trong reportUiSchema),
    phần dư của khung chia theo tỉ lệ đó nên cột có minPx/width lớn hơn (vd Giá trị) rộng hơn các ô nhỏ */
 .report-grid-table--fixed { table-layout: fixed; }
+
+/* Mục SƠ ĐỒ LAYOUT (form nhập): mỗi hàng 3 cột Tên sơ đồ | Hình vẽ | Mô tả + nút xoá */
+.report-layout-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.report-layout-head {
+  display: grid;
+  grid-template-columns: minmax(0, 15fr) minmax(0, 55fr) minmax(0, 30fr) 40px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-subtle);
+  color: var(--color-text-primary);
+  font-weight: 700;
+  text-align: center;
+}
+
+.report-layout-head span {
+  display: block;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.report-layout-row {
+  display: grid;
+  grid-template-columns: minmax(0, 15fr) minmax(0, 55fr) minmax(0, 30fr) 40px;
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.report-layout-row > * {
+  min-width: 0;
+}
+
+.report-layout-label {
+  display: none;
+}
+
+.report-layout-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .report-layout-head {
+    display: none;
+  }
+  .report-layout-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .report-layout-label {
+    display: block;
+  }
+  .report-layout-actions {
+    justify-content: flex-start;
+  }
+}
