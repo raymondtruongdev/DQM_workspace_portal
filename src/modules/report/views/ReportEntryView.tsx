@@ -259,19 +259,12 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   };
 
   /** Thêm đơn vị thi công mới vào danh mục dùng chung `subcontractor`; trả về giá trị để chọn. */
-  // Danh mục `location`: Code = tọa độ (giá trị lưu), NameVN = tên vị trí; dropdown hiện "Tên - Tọa độ"
-  const locationOptions = ((catalog && catalog.tables.location && catalog.tables.location.items) || [])
-    .filter((i) => i.id)
-    .map((i) => ({ value: i.id, label: i.nameVn ? `${i.nameVn} - ${i.id}` : i.id }));
+  // Tọa độ của nhà ga: lấy từ danh mục `location` (Code = tọa độ, NameVN = mã nhà ga), người dùng không chọn/sửa
+  const locItems = ((catalog && catalog.tables.location && catalog.tables.location.items) || []).filter((i) => i.id);
+  const unitGeoTag = (locItems.filter((i) => (i.nameVn || '').toUpperCase() === role.unit.toUpperCase())[0] || locItems[0] || { id: '' }).id;
 
   const handleAddSubcontractor = async (value: string): Promise<string | undefined> => {
     const res = await handleAddCatalogItem('subcontractor', value, false);
-    return res && !res.cancelled ? res.value : undefined;
-  };
-
-  /** Thêm tọa độ mới (kèm tên vị trí vào NameVN) vào danh mục dùng chung `location`; trả về tọa độ để chọn. */
-  const handleAddLocation = async (geoTag: string, name: string): Promise<string | undefined> => {
-    const res = await handleAddCatalogItem('location', geoTag, false, () => Promise.resolve({ link: name, field: 'nameVn' }));
     return res && !res.cancelled ? res.value : undefined;
   };
 
@@ -308,6 +301,12 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   };
 
   const isWeekly = role.docId.toLowerCase().includes('week');
+
+  // Tự điền Tọa độ theo nhà ga (không đánh dấu "chưa lưu": giá trị luôn suy ra từ danh mục); báo cáo đã khoá giữ giá trị đã lưu
+  React.useEffect(() => {
+    if (!doc || isLocked || !unitGeoTag || doc.metadata.geoTag === unitGeoTag) return;
+    setDoc((prev) => (prev ? { ...prev, metadata: { ...prev.metadata, geoTag: unitGeoTag } } : prev));
+  }, [doc, isLocked, unitGeoTag]);
 
   // File PDF đã ký của ngày đang mở (chỉ khi báo cáo đã lưu trên SharePoint)
   const isReportSaved = Boolean(doc && doc.isExisting);
@@ -1013,8 +1012,6 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             isExisting={!!doc.isExisting}
             subcontractorOptions={catalogOptions(catalog, 'subcontractor', false, true)}
             onAddSubcontractor={handleAddSubcontractor}
-            locationOptions={locationOptions}
-            onAddLocation={handleAddLocation}
             disabled={editDisabled}
             showErrors={showRequiredErrors}
           />

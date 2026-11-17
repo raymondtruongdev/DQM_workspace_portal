@@ -2,7 +2,6 @@ import * as React from 'react';
 import { ReportMetadata, RequirableField } from '../types/report.types';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
 import { Icon } from '../../../core/components/Icon';
-import { PromptDialog } from '../../../core/components/PromptDialog';
 import { sanitizeOption } from '../utils/reportTable';
 import { REQUIRED_FIELDS, getMissingRequiredFields } from '../utils/reportValidation';
 
@@ -16,10 +15,6 @@ export interface IReportMetaFormProps {
   subcontractorOptions: string[];
   /** Thêm đơn vị thi công mới vào danh mục dùng chung; trả về giá trị đã lưu (hoặc chọn sẵn nếu đã có), undefined nếu không ghi được. */
   onAddSubcontractor?: (value: string) => Promise<string | undefined>;
-  /** Tọa độ để chọn (danh mục dùng chung `location`): `value` = tọa độ lưu vào báo cáo, `label` = chữ hiện trong danh sách (vd "ST01 - 10.771091, 106.698838"). */
-  locationOptions: Array<{ value: string; label: string }>;
-  /** Thêm tọa độ mới (kèm tên vị trí) vào danh mục dùng chung; trả về giá trị để chọn, undefined nếu không ghi được. */
-  onAddLocation?: (geoTag: string, name: string) => Promise<string | undefined>;
   disabled?: boolean;
   /** When true, blank required fields are highlighted with an error message. */
   showErrors?: boolean;
@@ -32,8 +27,6 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
   onMetadataChange,
   subcontractorOptions,
   onAddSubcontractor,
-  locationOptions,
-  onAddLocation,
   disabled = false,
   showErrors = false
 }) => {
@@ -48,13 +41,6 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
   const selectedSubs = metadata.subcontractors;
   const availableSubs = subcontractorOptions.filter((o) => selectedSubs.indexOf(o) === -1);
   const setSubs = (next: string[]): void => onMetadataChange('subcontractors', next);
-  // Tọa độ mới: hỏi tiếp tên vị trí (bắt buộc) rồi ghi vào danh mục dùng chung
-  const [newGeo, setNewGeo] = React.useState<string | undefined>(undefined);
-  const geoValues = locationOptions.map((o) => o.value);
-  const geoLabels: Record<string, string> = {};
-  locationOptions.forEach((o) => {
-    geoLabels[o.value] = o.label;
-  });
   const cls = (f: RequirableField): string => `input${isBad(f) ? ' input--danger' : ''}`;
 
   return (
@@ -115,24 +101,17 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
             />
           </div>
 
-          {/* Row 1, Col 2: Tọa độ (chọn từ danh mục `location`) */}
+          {/* Row 1, Col 2: Tọa độ (tự điền theo nhà ga từ danh mục `location`, không sửa) */}
           <div className="field">
             <label htmlFor="report-geotag-input" className="field__label">Tọa độ (Geo-tag)</label>
-            <CreatableSelect
+            <input
               id="report-geotag-input"
-              className="input"
-              value={metadata.geoTag || ''}
-              placeholder="Chọn tọa độ…"
-              options={geoValues}
-              optionLabels={geoLabels}
-              disabled={disabled}
-              dialogTitle="Thêm tọa độ mới (vd 10.771091, 106.698838)"
-              onChange={(v, isNew) => {
-                const clean = v.trim().replace(/\s+/g, ' ');
-                if (!clean) return;
-                if (isNew) setNewGeo(clean);
-                else onMetadataChange('geoTag', clean);
-              }}
+              type="text"
+              className="input input--readonly"
+              value={metadata.geoTag ? `${metadata.location} - ${metadata.geoTag}` : ''}
+              readOnly
+              placeholder="Chưa có tọa độ cho nhà ga này"
+              title="Tự điền theo nhà ga (danh mục location), không sửa được"
             />
           </div>
 
@@ -223,20 +202,6 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
           </div>
         </div>
       </div>
-      {newGeo !== undefined && (
-        <PromptDialog
-          title={`Thêm tọa độ "${newGeo}"`}
-          label="Tên vị trí của tọa độ này (vd ST01)"
-          onSubmit={(name) => {
-            const geo = newGeo;
-            setNewGeo(undefined);
-            const add = (value: string): void => onMetadataChange('geoTag', value);
-            if (onAddLocation) onAddLocation(geo, name.trim()).then((saved) => add(saved || geo)).catch(() => add(geo));
-            else add(geo);
-          }}
-          onCancel={() => setNewGeo(undefined)}
-        />
-      )}
     </>
   );
 };
