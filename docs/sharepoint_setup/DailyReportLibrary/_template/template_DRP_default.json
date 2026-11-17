@@ -105,14 +105,14 @@
         {
           "id": "hseIncidents",
           "label": {
-            "vi": "Sự cố HSE",
+            "vi": "Sự kiện HSE",
             "en": "HSE incidents"
           }
         },
         {
           "id": "envIncidents",
           "label": {
-            "vi": "Sự cố môi trường",
+            "vi": "Sự kiện môi trường",
             "en": "Environmental incidents"
           }
         },
