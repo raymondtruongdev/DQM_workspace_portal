@@ -83,7 +83,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
       matId: { type: 'select', catalog: 'Material_ID', noNone: true, align: 'left', askName: 'nameVn', minPx: 290, fit: true },
       unit: { default: 'm³', align: 'center', minPx: 70, fit: true },
       recv: { type: 'number', default: 0, minPx: 140, fit: true },
-      supplier: { type: 'select', catalog: 'supplier', noNone: true, default: 'Thiên An', minPx: 130, fit: true },
+      supplier: { type: 'select', catalog: 'supplier', default: '---', minPx: 130, fit: true },
       remark: { minPx: 240 },
     },
   },
