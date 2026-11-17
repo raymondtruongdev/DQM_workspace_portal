@@ -29,9 +29,9 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
     single: true,
     showSummary: false,
     columns: {
-      am: { type: 'select', catalog: 'weather', reset: true, default: '---', align: 'center', minPx: 110 },
-      pm: { type: 'select', catalog: 'weather', reset: true, default: '---', align: 'center', minPx: 110 },
-      night: { type: 'select', catalog: 'weather', reset: true, default: '---', align: 'center', minPx: 110 },
+      am: { type: 'select', catalog: 'weather', noNone: true, reset: true, align: 'center', minPx: 110 },
+      pm: { type: 'select', catalog: 'weather', noNone: true, reset: true, align: 'center', minPx: 110 },
+      night: { type: 'select', catalog: 'weather', noNone: true, reset: true, align: 'center', minPx: 110 },
       hrsLost: { type: 'number', reset: true, default: 0, align: 'center', minPx: 110 },
       value: { reset: true, default: 'SV | EV | AC', align: 'left', width: 40 },
     },
@@ -56,7 +56,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
     rowPdf: REPORT_FEATURES.EVENT_PDF, // cờ trong constants/reportFeatures.ts
     columns: {
       eventId: { readonly: true, default: 'EVT-{unit}-{n5}', align: 'center', minPx: 150, fit: true },
-      type: { type: 'select', catalog: 'event_type', minPx: 180, fit: true, default: '---' },
+      type: { type: 'select', catalog: 'event_type', noNone: true, minPx: 180, fit: true },
       description: { width: 40 },
       due: { type: 'date', width: 10 },
       status: { type: 'select', catalog: 'event_status', default: '---', align: 'center', minPx: 140, fit: true },
@@ -83,7 +83,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
       matId: { type: 'select', catalog: 'Material_ID', noNone: true, align: 'left', askName: 'nameVn', minPx: 290, fit: true },
       unit: { default: 'm³', align: 'center', minPx: 70, fit: true },
       recv: { type: 'number', default: 0, minPx: 140, fit: true },
-      supplier: { type: 'select', catalog: 'supplier', default: '---', minPx: 130, fit: true },
+      supplier: { type: 'select', catalog: 'supplier', noNone: true, default: '---', minPx: 130, fit: true },
       remark: { minPx: 240 },
     },
   },
