@@ -466,28 +466,28 @@
         {
           "id": "r1",
           "cells": {
-            "matId": "MAT-00001",
+            "matId": "RES-MAT-CON",
             "unit": "m³",
             "recv": 214,
-            "supplier": "Thiên An"
+            "supplier": "---"
           }
         },
         {
           "id": "r2",
           "cells": {
-            "matId": "MAT-00002",
+            "matId": "RES-MAT-STL",
             "unit": "tấn",
             "recv": 32,
-            "supplier": "Hoà Phát"
+            "supplier": "---"
           }
         },
         {
           "id": "r3",
           "cells": {
-            "matId": "MAT-00003",
+            "matId": "RES-MAT-BEN",
             "unit": "tấn",
             "recv": 4,
-            "supplier": "Thaco",
+            "supplier": "---",
             "remark": "MAS chờ PICC"
           }
         }

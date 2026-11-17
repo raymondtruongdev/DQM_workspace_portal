@@ -29,9 +29,9 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
     single: true,
     showSummary: false,
     columns: {
-      am: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', minPx: 110 },
-      pm: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', minPx: 110 },
-      night: { type: 'select', catalog: 'weather', noNone: true, reset: true, default: 'Nắng', align: 'center', minPx: 110 },
+      am: { type: 'select', catalog: 'weather', reset: true, default: '---', align: 'center', minPx: 110 },
+      pm: { type: 'select', catalog: 'weather', reset: true, default: '---', align: 'center', minPx: 110 },
+      night: { type: 'select', catalog: 'weather', reset: true, default: '---', align: 'center', minPx: 110 },
       hrsLost: { type: 'number', reset: true, default: 0, align: 'center', minPx: 110 },
       value: { reset: true, default: 'SV | EV | AC', align: 'left', width: 40 },
     },
@@ -56,10 +56,10 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
     rowPdf: REPORT_FEATURES.EVENT_PDF, // cờ trong constants/reportFeatures.ts
     columns: {
       eventId: { readonly: true, default: 'EVT-{unit}-{n5}', align: 'center', minPx: 150, fit: true },
-      type: { type: 'select', catalog: 'event_type', noNone: true, minPx: 180, fit: true, default: 'KIEM_TRA_ATLD' },
+      type: { type: 'select', catalog: 'event_type', minPx: 180, fit: true, default: '---' },
       description: { width: 40 },
       due: { type: 'date', width: 10 },
-      status: { type: 'select', catalog: 'event_status', noNone: true, default: 'Không Đạt', align: 'center', minPx: 140, fit: true },
+      status: { type: 'select', catalog: 'event_status', default: '---', align: 'center', minPx: 140, fit: true },
       remark: { width: 20 },
     },
   },
@@ -104,7 +104,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
       equipment: { readonly: true, from: 'resId', fromField: 'nameVn', minPx: 260, fit: true },
       plate: { minPx: 170, placeholder: '51H12345, 62A11223' }, // Biển số: người dùng tự nhập (gợi ý viết liền, không dấu; nhiều biển cách nhau dấu phẩy)
       qty: { type: 'number', default: 1, minPx: 90, fit: true },
-      status: { type: 'select', catalog: 'equipment_status', noNone: true, default: 'Active', align: 'center', minPx: 130, fit: true },
+      status: { type: 'select', catalog: 'equipment_status', default: '---', align: 'center', minPx: 130, fit: true },
     },
   },
   issues: {
@@ -112,11 +112,11 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
       activityId: { type: 'select', catalog: 'ActivityP6_ID', default: '---', align: 'left', minPx: ACTIVITY_COL_PX },
       issueId: { readonly: true, default: 'ISS-{unit}-{n5}', align: 'center', width: 20 },
       description: { width: 34 },
-      severity: { type: 'select', catalog: 'issue_severity', noNone: true, default: 'Trung bình', align: 'center', width: 9 },
+      severity: { type: 'select', catalog: 'issue_severity', default: '---', align: 'center', width: 9 },
       owner: { width: 13 },
       raised: { type: 'date', width: 10 },
       due: { type: 'date', width: 10 },
-      status: { type: 'select', catalog: 'issue_status', noNone: true, default: 'Mở', align: 'center', width: 10 },
+      status: { type: 'select', catalog: 'issue_status', default: '---', align: 'center', width: 10 },
       todayUpdate: { default: '---', width: 22 },
     },
   },

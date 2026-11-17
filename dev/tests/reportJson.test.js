@@ -96,7 +96,7 @@ test('tạo từ báo cáo ngày trước: luỹ kế cộng dồn, ô hôm nay 
   assert.equal(next.sections.find((s) => s.key === 'photos').groups.length, 0);
   assert.equal(next.metadata.created, undefined);
   const w = next.sections.find((s) => s.key === 'weather');
-  assert.equal(w.rows[0].values.am, 'Nắng'); // reset về mặc định
+  assert.equal(w.rows[0].values.am, '---'); // reset về mặc định (---, không có giá trị cứng)
 });
 
 test('Apply template mới: thêm cột/mục mới, giữ dữ liệu cũ, bỏ cột đã xoá', () => {
