@@ -154,7 +154,7 @@
         {
           "id": "incidentDetails",
           "label": {
-            "vi": "Mô tả sự cố",
+            "vi": "Mô tả sự kiện",
             "en": "Incident details"
           },
           "value": "Không có"
