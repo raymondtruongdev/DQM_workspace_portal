@@ -59,7 +59,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
       type: { type: 'select', catalog: 'event_type', noNone: true, minPx: 180, fit: true },
       description: { width: 40 },
       due: { type: 'date', width: 10 },
-      status: { type: 'select', catalog: 'event_status', default: '---', align: 'center', minPx: 140, fit: true },
+      status: { type: 'select', catalog: 'event_status', noNone: true, default: '---', align: 'center', minPx: 140, fit: true },
       remark: { width: 20 },
     },
   },
