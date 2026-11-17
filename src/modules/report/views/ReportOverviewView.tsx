@@ -30,6 +30,25 @@ import {
   statusOfDay
 } from '../utils/reportOverview';
 
+const pad2 = (n: number): string => (n < 10 ? '0' : '') + n;
+
+/** Đồng hồ ngày giờ chạy mỗi giây (giờ máy người xem); tách riêng để chỉ nó render lại. */
+const LiveClock: React.FC = () => {
+  const [now, setNow] = React.useState<Date>(() => new Date());
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const text = `${pad2(now.getDate())}/${pad2(now.getMonth() + 1)}/${now.getFullYear()} - ` +
+    `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+  return (
+    <span className="report-ov-clock" aria-label="Ngày giờ hiện tại">
+      <Icon name="calendar-day" size={16} />
+      <time dateTime={now.toISOString()}>{text}</time>
+    </span>
+  );
+};
+
 const WINDOW_DAYS = 14;
 const CACHE_TTL_MS = 3 * 60 * 1000;
 const PAGE_SIZE = 30;
@@ -324,6 +343,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
           <span className="section-card__title">
             ĐƠN VỊ × {WINDOW_DAYS} NGÀY <span className="section-card__title-sub">| UNITS × DAYS</span>
           </span>
+          <LiveClock />
         </div>
         <div className="section-card__body">
           <div className="report-ov-toolbar">
