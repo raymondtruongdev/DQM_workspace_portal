@@ -8,7 +8,7 @@ export interface IReportPrintLayoutProps {
   photoSrc: (groupId: string, name: string) => string;
 }
 
-/** Mục SƠ ĐỒ LAYOUT trong bản in A4: bảng Tên sơ đồ | Hình vẽ | Mô tả, mỗi hàng một sơ đồ. */
+/** Mục SƠ ĐỒ LAYOUT trong bản in A4: mỗi sơ đồ gồm cột Tên sơ đồ (15%) và cột 85% có Hình vẽ ở trên, Mô tả ở dưới. */
 export const ReportPrintLayout: React.FC<IReportPrintLayoutProps> = ({ section, roman, photoSrc }) => (
   <>
     <div className="bcn-sec-title">
@@ -17,33 +17,21 @@ export const ReportPrintLayout: React.FC<IReportPrintLayoutProps> = ({ section, 
     <table className="bcn-table bcn-layout-table">
       <colgroup>
         <col style={{ width: '15%' }} />
-        <col style={{ width: '55%' }} />
-        <col style={{ width: '30%' }} />
+        <col style={{ width: '85%' }} />
       </colgroup>
-      <thead>
-        <tr className="bcn-th-row">
-          <th>
-            Tên sơ đồ <span>Layout name</span>
-          </th>
-          <th>
-            Hình vẽ <span>Layout</span>
-          </th>
-          <th>
-            Mô tả <span>Description</span>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {section.groups.length === 0 && (
+      {section.groups.length === 0 && (
+        <tbody>
           <tr>
-            <td colSpan={3} className="text-center">
+            <td colSpan={2} className="text-center">
               Không có sơ đồ | No layout
             </td>
           </tr>
-        )}
-        {section.groups.map((g, i) => (
-          <tr key={g.id}>
-            <td className="bcn-layout-name">
+        </tbody>
+      )}
+      {section.groups.map((g, i) => (
+        <tbody key={g.id} className="bcn-layout-group">
+          <tr>
+            <td rowSpan={2} className="bcn-layout-name">
               <strong>{i + 1}.</strong> {g.department}
             </td>
             <td className="bcn-layout-img">
@@ -51,10 +39,12 @@ export const ReportPrintLayout: React.FC<IReportPrintLayoutProps> = ({ section, 
                 <img key={name} src={photoSrc(g.id, name)} alt={name} />
               ))}
             </td>
+          </tr>
+          <tr>
             <td className="bcn-layout-desc">{g.summary}</td>
           </tr>
-        ))}
-      </tbody>
+        </tbody>
+      ))}
     </table>
   </>
 );

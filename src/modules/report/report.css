@@ -898,12 +898,13 @@
   height: 15mm;
 }
 
-/* Mục SƠ ĐỒ LAYOUT (bản in): Tên sơ đồ | Hình vẽ | Mô tả */
-.bcn-layout-table .bcn-th-row th span {
-  display: block;
-}
+/* Mục SƠ ĐỒ LAYOUT (bản in): Tên sơ đồ (15%) | Hình vẽ trên, Mô tả dưới (85%) */
 .bcn-layout-table td {
   vertical-align: top;
+}
+.bcn-layout-group {
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 .bcn-layout-name {
   font-weight: 700;
@@ -915,11 +916,9 @@
 }
 .bcn-layout-img img {
   display: block;
-  max-width: 100%;
-  max-height: 110mm;
+  width: 100%;
   height: auto;
   margin: 0 auto 4px;
-  object-fit: contain;
 }
 .bcn-layout-desc {
   white-space: pre-line;
@@ -2300,28 +2299,9 @@
   gap: var(--space-3);
 }
 
-.report-layout-head {
-  display: grid;
-  grid-template-columns: minmax(0, 15fr) minmax(0, 55fr) minmax(0, 30fr) 40px;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--color-accent-subtle);
-  color: var(--color-text-primary);
-  font-weight: 700;
-  text-align: center;
-}
-
-.report-layout-head span {
-  display: block;
-  font-style: italic;
-  font-weight: 400;
-  color: var(--color-text-secondary);
-}
-
 .report-layout-row {
   display: grid;
-  grid-template-columns: minmax(0, 15fr) minmax(0, 55fr) minmax(0, 30fr) 40px;
+  grid-template-columns: minmax(0, 15fr) minmax(0, 85fr) 40px;
   gap: var(--space-3);
   align-items: stretch;
   padding: var(--space-3);
@@ -2334,10 +2314,17 @@
 }
 
 .report-layout-label {
-  display: none;
+  display: block;
 }
 
-/* Ô Tên sơ đồ và Mô tả cao bằng ô Hình vẽ (hàng cao theo hình) */
+/* Cột 85%: Hình vẽ ở trên, Mô tả ở dưới */
+.report-layout-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Ô Tên sơ đồ cao bằng cả khối Hình vẽ + Mô tả */
 .report-layout-row .field {
   display: flex;
   flex-direction: column;
@@ -2347,6 +2334,11 @@
   flex: 1 1 auto;
   min-height: 96px;
   resize: none;
+}
+
+.report-layout-main .field > .textarea {
+  flex: none;
+  resize: vertical;
 }
 
 /* Hình vẽ: mỗi hình rộng hết chiều ngang ô, giữ nguyên tỉ lệ (không cắt) */
@@ -2377,14 +2369,8 @@
 }
 
 @media (max-width: 768px) {
-  .report-layout-head {
-    display: none;
-  }
   .report-layout-row {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .report-layout-label {
-    display: block;
   }
   .report-layout-actions {
     justify-content: flex-start;

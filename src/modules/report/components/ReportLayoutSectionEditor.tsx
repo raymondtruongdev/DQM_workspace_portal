@@ -20,7 +20,7 @@ export interface IReportLayoutSectionEditorProps {
 }
 
 /**
- * Mục SƠ ĐỒ LAYOUT: mỗi hàng gồm Tên sơ đồ (nhập), Hình vẽ (tải ảnh lên, lưu ở photos/layout/ giữ nguyên tên file) và Mô tả (nhập).
+ * Mục SƠ ĐỒ LAYOUT: mỗi hàng gồm cột Tên sơ đồ (15%, nhập) và cột 85% có Hình vẽ (tải ảnh lên, lưu ở photos/layout/ giữ nguyên tên file) ở trên, Mô tả (nhập) ở dưới.
  * Dùng chung dữ liệu và các hàm tải/xoá ảnh của mục ảnh: Tên sơ đồ = `department`, Mô tả = `summary`, Hình vẽ = `files`.
  */
 export const ReportLayoutSectionEditor: React.FC<IReportLayoutSectionEditorProps> = ({
@@ -67,18 +67,6 @@ export const ReportLayoutSectionEditor: React.FC<IReportLayoutSectionEditorProps
           />
         ) : (
           <div className="report-layout-list">
-            <div className="report-layout-head" aria-hidden="true">
-              <div>
-                Tên sơ đồ<span>Layout name</span>
-              </div>
-              <div>
-                Hình vẽ<span>Layout</span>
-              </div>
-              <div>
-                Mô tả<span>Description</span>
-              </div>
-              <div />
-            </div>
             {section.groups.map((g) => (
               <div key={g.id} className="report-layout-row">
                 <div className="field">
@@ -94,29 +82,31 @@ export const ReportLayoutSectionEditor: React.FC<IReportLayoutSectionEditorProps
                     readOnly={readOnlyMode}
                   />
                 </div>
-                <div className="field">
-                  <label className="field__label report-layout-label">Hình vẽ | Layout</label>
-                  <ReportPhotoManager
-                    folder={`${photosFolder}/${photoSubfolder(g.id)}`}
-                    files={g.files}
-                    disabled={disabled}
-                    isUploading={isUploading}
-                    onUpload={(files) => onUpload(g.id, files)}
-                    onDelete={(name) => onDeletePhoto(g.id, name)}
-                  />
-                </div>
-                <div className="field">
-                  <label className="field__label report-layout-label">Mô tả | Description</label>
-                  <textarea
-                    className="textarea"
-                    rows={5}
-                    placeholder="Nhập mô tả..."
-                    aria-label="Mô tả"
-                    value={g.summary}
-                    onChange={(e) => updateRow(g.id, { summary: e.target.value })}
-                    disabled={disabled && !readOnlyMode}
-                    readOnly={readOnlyMode}
-                  />
+                <div className="report-layout-main">
+                  <div className="field">
+                    <label className="field__label report-layout-label">Hình vẽ | Layout</label>
+                    <ReportPhotoManager
+                      folder={`${photosFolder}/${photoSubfolder(g.id)}`}
+                      files={g.files}
+                      disabled={disabled}
+                      isUploading={isUploading}
+                      onUpload={(files) => onUpload(g.id, files)}
+                      onDelete={(name) => onDeletePhoto(g.id, name)}
+                    />
+                  </div>
+                  <div className="field">
+                    <label className="field__label report-layout-label">Mô tả | Description</label>
+                    <textarea
+                      className="textarea"
+                      rows={5}
+                      placeholder="Nhập mô tả..."
+                      aria-label="Mô tả"
+                      value={g.summary}
+                      onChange={(e) => updateRow(g.id, { summary: e.target.value })}
+                      disabled={disabled && !readOnlyMode}
+                      readOnly={readOnlyMode}
+                    />
+                  </div>
                 </div>
                 <div className="report-layout-actions">
                   <button
