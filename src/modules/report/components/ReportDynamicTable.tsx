@@ -301,7 +301,8 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
       return (
         <td>
           <CreatableSelect
-            className={`input input--cell${locked ? ' input--locked' : ''}${align}${tone ? ` input--${tone}` : ''}`}
+            className={`input input--cell${locked ? ' input--locked' : ''}${align}${tone ? ` input--${tone}` : ''}${showErrors && current === '' ? ' input--danger' : ''}`}
+            ariaInvalid={showErrors && current === ''}
             value={current}
             options={
               col.optionsRef

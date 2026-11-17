@@ -8,7 +8,7 @@ import { IReportLock, ISignedTrail, ReportLockedError } from '../services/Report
 import { extractTemplateVersionDate, formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 import { buildSectionNumbering } from '../utils/reportSections';
 import { recalculateAllRates } from '../utils/reportTaskTree';
-import { getMissingRequiredFields, getFieldLabel, getMissingFormFields } from '../utils/reportValidation';
+import { getMissingRequiredFields, getFieldLabel, getMissingFormFields, getMissingSelectCells } from '../utils/reportValidation';
 import { ReportMetaForm } from '../components/ReportMetaForm';
 import { ReportTaskTable } from '../components/ReportTaskTable';
 import { AskCatalogLink, CatalogAddResult } from '../components/ReportDynamicTable';
@@ -709,16 +709,22 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   };
 
   /** Returns true when all required fields are filled; otherwise highlights them and warns. */
-  const ensureRequiredFilled = (action: string): boolean => {
+  const ensureRequiredFilled = (action: string, requireSelects = false): boolean => {
     if (!doc) return false;
     const missing = getMissingRequiredFields(doc.metadata);
     const missingForm = getMissingFormFields(doc);
-    if (missing.length === 0 && missingForm.length === 0) return true;
+    const missingSelects = requireSelects ? getMissingSelectCells(doc) : [];
+    if (missing.length === 0 && missingForm.length === 0 && missingSelects.length === 0) return true;
     setShowRequiredErrors(true);
     const labels = missing.map(getFieldLabel).concat(missingForm.map((m) => m.label));
+    const shownSelects = missingSelects.slice(0, 5).map((m) => m.label);
+    const moreSelects = missingSelects.length > 5 ? ` và ${missingSelects.length - 5} ô khác` : '';
+    const parts: string[] = [];
+    if (labels.length > 0) parts.push(`Vui lòng nhập: ${labels.join(', ')}.`);
+    if (missingSelects.length > 0) parts.push(`Cần chọn đủ các ô còn "Chọn…": ${shownSelects.join('; ')}${moreSelects}.`);
     setToast({
       type: 'error',
-      text: `Không thể ${action}. Vui lòng nhập: ${labels.join(', ')}.`
+      text: `Không thể ${action}. ${parts.join(' ')}`
     });
     window.setTimeout(() => {
       const el = document.querySelector<HTMLElement>('[aria-invalid="true"]');
@@ -731,7 +737,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   };
 
   const handleOpenPrint = (): void => {
-    if (ensureRequiredFilled('xuất báo cáo')) setShowPrintPreview(true);
+    if (ensureRequiredFilled('xem bản in / xuất PDF', true)) setShowPrintPreview(true);
   };
 
   // Lưu báo cáo: ghi .json + .html độc lập

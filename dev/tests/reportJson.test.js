@@ -282,3 +282,20 @@ test('mục SƠ ĐỒ LAYOUT: nằm sau Thời tiết, là mục ảnh variant l
   assert.equal(next.sections[1].groups.length, 0);
   assert.equal(next.sections[1].variant, 'layout');
 });
+
+test('xem bản in: ô chọn còn trống ("Chọn…") bị báo, "---" (Activity ID) và ô đã chọn thì không', () => {
+  const V = require(path.join(js, 'reportValidation'));
+  const doc = J.jsonToDoc(J.parseReportJson(sampleText), tpl());
+  const base = V.getMissingSelectCells(doc).length;
+  const ev = doc.sections.find((s) => s.key === 'events');
+  ev.rows.push({ id: 'r99', values: { eventId: 'EVT-ST01-00099', type: '', status: '' } });
+  const miss = V.getMissingSelectCells(doc);
+  assert.equal(miss.length, base + 2);
+  assert.ok(miss.some((m) => m.sectionKey === 'events' && m.rowId === 'r99' && m.colCode === 'type' && /Sự kiện/.test(m.label)));
+  ev.rows[ev.rows.length - 1].values = { eventId: 'EVT-ST01-00099', type: 'NGHIEM_THU', status: 'Đạt' };
+  assert.equal(V.getMissingSelectCells(doc).length, base);
+  // Activity ID = '---' nghĩa là "không có Activity": coi là đã chọn
+  const wq = doc.sections.find((s) => s.key === 'workQty');
+  wq.rows[0].values.activityId = '---';
+  assert.equal(V.getMissingSelectCells(doc).filter((m) => m.colCode === 'activityId' && m.sectionKey === 'workQty').length, 0);
+});
