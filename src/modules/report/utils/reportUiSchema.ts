@@ -104,7 +104,7 @@ const DAILY_REPORT_UI: Record<string, SectionUi> = {
       equipment: { readonly: true, from: 'resId', fromField: 'nameVn', minPx: 260, fit: true },
       plate: { minPx: 170, placeholder: '51H12345, 62A11223' }, // Biển số: người dùng tự nhập (gợi ý viết liền, không dấu; nhiều biển cách nhau dấu phẩy)
       qty: { type: 'number', default: 1, minPx: 90, fit: true },
-      status: { type: 'select', catalog: 'equipment_status', default: '---', align: 'center', minPx: 130, fit: true },
+      status: { type: 'select', catalog: 'equipment_status', noNone: true, default: '---', align: 'center', minPx: 130, fit: true },
     },
   },
   issues: {
