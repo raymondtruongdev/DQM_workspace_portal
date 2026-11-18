@@ -98,7 +98,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
   windowDays = DEFAULT_WINDOW_DAYS
 }) => {
   const WINDOW_DAYS = windowDays;
-  const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS), [WINDOW_DAYS]);
+  const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS, dataService.todayDate()), [WINDOW_DAYS, dataService]);
   const todayStr = dates[dates.length - 1];
   const targets = React.useMemo(() => buildTargets(assignments), [assignments]);
   const cacheKey = React.useMemo(() => `${targets.map((t) => t.key).join(',')}@${dates[0]}`, [targets, dates]);
@@ -195,7 +195,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
           const infos = { ...(merged[`${t.unit}|${t.docId}`.toLowerCase()] || {}) };
           // Ngày cũ chưa có dòng trong sổ vẫn bị khoá khi bật chế độ "chỉ nhập ngày hiện tại"
           dates.forEach((d) => {
-            if (!infos[d] && isLockedByTodayOnly(settings, d)) infos[d] = { dateStr: d, status: 'missing', locked: true };
+            if (!infos[d] && isLockedByTodayOnly(settings, d, dataService.today())) infos[d] = { dateStr: d, status: 'missing', locked: true };
           });
           return { target: t, state: 'ready', infos };
         });

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { RoleEntry, ToastState } from '../../../core/types';
 import { ToastAlert } from '../../../core/components/layout/ToastAlert';
-import { formatDateToYYYYMMDD } from '../../../core/utils';
 import { PhotoGroup, ReportDoc, ReportMetadata, ReportPhotoSection, ReportSection, SignedDocInfo } from '../types/report.types';
 import { ReportDataService } from '../services/ReportDataService';
 import { IReportLock, ISignedTrail, ReportLockedError } from '../services/ReportRegistryService';
@@ -55,7 +54,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   onGoHome,
   canManageLock = false
 }) => {
-  const [dateStr, setDateStr] = React.useState<string>(() => initialDate || formatDateToYYYYMMDD(new Date()));
+  const [dateStr, setDateStr] = React.useState<string>(() => initialDate || dataService.today());
   const [doc, setDoc] = React.useState<ReportDoc | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [isSaving, setIsSaving] = React.useState<boolean>(false);
@@ -386,13 +385,13 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
 
   // Mở khoá có hạn: đếm ngược, cảnh báo khi còn ≤ 10 phút, và đọc lại khoá đúng lúc hết hạn để form chuyển sang chỉ xem
   const unlockUntil = !isLocked && lock && lock.unlockUntil ? lock.unlockUntil : undefined;
-  const [nowMs, setNowMs] = React.useState<number>(() => Date.now());
+  const [nowMs, setNowMs] = React.useState<number>(() => dataService.now());
   React.useEffect(() => {
     if (!unlockUntil) return;
-    setNowMs(Date.now());
+    setNowMs(dataService.now());
     const expiry = Date.parse(unlockUntil);
-    const tick = window.setInterval(() => setNowMs(Date.now()), 30000);
-    const wait = Math.max(0, Math.min(expiry - Date.now() + 1000, 2147483000));
+    const tick = window.setInterval(() => setNowMs(dataService.now()), 30000);
+    const wait = Math.max(0, Math.min(expiry - dataService.now() + 1000, 2147483000));
     const expire = window.setTimeout(() => {
       dataService
         .getLockState(role.unit, role.docId, dateStr)

@@ -176,3 +176,42 @@ test('mở khoá có hạn: hết hạn thì quay về quy tắc mặc định',
   assert.equal(R.isRegistryRowLocked(false, 'done', false, '', now), false); // không có hạn: mở mãi
   assert.equal(R.isUnlockExpired('rác', now), false);
 });
+
+// ---- Giờ máy chủ + ngày theo giờ Việt Nam ----
+const CLK = require(path.join(root, 'temp', 'dev', 'js', 'src', 'core', 'services', 'ServerClock'));
+
+test('vnDateStr: ngày theo giờ Việt Nam (UTC+7), không phụ thuộc múi giờ máy', () => {
+  assert.equal(S.vnDateStr(Date.parse('2026-11-17T16:59:59Z')), '2026-11-17');
+  assert.equal(S.vnDateStr(Date.parse('2026-11-17T17:00:00Z')), '2026-11-18'); // 0h giờ VN
+  assert.equal(S.todayDateStr(Date.parse('2026-11-18T01:00:00Z')), '2026-11-18');
+});
+
+test('ServerClock: dùng giờ máy chủ, không theo giờ máy người dùng; lỗi thì dùng giờ máy', async () => {
+  const farServer = Date.now() + 10 * 86400000; // máy chủ chạy trước máy người dùng 10 ngày
+  const clock = new CLK.ServerClock({ getServerTime: async () => farServer }, 'https://x');
+  await clock.ensureFresh(0);
+  assert.ok(Math.abs(clock.now() - farServer) < 2000);
+  assert.equal(clock.isSynced, true);
+  const broken = new CLK.ServerClock({ getServerTime: async () => { throw new Error('mạng'); } }, 'https://x');
+  await broken.ensureFresh(0);
+  assert.equal(broken.isSynced, false);
+  assert.ok(Math.abs(broken.now() - Date.now()) < 2000);
+  const none = new CLK.ServerClock({}, 'https://x'); // client không có getServerTime
+  await none.ensureFresh(0);
+  assert.equal(none.isSynced, false);
+});
+
+test('getLock dùng giờ máy chủ: ngày cũ (theo giờ VN) khoá, hết hạn mở khoá tính theo máy chủ', async () => {
+  const c = fakeClient([row({ Locked: 0, UnlockUntil: '2026-11-18T03:00:00.000Z' })], BASE_COLS.concat('Locked', 'UnlockUntil'));
+  const mk = (iso) => new R.ReportRegistryService(c, 'https://x', () => 'lib', async () => ({ todayOnly: true, windowDays: 14, unlockHours: 3 }), { now: () => Date.parse(iso), ensureFresh: async () => {} });
+  // 02:00Z = 09:00 giờ VN ngày 18: ngày 14 là ngày cũ nhưng admin mở khoá còn hạn (đến 03:00Z)
+  const open = await mk('2026-11-18T02:00:00Z').getLock('ST01', 'DRP', '2026-11-14');
+  assert.equal(open.locked, false);
+  assert.equal(open.unlockUntil, '2026-11-18T03:00:00.000Z');
+  // 04:00Z: hết hạn, ngày cũ bị khoá lại
+  const closed = await mk('2026-11-18T04:00:00Z').getLock('ST01', 'DRP', '2026-11-14');
+  assert.equal(closed.locked, true);
+  // ngày chưa có dòng: 16:59Z ngày 17 (23:59 VN) thì ngày 17 còn là hôm nay, 17:00Z thì đã là ngày cũ
+  assert.equal((await mk('2026-11-17T16:59:00Z').getLock('ST01', 'DRP', '2026-11-17')).locked, false);
+  assert.equal((await mk('2026-11-17T17:00:00Z').getLock('ST01', 'DRP', '2026-11-17')).locked, true);
+});

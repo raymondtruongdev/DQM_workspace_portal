@@ -8,7 +8,8 @@ import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
 import { CatalogRow, ReportCatalog, emptyCatalog, mergeCatalogRows, parseCatalogFromWorkbook } from '../utils/reportCatalog';
 import { buildStandaloneHtml, ReportHtmlAssets } from '../utils/reportHtml';
 import { bufferToDataUrl, embeddableImage, mimeOfFile } from '../utils/reportImage';
-import { DEFAULT_REPORT_SETTINGS, ReportSettings, isLockedByTodayOnly } from '../utils/reportSettings';
+import { Clock, LOCAL_CLOCK } from '../../../core/services/ServerClock';
+import { DEFAULT_REPORT_SETTINGS, ReportSettings, isLockedByTodayOnly, vnDateAsLocal, vnDateStr } from '../utils/reportSettings';
 import { ReportFileService } from './ReportFileService';
 import { LoadedTemplate, ReportTemplateService } from './ReportTemplateService';
 import { IReportLock, ISignedTrail, ReportLockedError, ReportRegistryService } from './ReportRegistryService';
@@ -33,15 +34,18 @@ export class ReportDataService {
   private _catalogSource: ReportCatalogService;
 
   private readonly _settings: () => Promise<ReportSettings>;
+  private readonly _clock: Clock;
 
   constructor(
     fileService: ReportFileService,
     templateService: ReportTemplateService,
     registry: ReportRegistryService,
     catalogSource: ReportCatalogService,
-    settings: () => Promise<ReportSettings> = () => Promise.resolve(DEFAULT_REPORT_SETTINGS)
+    settings: () => Promise<ReportSettings> = () => Promise.resolve(DEFAULT_REPORT_SETTINGS),
+    clock: Clock = LOCAL_CLOCK
   ) {
     this._settings = settings;
+    this._clock = clock;
     this._fileService = fileService;
     this._templateService = templateService;
     this._registry = registry;
@@ -439,8 +443,10 @@ export class ReportDataService {
         const byKey = await this._registry.getDayInfosSince(docId, from, unit);
         const days = byKey[`${unit}|${docId}`.toLowerCase()] || {};
         const settings = await this._settings();
+        await this._clock.ensureFresh();
+        const today = vnDateStr(this._clock.now());
         // Ngày chưa có dòng trong sổ: ngày cũ vẫn bị khoá khi bật chế độ "chỉ nhập ngày hiện tại"
-        return dateStrs.map((d): ReportDayInfo => days[d] || { dateStr: d, status: 'missing', locked: isLockedByTodayOnly(settings, d) || undefined });
+        return dateStrs.map((d): ReportDayInfo => days[d] || { dateStr: d, status: 'missing', locked: isLockedByTodayOnly(settings, d, today) || undefined });
       } catch (err: unknown) {
         console.warn('[DRPRegistry] Could not read day infos, scanning folders instead:', err);
       }
@@ -449,7 +455,24 @@ export class ReportDataService {
     const infos = await this._fileService.getReportDayInfos(unit, docId, dateStrs, concurrency);
     if (!this.isDaily(docId)) return infos;
     const settings = await this._settings();
-    return infos.map((i) => (isLockedByTodayOnly(settings, i.dateStr) ? { ...i, locked: true } : i));
+    await this._clock.ensureFresh();
+    const today = vnDateStr(this._clock.now());
+    return infos.map((i) => (isLockedByTodayOnly(settings, i.dateStr, today) ? { ...i, locked: true } : i));
+  }
+
+  /** Thời điểm hiện tại theo giờ máy chủ SharePoint (ms UTC). */
+  public now(): number {
+    return this._clock.now();
+  }
+
+  /** Ngày hôm nay (YYYY-MM-DD) theo giờ Việt Nam, tính từ giờ máy chủ. */
+  public today(): string {
+    return vnDateStr(this._clock.now());
+  }
+
+  /** Ngày hôm nay theo giờ Việt Nam dạng Date (0h giờ máy) để dựng lịch (`buildRecentDates`). */
+  public todayDate(): Date {
+    return vnDateAsLocal(this._clock.now());
   }
 
   /** Cài đặt báo cáo của admin (số ngày thống kê, chế độ chỉ nhập ngày hiện tại). */

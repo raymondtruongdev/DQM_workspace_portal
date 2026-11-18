@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ModuleProps, RoleEntry } from '../../core/types';
-import { SharePointClient } from '../../core/services';
-import { EmptyState, Icon, PageHeader } from '../../core/components';
+import { SharePointClient, ServerClock } from '../../core/services';
+import { EmptyState, Icon, LoadingState, PageHeader } from '../../core/components';
 import { DEFAULT_REPORT_SETTINGS, REPORT_SETTINGS_ID, ReportSettings, parseReportSettings } from './utils/reportSettings';
 import { REPORT_STORAGE_KEYS } from './constants/reportStorageKeys';
 import {
@@ -38,6 +38,23 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
 
   // Initialize services
   const sharePointClient = React.useMemo(() => new SharePointClient(spHttpClient), [spHttpClient]);
+  // Đồng hồ theo giờ máy chủ SharePoint: "hôm nay" và hạn mở khoá không bị lệch khi người dùng chỉnh giờ máy
+  const clock = React.useMemo(() => new ServerClock(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
+  const [clockReady, setClockReady] = React.useState<boolean>(false);
+  React.useEffect(() => {
+    let alive = true;
+    clock
+      .ensureFresh(0)
+      .then(() => {
+        if (alive) setClockReady(true);
+      })
+      .catch(() => {
+        if (alive) setClockReady(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [clock]);
   const fileService = React.useMemo(() => new ReportFileService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
   const roleService = React.useMemo(() => new ReportRoleService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
   const templateService = React.useMemo(() => new ReportTemplateService(fileService), [fileService]);
@@ -57,13 +74,13 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
   }, [getModuleSettings]);
   const [settings, setSettings] = React.useState<ReportSettings>(DEFAULT_REPORT_SETTINGS);
   const registryService = React.useMemo(
-    () => new ReportRegistryService(sharePointClient, siteUrl, () => fileService.getLibraryPath(), loadSettings),
-    [sharePointClient, siteUrl, fileService, loadSettings]
+    () => new ReportRegistryService(sharePointClient, siteUrl, () => fileService.getLibraryPath(), loadSettings, clock),
+    [sharePointClient, siteUrl, fileService, loadSettings, clock]
   );
   const catalogService = React.useMemo(() => new ReportCatalogService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
   const dataService = React.useMemo(
-    () => new ReportDataService(fileService, templateService, registryService, catalogService, loadSettings),
-    [fileService, templateService, registryService, catalogService, loadSettings]
+    () => new ReportDataService(fileService, templateService, registryService, catalogService, loadSettings, clock),
+    [fileService, templateService, registryService, catalogService, loadSettings, clock]
   );
 
   // View state
@@ -176,6 +193,15 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
       handleBackToLanding();
     }
   };
+
+  // Chờ đồng bộ giờ máy chủ xong (rất nhanh) rồi mới dựng lịch/form để "hôm nay" đúng ngay từ đầu
+  if (!clockReady) {
+    return (
+      <div className="report-module-root">
+        <LoadingState message="Đang đồng bộ thời gian..." />
+      </div>
+    );
+  }
 
   return (
     <div className="report-module-root">

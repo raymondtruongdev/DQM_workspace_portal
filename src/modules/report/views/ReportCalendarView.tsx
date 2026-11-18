@@ -65,7 +65,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   windowDays = DEFAULT_WINDOW_DAYS
 }) => {
   const WINDOW_DAYS = windowDays;
-  const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS), [WINDOW_DAYS]);
+  const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS, dataService.todayDate()), [WINDOW_DAYS, dataService]);
   const todayStr = dates[dates.length - 1];
 
   const [infos, setInfos] = React.useState<ReportDayInfo[]>([]);
@@ -105,16 +105,16 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   }, [infos]);
 
   // Đếm ngược các ngày đang mở khoá có hạn: cập nhật mỗi 30 giây và đọc lại lịch khi có ngày vừa hết hạn (tự khoá lại)
-  const [nowMs, setNowMs] = React.useState<number>(() => Date.now());
+  const [nowMs, setNowMs] = React.useState<number>(() => dataService.now());
   const nextExpiry = React.useMemo(() => {
     const ts = infos.filter((i) => i.unlockUntil).map((i) => Date.parse(i.unlockUntil as string)).filter((t) => Number.isFinite(t));
     return ts.length ? Math.min(...ts) : undefined;
   }, [infos]);
   React.useEffect(() => {
     if (nextExpiry === undefined) return;
-    setNowMs(Date.now());
-    const tick = window.setInterval(() => setNowMs(Date.now()), 30000);
-    const wait = Math.max(0, Math.min(nextExpiry - Date.now() + 1000, 2147483000));
+    setNowMs(dataService.now());
+    const tick = window.setInterval(() => setNowMs(dataService.now()), 30000);
+    const wait = Math.max(0, Math.min(nextExpiry - dataService.now() + 1000, 2147483000));
     const expire = window.setTimeout(() => {
       load().catch(() => {});
     }, wait);
@@ -122,7 +122,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
       window.clearInterval(tick);
       window.clearTimeout(expire);
     };
-  }, [nextExpiry, load]);
+  }, [nextExpiry, load, dataService]);
 
   const statusOf = (dateStr: string): ReportDayStatus => (byDate[dateStr] ? byDate[dateStr].status : 'missing');
 

@@ -109,7 +109,7 @@ export const DailyReportSetupView: React.FC<DailyReportSetupViewProps> = ({ conf
             <p className="admin-setup-hint">
               Khi bật, mọi báo cáo của ngày cũ hơn hôm nay tự khoá: người dùng chỉ xem, không nhập mới, sửa, lưu hay upload bản ký được.
               Nút OPEN / LOCKED của từng báo cáo vẫn dùng bình thường: admin bấm OPEN ở một ngày cũ để cho phép sửa riêng ngày đó
-              (báo cáo tự khoá lại khi upload bản ký), bấm LOCKED để khoá riêng một ngày. Ngày tính theo giờ máy người dùng.
+              (báo cáo tự khoá lại khi upload bản ký), bấm LOCKED để khoá riêng một ngày. Ngày và giờ hết hạn tính theo giờ máy chủ SharePoint, múi giờ Việt Nam (UTC+7), nên người dùng chỉnh giờ máy cũng không lách được; báo cáo của ngày hôm qua khoá lúc 0:00.
             </p>
           </section>
 

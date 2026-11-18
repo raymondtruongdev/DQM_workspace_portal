@@ -1,5 +1,3 @@
-import { buildRecentDates } from './reportCalendar';
-
 /**
  * Cài đặt module báo cáo do admin đặt ở Admin Config → "Setup DailyReport"
  * (lưu trong `SiteAssets/portal_config.json`, mục `moduleSettings.report`; màn hình admin ghi cùng khoá, xem `DailyReportSetupView`).
@@ -35,9 +33,23 @@ export function parseReportSettings(raw: Record<string, unknown> | undefined): R
   };
 }
 
-/** Ngày hôm nay (YYYY-MM-DD, theo giờ máy người dùng). */
-export function todayDateStr(): string {
-  return buildRecentDates(1)[0];
+/** Múi giờ dùng để tính "ngày" của báo cáo: giờ Việt Nam (UTC+7, không có giờ mùa hè). */
+const REPORT_UTC_OFFSET_MS = 7 * 3600000;
+
+/** Ngày (YYYY-MM-DD) theo giờ Việt Nam của một thời điểm (ms UTC). Không phụ thuộc múi giờ của máy người dùng. */
+export function vnDateStr(ms: number): string {
+  return new Date(ms + REPORT_UTC_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/** Ngày theo giờ Việt Nam của một thời điểm, dạng Date lúc 0h theo giờ máy (để dùng với `buildRecentDates`). */
+export function vnDateAsLocal(ms: number): Date {
+  const [y, m, d] = vnDateStr(ms).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Ngày hôm nay (YYYY-MM-DD) theo giờ Việt Nam; `nowMs` nên là giờ máy chủ (xem `ServerClock`). */
+export function todayDateStr(nowMs: number = Date.now()): string {
+  return vnDateStr(nowMs);
 }
 
 /** Ngày báo cáo đã qua (cũ hơn hôm nay). Chuỗi YYYY-MM-DD so sánh theo thứ tự chữ được. */
@@ -46,8 +58,8 @@ export function isPastDate(dateStr: string, today: string = todayDateStr()): boo
 }
 
 /** Ngày không có dòng khoá riêng trong sổ có bị khoá theo chế độ "chỉ nhập ngày hiện tại" không. */
-export function isLockedByTodayOnly(settings: ReportSettings, dateStr: string): boolean {
-  return settings.todayOnly && isPastDate(dateStr);
+export function isLockedByTodayOnly(settings: ReportSettings, dateStr: string, today: string = todayDateStr()): boolean {
+  return settings.todayOnly && isPastDate(dateStr, today);
 }
 
 /** Giờ tự khoá lại, dạng "HH:mm" (kèm "dd/MM" khi không phải hôm nay). */

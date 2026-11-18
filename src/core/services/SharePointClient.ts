@@ -16,6 +16,8 @@ export interface ISharePointClient {
   getItems<T>(siteUrl: string, listTitle: string, top?: number): Promise<T[]>;
   queryItems<T>(siteUrl: string, listTitle: string, query: string): Promise<T[]>;
   getListFieldMap(siteUrl: string, listTitle: string): Promise<Record<string, string>>;
+  /** Giờ máy chủ SharePoint (ms UTC), đọc từ header `Date` của phản hồi. Ném lỗi nếu không đọc được. */
+  getServerTime(siteUrl: string): Promise<number>;
   createItem<T>(siteUrl: string, listTitle: string, data: Partial<T>): Promise<void>;
   updateItem<T>(siteUrl: string, listTitle: string, id: number, data: Partial<T>): Promise<void>;
   getFileWithMeta(siteUrl: string, serverRelativeUrl: string): Promise<{ buffer: ArrayBuffer; eTag: string } | undefined>;
@@ -96,6 +98,19 @@ export class SharePointClient implements ISharePointClient {
   /**
    * Visible columns of a list as { displayTitle: internalName } (internal names can differ from titles, e.g. "Unit0").
    */
+  public async getServerTime(siteUrl: string): Promise<number> {
+    const response: SPHttpClientResponse = await this._spHttpClient.get(
+      `${siteUrl}/_api/web?$select=Id&_=${Date.now()}`, // tham số cuối chống bộ nhớ đệm để header Date luôn là giờ máy chủ lúc này
+      SPHttpClient.configurations.v1,
+      { headers: { 'Accept': 'application/json;odata=nometadata', 'Cache-Control': 'no-cache' } }
+    );
+    if (!response.ok) throw new Error(`SharePoint API Error (${response.status})`);
+    const header = response.headers.get('Date');
+    const ms = header ? Date.parse(header) : NaN;
+    if (!Number.isFinite(ms)) throw new Error('Phản hồi SharePoint không có header Date');
+    return ms;
+  }
+
   public async getListFieldMap(siteUrl: string, listTitle: string): Promise<Record<string, string>> {
     const response: SPHttpClientResponse = await this._spHttpClient.get(
       `${siteUrl}/_api/web/lists/getbytitle('${listTitle}')/fields?$filter=Hidden eq false&$select=Title,InternalName`,

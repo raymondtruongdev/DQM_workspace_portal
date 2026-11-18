@@ -169,6 +169,10 @@ export class SharePointClient implements ISharePointClient {
     return Promise.resolve(rows as unknown as T[]);
   }
 
+  public getServerTime(_siteUrl: string): Promise<number> {
+    return Promise.resolve(Date.now());
+  }
+
   public getListFieldMap(_siteUrl: string, listTitle: string): Promise<Record<string, string>> {
     const map: Record<string, string> = {};
     (FIELD_MAPS[listTitle] || []).forEach((c) => {
