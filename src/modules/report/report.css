@@ -1485,6 +1485,7 @@
 .report-cal-legend__dot--unsigned { background: var(--color-warning); }
 .report-cal-legend__dot--missing { background: var(--color-danger); }
 .report-cal-legend__dot--locked { background: var(--color-border-focus); }
+.report-cal-legend__dot--open { background: var(--color-accent); border: 1.5px dashed var(--color-text-primary); }
 
 .report-signed-folder code {
   padding: 1px var(--space-1-5);
@@ -2241,6 +2242,12 @@
 }
 .report-cal-day__lock { flex: 0 0 auto; margin-left: var(--space-1); }
 .report-ov-cell { position: relative; }
+/* Ô admin đang mở khoá (có hạn): nền xanh dương (thay màu trạng thái) + viền nét đứt đậm + icon ổ khoá mở */
+.report-ov-cell--open {
+  background: var(--color-accent);
+  outline: 2px dashed var(--color-text-primary);
+  outline-offset: 2px;
+}
 .report-ov-cell__lock {
   position: absolute;
   inset: 0;

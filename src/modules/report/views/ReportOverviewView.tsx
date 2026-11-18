@@ -408,16 +408,19 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
                       const st = statusOfDay(r, d);
                       const dim = filter !== 'ALL' && st !== filter;
                       const cellLocked = Boolean(r.infos[d] && r.infos[d].locked);
+                      const cellOpen = !cellLocked && Boolean(r.infos[d] && r.infos[d].unlockUntil);
+                      const openUntil = cellOpen ? formatUnlockUntil(r.infos[d].unlockUntil as string) : '';
                       return (
                         <td key={d}>
                           <button
                             type="button"
-                            className={`report-ov-cell report-ov-cell--${st}${dim ? ' is-dim' : ''}${d === todayStr ? ' is-today' : ''}`}
-                            title={`${r.target.unit} · ${weekdayLong(d)} ${formatDM(d)} · ${DAY_STATUS_LABEL[st]}${cellLocked ? (st === 'unsigned' ? ' · Khoá nội dung, vẫn upload bản ký' : ' · Đã khoá') : ''}`}
-                            aria-label={`${r.target.unit} ${formatDM(d)} ${DAY_STATUS_LABEL[st]}${cellLocked ? ', đã khoá' : ''}`}
+                            className={`report-ov-cell report-ov-cell--${st}${cellOpen ? ' report-ov-cell--open' : ''}${dim ? ' is-dim' : ''}${d === todayStr ? ' is-today' : ''}`}
+                            title={`${r.target.unit} · ${weekdayLong(d)} ${formatDM(d)} · ${DAY_STATUS_LABEL[st]}${cellLocked ? (st === 'unsigned' ? ' · Khoá nội dung, vẫn upload bản ký' : ' · Đã khoá') : ''}${cellOpen ? ` · Admin đã mở khoá, tự khoá lại lúc ${openUntil}` : ''}`}
+                            aria-label={`${r.target.unit} ${formatDM(d)} ${DAY_STATUS_LABEL[st]}${cellLocked ? ', đã khoá' : ''}${cellOpen ? ', admin đã mở khoá' : ''}`}
                             onClick={() => onOpenDate(r.target.role, d)}
                           >
                             {cellLocked && <Icon name="lock" size={12} className="report-ov-cell__lock" />}
+                            {cellOpen && <Icon name="lock-open" size={12} className="report-ov-cell__lock" />}
                           </button>
                         </td>
                       );
@@ -434,6 +437,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
             <span><i className="report-cal-legend__dot report-cal-legend__dot--missing" />Chưa nhập</span>
             <span><i className="report-cal-legend__dot report-cal-legend__dot--unsigned" />Chưa upload bản ký</span>
             <span><i className="report-cal-legend__dot report-cal-legend__dot--done" />Hoàn tất</span>
+            <span><i className="report-cal-legend__dot report-cal-legend__dot--open" />Admin đang mở khoá</span>
             <span>Bấm một ô để mở báo cáo của đơn vị ở ngày đó; bấm mã đơn vị để mở lịch.</span>
           </div>
         </div>
