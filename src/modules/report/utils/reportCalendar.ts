@@ -96,3 +96,33 @@ export function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/** Tháng (YYYY-MM) của một ngày. */
+export function monthKeyOf(dateStr: string): string {
+  return dateStr.slice(0, 7);
+}
+
+/** Tháng cách `key` n tháng (n có thể âm), dạng YYYY-MM. */
+export function addMonthsKey(key: string, n: number): string {
+  const [y, m] = key.split('-').map((x) => parseInt(x, 10));
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+}
+
+/** Nhãn tháng, vd "Tháng 10/2026". */
+export function formatMonthKey(key: string): string {
+  const [y, m] = key.split('-').map((x) => parseInt(x, 10));
+  return `Tháng ${m}/${y}`;
+}
+
+/** Các ngày của tháng `key` (YYYY-MM) NHỎ HƠN `before`, xếp từ mới đến cũ. */
+export function monthDatesBefore(key: string, before: string): string[] {
+  const [y, m] = key.split('-').map((x) => parseInt(x, 10));
+  const last = new Date(y, m, 0).getDate();
+  const out: string[] = [];
+  for (let day = last; day >= 1; day--) {
+    const ds = `${key}-${pad(day)}`;
+    if (ds < before) out.push(ds);
+  }
+  return out;
+}

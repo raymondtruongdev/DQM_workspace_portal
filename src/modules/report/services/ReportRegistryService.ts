@@ -4,7 +4,7 @@ import { ReportDayInfo } from '../types/report.types';
 import { getDocShortPrefix, getReportFolderRelativePath } from '../utils/reportFileNaming';
 import { formatReportNo } from '../utils/reportMeta';
 import { normalizeDocId } from '../utils/reportRole';
-import { DEFAULT_REPORT_SETTINGS, ReportSettings, isLockedByTodayOnly, vnDateStr } from '../utils/reportSettings';
+import { DEFAULT_REPORT_SETTINGS, ReportSettings, isPastLocked, vnDateStr } from '../utils/reportSettings';
 
 /** Tên SharePoint List quản lý trạng thái và số báo cáo (cột cần tạo: xem AGENTS.md mục 5.3). */
 export const REPORT_REGISTRY_LIST = 'DRPRegistry';
@@ -385,7 +385,7 @@ export class ReportRegistryService {
     await this.names();
     await this._clock.ensureFresh();
     const now = this._clock.now();
-    const past = isLockedByTodayOnly(await this._settings(), dateStr, vnDateStr(now));
+    const past = isPastLocked(await this._settings(), dateStr, vnDateStr(now));
     const item = await this.findItem(unit, docId, dateStr);
     const until = item ? activeUnlockUntil(item, now) : undefined;
     return {
@@ -414,7 +414,7 @@ export class ReportRegistryService {
     }
     // Chưa có dòng nghĩa là chưa khoá: không cần mở, trừ ngày cũ đang bị khoá theo chế độ "chỉ nhập ngày hiện tại"
     // (cần dòng giữ chỗ `Locked = 0` để ghi nhận admin đã mở khoá riêng ngày đó)
-    if (!locked && !isLockedByTodayOnly(await this._settings(), dateStr, vnDateStr(now))) return;
+    if (!locked && !isPastLocked(await this._settings(), dateStr, vnDateStr(now))) return;
     // Ngày chưa nhập báo cáo: tạo dòng giữ chỗ để khoá trước (người dùng chỉ xem, chưa lưu được)
     let no: Partial<Omit<IRegistryRow, 'id'>> = {};
     if (this._hasNo) {
@@ -481,7 +481,7 @@ export class ReportRegistryService {
         savedAt: it.SavedAt || undefined,
         reporter: it.Reporter || undefined,
         reportNo: it.ReportNo > 0 ? formatReportNo(it.ReportNo) : undefined,
-        locked: isRegistryRowLocked(it.Locked, it.Status, isLockedByTodayOnly(settings, it.ReportDate, today), it.UnlockUntil, now),
+        locked: isRegistryRowLocked(it.Locked, it.Status, isPastLocked(settings, it.ReportDate, today), it.UnlockUntil, now),
         unlockUntil: activeUnlockUntil(it, now),
         signed: done
           ? {

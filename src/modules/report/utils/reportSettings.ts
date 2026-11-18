@@ -62,6 +62,22 @@ export function isLockedByTodayOnly(settings: ReportSettings, dateStr: string, t
   return settings.todayOnly && isPastDate(dateStr, today);
 }
 
+/** Ngày đầu tiên của cửa sổ `windowDays` ngày gần nhất (hôm nay là ngày cuối), dạng YYYY-MM-DD. */
+export function windowStartDate(settings: ReportSettings, today: string = todayDateStr()): string {
+  const [y, m, d] = today.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d - (settings.windowDays - 1))).toISOString().slice(0, 10);
+}
+
+/** Ngày cũ hơn cửa sổ `windowDays` là LỊCH SỬ: người dùng chỉ xem (admin vẫn mở khoá riêng từng ngày bằng OPEN). */
+export function isHistoryDate(settings: ReportSettings, dateStr: string, today: string = todayDateStr()): boolean {
+  return dateStr < windowStartDate(settings, today);
+}
+
+/** Ngày không có dòng khoá riêng trong sổ có bị khoá do ngày cũ không: chế độ "chỉ nhập ngày hiện tại" hoặc ngày thuộc lịch sử (ngoài `windowDays`). */
+export function isPastLocked(settings: ReportSettings, dateStr: string, today: string = todayDateStr()): boolean {
+  return isLockedByTodayOnly(settings, dateStr, today) || isHistoryDate(settings, dateStr, today);
+}
+
 /** Giờ tự khoá lại, dạng "HH:mm" (kèm "dd/MM" khi không phải hôm nay). */
 export function formatUnlockUntil(iso: string): string {
   const d = new Date(iso);

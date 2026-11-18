@@ -12,14 +12,18 @@ import { ReportDataService } from '../services/ReportDataService';
 import { ReportDayInfo, ReportDayStatus } from '../types/report.types';
 import {
   addDaysStr,
+  addMonthsKey,
   buildRecentDates,
   DAY_STATUS_BADGE,
   DAY_STATUS_LABEL,
   formatDM,
   formatDMY,
   formatFileSize,
+  formatMonthKey,
   formatSavedAt,
   mondayIndex,
+  monthDatesBefore,
+  monthKeyOf,
   parseDateStr,
   WEEKDAY_SHORT_MON_FIRST,
   weekdayLong
@@ -43,7 +47,10 @@ export interface IReportCalendarViewProps {
   windowDays?: number;
 }
 
-type CalendarMode = 'cal' | 'list';
+type CalendarMode = 'cal' | 'list' | 'history';
+
+/** Lịch sử lùi tối đa bấy nhiêu tháng so với cửa sổ ngày gần nhất. */
+const MAX_HISTORY_MONTHS = 36;
 
 function StatusIcon({ status }: { status: ReportDayStatus }): React.ReactElement {
   const name = status === 'done' ? 'check-circle' : status === 'unsigned' ? 'file-up' : 'error-circle';
@@ -76,6 +83,13 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   const [toast, setToast] = React.useState<ToastState | null>(null);
   const [lockConfirm, setLockConfirm] = React.useState<'lock' | 'unlock' | null>(null);
   const [isTogglingLock, setIsTogglingLock] = React.useState<boolean>(false);
+  // Lịch sử: MỌI ngày đến hôm nay, duyệt theo tháng; ngày cũ hơn cửa sổ `windowDays` chỉ xem, ngày trong cửa sổ thao tác như bình thường
+  const newestHistMonth = monthKeyOf(todayStr);
+  const oldestHistMonth = addMonthsKey(newestHistMonth, -MAX_HISTORY_MONTHS);
+  const [histMonth, setHistMonth] = React.useState<string>(newestHistMonth);
+  const [histInfos, setHistInfos] = React.useState<ReportDayInfo[]>([]);
+  const [isHistLoading, setIsHistLoading] = React.useState<boolean>(false);
+  const histDates = React.useMemo(() => monthDatesBefore(histMonth, addDaysStr(todayStr, 1)), [histMonth, todayStr]);
   const fileRef = React.useRef<HTMLInputElement | null>(null);
   const uploadTarget = React.useRef<string>(todayStr);
 
@@ -95,6 +109,28 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   React.useEffect(() => {
     load().catch(() => {});
   }, [load]);
+
+  React.useEffect(() => {
+    if (mode !== 'history' || histDates.length === 0) return;
+    let alive = true;
+    setIsHistLoading(true);
+    dataService
+      .getDayInfos(role.unit, role.docId, histDates)
+      .then((r) => {
+        if (!alive) return;
+        setHistInfos(r);
+        setIsHistLoading(false);
+      })
+      .catch((err: unknown) => {
+        console.error('Error loading report history:', err);
+        if (!alive) return;
+        setIsHistLoading(false);
+        setToast({ type: 'error', text: err instanceof Error ? err.message : 'Không tải được lịch sử báo cáo' });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [mode, histDates, dataService, role.unit, role.docId]);
 
   const byDate = React.useMemo(() => {
     const m: Record<string, ReportDayInfo> = {};
@@ -385,7 +421,11 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
           <div className="section-card">
             <div className="section-card__banner">
               <span className="section-card__title">
-                {WINDOW_DAYS} NGÀY GẦN NHẤT <span className="section-card__title-sub">| LAST {WINDOW_DAYS} DAYS</span>
+                {mode === 'history' ? (
+                  <>LỊCH SỬ BÁO CÁO <span className="section-card__title-sub">| REPORT HISTORY</span></>
+                ) : (
+                  <>{WINDOW_DAYS} NGÀY GẦN NHẤT <span className="section-card__title-sub">| LAST {WINDOW_DAYS} DAYS</span></>
+                )}
               </span>
               <FilterChips
                 ariaLabel="Chế độ xem"
@@ -393,12 +433,111 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 onChange={(v) => setMode(v as CalendarMode)}
                 options={[
                   { value: 'cal', label: 'Lịch' },
-                  { value: 'list', label: 'Danh sách' }
+                  { value: 'list', label: 'Danh sách' },
+                  { value: 'history', label: 'Lịch sử' }
                 ]}
               />
             </div>
             <div className="section-card__body">
-              {mode === 'cal' ? (
+              {mode === 'history' ? (
+                <>
+                  <div className="report-cal-month">
+                    <button
+                      type="button"
+                      className="btn btn--secondary btn--icon btn--sm"
+                      onClick={() => setHistMonth(addMonthsKey(histMonth, -1))}
+                      disabled={histMonth <= oldestHistMonth}
+                      aria-label="Tháng trước"
+                    >
+                      <Icon name="chevron-left" size={16} />
+                    </button>
+                    <strong className="report-cal-month__label">{formatMonthKey(histMonth)}</strong>
+                    <button
+                      type="button"
+                      className="btn btn--secondary btn--icon btn--sm"
+                      onClick={() => setHistMonth(addMonthsKey(histMonth, 1))}
+                      disabled={histMonth >= newestHistMonth}
+                      aria-label="Tháng sau"
+                    >
+                      <Icon name="chevron-right" size={16} />
+                    </button>
+                    {isHistLoading && <Icon name="refresh" size={16} spin />}
+                  </div>
+                  <p className="report-cal-history-note">
+                    <Icon name="lock" size={16} />
+                    <span>
+                      Báo cáo cũ hơn {WINDOW_DAYS} ngày (trước {formatDMY(dates[0])}) chỉ xem, không chỉnh sửa được; cần sửa thì liên hệ admin để mở khoá. {WINDOW_DAYS} ngày gần nhất thao tác như bình thường.
+                    </span>
+                  </p>
+                  {isHistLoading ? (
+                    <LoadingState message={`Đang tải lịch sử ${formatMonthKey(histMonth)}...`} />
+                  ) : histDates.length === 0 ? (
+                    <p className="report-cal-history-note">Tháng này chưa có ngày nào.</p>
+                  ) : (
+                    <div className="table-responsive">
+                      <table className="portal-table">
+                        <thead>
+                          <tr>
+                            <th>Ngày</th>
+                            <th>Trạng thái</th>
+                            <th>Lưu lúc</th>
+                            <th>File đã ký</th>
+                            <th />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {histDates.map((d) => {
+                            const info = histInfos.find((i) => i.dateStr === d);
+                            const st: ReportDayStatus = info ? info.status : 'missing';
+                            const old = d < dates[0];
+                            return (
+                              <tr key={d}>
+                                <td>
+                                  <strong>{formatDM(d)}</strong> {weekdayLong(d)}
+                                </td>
+                                <td>
+                                  <span className={`badge ${DAY_STATUS_BADGE[st]}`}>
+                                    <StatusIcon status={st} />
+                                    {DAY_STATUS_LABEL[st]}
+                                  </span>
+                                  {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
+                                  {st === 'missing' && old && <span className="report-cal-day__sign">chỉ xem</span>}
+                                </td>
+                                <td>{info && info.savedAt ? formatSavedAt(info.savedAt) : '—'}</td>
+                                <td>{info && info.signed ? 'Có' : '—'}</td>
+                                <td>
+                                  {!(st === 'missing' && old) && (
+                                    <span className="report-cal-history-actions">
+                                      <button
+                                        type="button"
+                                        className={`btn btn--sm ${st === 'missing' ? 'btn--primary' : 'btn--secondary'}`}
+                                        onClick={() => onOpenDate(d)}
+                                      >
+                                        {st === 'missing' ? 'Nhập' : old ? 'Xem báo cáo' : 'Mở'}
+                                      </button>
+                                      {st === 'done' && (
+                                        <button
+                                          type="button"
+                                          className="btn btn--secondary btn--icon btn--sm"
+                                          onClick={() => openSigned(d)}
+                                          title="Tải file đã ký"
+                                          aria-label={`Tải file đã ký ngày ${formatDM(d)}`}
+                                        >
+                                          <Icon name="download" size={16} />
+                                        </button>
+                                      )}
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              ) : mode === 'cal' ? (
                 <>
                   <div className="report-cal-weekdays" aria-hidden="true">
                     {WEEKDAY_SHORT_MON_FIRST.map((w) => (
@@ -477,15 +616,18 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 </div>
               )}
 
+              {mode !== 'history' && (
               <div className="report-cal-legend">
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--missing" />Chưa nhập: chưa bấm Lưu</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--unsigned" />Chưa upload bản ký: đã lưu, thiếu file PDF đã ký</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--done" />Hoàn tất: có file PDF trong thư mục báo cáo</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--locked" /><Icon name="lock" size={14} /> Đã khoá: chỉ xem, admin mới mở khoá được. Đã lưu mà chưa ký thì vẫn upload được bản ký</span>
               </div>
+              )}
             </div>
           </div>
 
+          {mode !== 'history' && (
           <div className="card report-day-panel" aria-live="polite">
             <div className="report-day-panel__top">
               <div className="report-day-panel__tile" aria-hidden="true">
@@ -612,6 +754,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
               </span>
             </div>
           </div>
+          )}
         </>
       )}
 

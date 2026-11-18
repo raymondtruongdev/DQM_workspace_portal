@@ -2422,3 +2422,35 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* Lịch sử báo cáo (ngày cũ hơn cửa sổ windowDays, chỉ xem) */
+.report-cal-month {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.report-cal-month__label {
+  min-width: 120px;
+  text-align: center;
+  font-size: var(--text-md);
+}
+
+.report-cal-history-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.report-cal-history-note .icon { flex: none; margin-top: 2px; }
+
+.report-cal-history-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

@@ -222,3 +222,25 @@ test('khoá vẫn cho upload bản ký khi báo cáo đã Lưu và chưa ký', (
   assert.equal(R.canUploadSignedWhileLocked({ saved: false, signed: false }), false); // dòng giữ chỗ (chưa lưu)
   assert.equal(R.canUploadSignedWhileLocked(undefined), false); // chưa có dòng trong sổ
 });
+
+test('lịch sử: ngày cũ hơn cửa sổ windowDays bị khoá (chỉ xem) kể cả khi tắt "chỉ nhập hôm nay"', () => {
+  const st = { todayOnly: false, windowDays: 14, unlockHours: 3 };
+  assert.equal(S.windowStartDate(st, '2026-11-18'), '2026-11-05');
+  assert.equal(S.isHistoryDate(st, '2026-11-05', '2026-11-18'), false);
+  assert.equal(S.isHistoryDate(st, '2026-11-04', '2026-11-18'), true);
+  assert.equal(S.isPastLocked(st, '2026-11-04', '2026-11-18'), true);
+  assert.equal(S.isPastLocked(st, '2026-11-10', '2026-11-18'), false);
+  assert.equal(S.isPastLocked({ ...st, todayOnly: true }, '2026-11-10', '2026-11-18'), true);
+  assert.equal(S.windowStartDate({ ...st, windowDays: 1 }, '2026-03-01'), '2026-03-01');
+  assert.equal(S.windowStartDate({ ...st, windowDays: 5 }, '2026-03-02'), '2026-02-26');
+});
+
+test('lịch sử: duyệt theo tháng', () => {
+  const C = require(path.join(root, 'temp', 'dev', 'js', 'src', 'modules', 'report', 'utils', 'reportCalendar'));
+  assert.equal(C.addMonthsKey('2026-01', -1), '2025-12');
+  assert.equal(C.addMonthsKey('2026-11', 2), '2027-01');
+  assert.equal(C.monthKeyOf('2026-11-04'), '2026-11');
+  assert.deepEqual(C.monthDatesBefore('2026-11', '2026-11-05'), ['2026-11-04', '2026-11-03', '2026-11-02', '2026-11-01']);
+  assert.equal(C.monthDatesBefore('2026-02', '2026-11-05').length, 28);
+  assert.deepEqual(C.monthDatesBefore('2026-11', '2026-11-01'), []);
+});

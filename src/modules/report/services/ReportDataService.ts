@@ -9,7 +9,7 @@ import { CatalogRow, ReportCatalog, emptyCatalog, mergeCatalogRows, parseCatalog
 import { buildStandaloneHtml, ReportHtmlAssets } from '../utils/reportHtml';
 import { bufferToDataUrl, embeddableImage, mimeOfFile } from '../utils/reportImage';
 import { Clock, LOCAL_CLOCK } from '../../../core/services/ServerClock';
-import { DEFAULT_REPORT_SETTINGS, ReportSettings, isLockedByTodayOnly, vnDateAsLocal, vnDateStr } from '../utils/reportSettings';
+import { DEFAULT_REPORT_SETTINGS, ReportSettings, isPastLocked, vnDateAsLocal, vnDateStr } from '../utils/reportSettings';
 import { ReportFileService } from './ReportFileService';
 import { LoadedTemplate, ReportTemplateService } from './ReportTemplateService';
 import { IReportLock, ISignedTrail, ReportLockedError, ReportRegistryService, canUploadSignedWhileLocked } from './ReportRegistryService';
@@ -446,7 +446,7 @@ export class ReportDataService {
         await this._clock.ensureFresh();
         const today = vnDateStr(this._clock.now());
         // Ngày chưa có dòng trong sổ: ngày cũ vẫn bị khoá khi bật chế độ "chỉ nhập ngày hiện tại"
-        return dateStrs.map((d): ReportDayInfo => days[d] || { dateStr: d, status: 'missing', locked: isLockedByTodayOnly(settings, d, today) || undefined });
+        return dateStrs.map((d): ReportDayInfo => days[d] || { dateStr: d, status: 'missing', locked: isPastLocked(settings, d, today) || undefined });
       } catch (err: unknown) {
         console.warn('[DRPRegistry] Could not read day infos, scanning folders instead:', err);
       }
@@ -457,7 +457,7 @@ export class ReportDataService {
     const settings = await this._settings();
     await this._clock.ensureFresh();
     const today = vnDateStr(this._clock.now());
-    return infos.map((i) => (isLockedByTodayOnly(settings, i.dateStr, today) ? { ...i, locked: true } : i));
+    return infos.map((i) => (isPastLocked(settings, i.dateStr, today) ? { ...i, locked: true } : i));
   }
 
   /** Thời điểm hiện tại theo giờ máy chủ SharePoint (ms UTC). */
