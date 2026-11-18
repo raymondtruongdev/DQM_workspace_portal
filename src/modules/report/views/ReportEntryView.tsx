@@ -17,6 +17,7 @@ import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
 import { ReportReadOnlyContext } from '../components/ReportReadOnlyContext';
 import { ReportSignedDocument } from '../components/ReportSignedDocument';
 import { getReportFolderName, isLayoutGroupId, photoSubfolder } from '../utils/reportFileNaming';
+import { formatUnlockUntil } from '../utils/reportSettings';
 import { ReportPrintPreviewModal } from '../components/ReportPrintPreviewModal';
 import { Icon, PageHeader, LoadingState, EmptyState, ConfirmDialog } from '../../../core/components';
 import { SelectOpenContext } from '../../../core/components/CreatableSelect';
@@ -382,6 +383,28 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       alive = false;
     };
   }, [dataService, role.unit, role.docId, dateStr, isReportSaved, isWeekly, signedDoc, isRemovingSigned, isUploadingSigned, isTogglingLock]);
+
+  // Mở khoá có hạn: đếm ngược, cảnh báo khi còn ≤ 10 phút, và đọc lại khoá đúng lúc hết hạn để form chuyển sang chỉ xem
+  const unlockUntil = !isLocked && lock && lock.unlockUntil ? lock.unlockUntil : undefined;
+  const [nowMs, setNowMs] = React.useState<number>(() => Date.now());
+  React.useEffect(() => {
+    if (!unlockUntil) return;
+    setNowMs(Date.now());
+    const expiry = Date.parse(unlockUntil);
+    const tick = window.setInterval(() => setNowMs(Date.now()), 30000);
+    const wait = Math.max(0, Math.min(expiry - Date.now() + 1000, 2147483000));
+    const expire = window.setTimeout(() => {
+      dataService
+        .getLockState(role.unit, role.docId, dateStr)
+        .then((l) => setLock(l))
+        .catch(() => undefined);
+    }, wait);
+    return () => {
+      window.clearInterval(tick);
+      window.clearTimeout(expire);
+    };
+  }, [unlockUntil, dataService, role.unit, role.docId, dateStr]);
+  const unlockMinutesLeft = unlockUntil ? Math.max(0, Math.ceil((Date.parse(unlockUntil) - nowMs) / 60000)) : 0;
 
   // Admin bật/tắt khoá báo cáo của ngày đang mở
   const handleToggleLock = async (): Promise<void> => {
@@ -855,7 +878,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
                 aria-label={isLocked ? 'Trạng thái LOCKED, bấm để mở khoá' : 'Trạng thái OPEN, bấm để khoá'}
               >
                 <Icon name={isLocked ? 'lock' : 'lock-open'} />
-                <span>{isLocked ? 'LOCKED' : 'OPEN'}</span>
+                <span>{isLocked ? 'LOCKED' : lock && lock.unlockUntil ? `OPEN · đến ${formatUnlockUntil(lock.unlockUntil)}` : 'OPEN'}</span>
               </button>
             )}
             <button
@@ -934,6 +957,20 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
               {' '}
               Bạn có thể xem và sao chép nội dung nhưng không chỉnh sửa được.
               {canManageLock ? ' Bấm nút LOCKED ở trên để mở khoá, cho phép chỉnh sửa lại.' : ' Cần chỉnh sửa thì liên hệ admin để mở khoá.'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {unlockUntil && !isLoading && (
+        <div className={`card report-lock-note report-lock-note--open${unlockMinutesLeft <= 10 ? ' report-lock-note--soon' : ''}`} role="status">
+          <Icon name={unlockMinutesLeft <= 10 ? 'warning' : 'lock-open'} size={20} />
+          <div className="report-lock-note__text">
+            <strong>Báo cáo đang được mở khoá đến {formatUnlockUntil(unlockUntil)}</strong>
+            <span>
+              {' '}
+              (còn {unlockMinutesLeft >= 60 ? `${Math.floor(unlockMinutesLeft / 60)} giờ ${unlockMinutesLeft % 60} phút` : `${unlockMinutesLeft} phút`}), sau đó tự khoá lại.
+              Hãy Lưu trước khi hết giờ{unlockMinutesLeft <= 10 ? ': sắp hết hạn!' : '.'}
             </span>
           </div>
         </div>

@@ -24,7 +24,7 @@ import {
   WEEKDAY_SHORT_MON_FIRST,
   weekdayLong
 } from '../utils/reportCalendar';
-import { DEFAULT_WINDOW_DAYS } from '../utils/reportSettings';
+import { DEFAULT_WINDOW_DAYS, formatUnlockLeft, formatUnlockUntil } from '../utils/reportSettings';
 import { getReportFolderName } from '../utils/reportFileNaming';
 
 export interface IReportCalendarViewProps {
@@ -103,6 +103,26 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
     });
     return m;
   }, [infos]);
+
+  // Đếm ngược các ngày đang mở khoá có hạn: cập nhật mỗi 30 giây và đọc lại lịch khi có ngày vừa hết hạn (tự khoá lại)
+  const [nowMs, setNowMs] = React.useState<number>(() => Date.now());
+  const nextExpiry = React.useMemo(() => {
+    const ts = infos.filter((i) => i.unlockUntil).map((i) => Date.parse(i.unlockUntil as string)).filter((t) => Number.isFinite(t));
+    return ts.length ? Math.min(...ts) : undefined;
+  }, [infos]);
+  React.useEffect(() => {
+    if (nextExpiry === undefined) return;
+    setNowMs(Date.now());
+    const tick = window.setInterval(() => setNowMs(Date.now()), 30000);
+    const wait = Math.max(0, Math.min(nextExpiry - Date.now() + 1000, 2147483000));
+    const expire = window.setTimeout(() => {
+      load().catch(() => {});
+    }, wait);
+    return () => {
+      window.clearInterval(tick);
+      window.clearTimeout(expire);
+    };
+  }, [nextExpiry, load]);
 
   const statusOf = (dateStr: string): ReportDayStatus => (byDate[dateStr] ? byDate[dateStr].status : 'missing');
 
@@ -255,6 +275,12 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
           {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
         </span>
         {lockedMissing && <span className="report-cal-day__note">Chưa nhập · chỉ xem</span>}
+        {info && info.unlockUntil && (
+          <span className="report-cal-day__open" title={`Admin đã mở khoá, tự khoá lại lúc ${formatUnlockUntil(info.unlockUntil)}`}>
+            <Icon name="lock-open" size={14} />
+            Mở khoá · còn {formatUnlockLeft(info.unlockUntil, nowMs)}
+          </span>
+        )}
         {info && info.savedAt && <span className="report-cal-day__note">{formatSavedAt(info.savedAt)}</span>}
       </button>
     );
@@ -420,6 +446,12 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                                   {DAY_STATUS_LABEL[st]}
                                 </span>
                                 {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
+                                {info && info.unlockUntil && (
+                                  <span className="report-cal-day__open">
+                                    <Icon name="lock-open" size={14} />
+                                    Mở khoá đến {formatUnlockUntil(info.unlockUntil)} · còn {formatUnlockLeft(info.unlockUntil, nowMs)}
+                                  </span>
+                                )}
                               </td>
                               <td>{info ? formatSavedAt(info.savedAt) : '—'}</td>
                               <td>{info && info.signed ? 'Có' : '—'}</td>
@@ -467,6 +499,12 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                     <StatusIcon status={selStatus} />
                     {DAY_STATUS_LABEL[selStatus]}
                   </span>
+                  {selInfo && selInfo.unlockUntil && (
+                    <span className="badge badge--success" title="Admin đã mở khoá có hạn, hết giờ báo cáo tự khoá lại">
+                      <Icon name="lock-open" size={14} />
+                      Mở khoá đến {formatUnlockUntil(selInfo.unlockUntil)} · còn {formatUnlockLeft(selInfo.unlockUntil, nowMs)}
+                    </span>
+                  )}
                   {selLocked && (
                     <span className="badge badge--danger" title="Báo cáo đã khoá: chỉ xem, không chỉnh sửa được">
                       <Icon name="lock" size={14} />
@@ -521,7 +559,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                     aria-label={selLocked ? 'Trạng thái LOCKED, bấm để mở khoá' : 'Trạng thái OPEN, bấm để khoá'}
                   >
                     <Icon name={selLocked ? 'lock' : 'lock-open'} />
-                    <span>{selLocked ? 'LOCKED' : 'OPEN'}</span>
+                    <span>{selLocked ? 'LOCKED' : selInfo && selInfo.unlockUntil ? `OPEN · đến ${formatUnlockUntil(selInfo.unlockUntil)}` : 'OPEN'}</span>
                   </button>
                 )}
               </div>

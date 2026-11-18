@@ -139,8 +139,8 @@ test('ReportLockedError có thông điệp hướng dẫn liên hệ admin', () 
 const S = require(path.join(root, 'temp', 'dev', 'js', 'src', 'modules', 'report', 'utils', 'reportSettings'));
 
 test('parseReportSettings: mặc định, ép kiểu và kẹp số ngày', () => {
-  assert.deepEqual(S.parseReportSettings(undefined), { todayOnly: false, windowDays: 14 });
-  assert.deepEqual(S.parseReportSettings({ todayOnly: true, windowDays: 7 }), { todayOnly: true, windowDays: 7 });
+  assert.deepEqual(S.parseReportSettings(undefined), { todayOnly: false, windowDays: 14, unlockHours: 3 });
+  assert.deepEqual(S.parseReportSettings({ todayOnly: true, windowDays: 7 }), { todayOnly: true, windowDays: 7, unlockHours: 3 });
   assert.equal(S.parseReportSettings({ windowDays: 999 }).windowDays, 60);
   assert.equal(S.parseReportSettings({ windowDays: 0 }).windowDays, 1);
   assert.equal(S.parseReportSettings({ windowDays: 'abc', todayOnly: 'yes' }).windowDays, 14);
@@ -149,9 +149,9 @@ test('parseReportSettings: mặc định, ép kiểu và kẹp số ngày', () =
 
 test('isLockedByTodayOnly: chỉ khoá ngày cũ khi bật', () => {
   const today = S.todayDateStr();
-  assert.equal(S.isLockedByTodayOnly({ todayOnly: true, windowDays: 14 }, today), false);
-  assert.equal(S.isLockedByTodayOnly({ todayOnly: true, windowDays: 14 }, '2000-01-01'), true);
-  assert.equal(S.isLockedByTodayOnly({ todayOnly: false, windowDays: 14 }, '2000-01-01'), false);
+  assert.equal(S.isLockedByTodayOnly({ todayOnly: true, windowDays: 14, unlockHours: 3 }, today), false);
+  assert.equal(S.isLockedByTodayOnly({ todayOnly: true, windowDays: 14, unlockHours: 3 }, '2000-01-01'), true);
+  assert.equal(S.isLockedByTodayOnly({ todayOnly: false, windowDays: 14, unlockHours: 3 }, '2000-01-01'), false);
 });
 
 test('isRegistryRowLocked: ngày cũ khoá tự động nhưng admin mở khoá riêng (Locked = 0) vẫn được', () => {
@@ -162,4 +162,17 @@ test('isRegistryRowLocked: ngày cũ khoá tự động nhưng admin mở khoá 
   assert.equal(R.isRegistryRowLocked(true, 'unsigned', false), true);
   assert.equal(R.isRegistryRowLocked(undefined, 'unsigned', false), false);
   assert.equal(R.isRegistryRowLocked(undefined, 'done', false), true);
+});
+
+test('mở khoá có hạn: hết hạn thì quay về quy tắc mặc định', () => {
+  const R = require(path.join(root, 'temp', 'dev', 'js', 'src', 'modules', 'report', 'services', 'ReportRegistryService'));
+  const now = Date.parse('2026-11-18T12:00:00Z');
+  const future = '2026-11-18T13:00:00Z';
+  const past = '2026-11-18T11:00:00Z';
+  assert.equal(R.isRegistryRowLocked(false, 'done', false, future, now), false); // còn hạn: mở
+  assert.equal(R.isRegistryRowLocked(false, 'done', false, past, now), true); // hết hạn, đã ký: khoá lại
+  assert.equal(R.isRegistryRowLocked(false, 'unsigned', true, past, now), true); // hết hạn, ngày cũ: khoá lại
+  assert.equal(R.isRegistryRowLocked(false, 'unsigned', false, past, now), false); // hết hạn, chưa ký, hôm nay: vẫn mở
+  assert.equal(R.isRegistryRowLocked(false, 'done', false, '', now), false); // không có hạn: mở mãi
+  assert.equal(R.isUnlockExpired('rác', now), false);
 });

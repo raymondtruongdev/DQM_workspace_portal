@@ -11,6 +11,9 @@ const SETTINGS_ID = 'report';
 const DEFAULT_DAYS = 14;
 const MIN_DAYS = 1;
 const MAX_DAYS = 60;
+const DEFAULT_UNLOCK = 3;
+const MIN_UNLOCK = 1;
+const MAX_UNLOCK = 72;
 
 export interface DailyReportSetupViewProps {
   configService: PortalConfigService;
@@ -18,10 +21,12 @@ export interface DailyReportSetupViewProps {
   onBack: () => void;
 }
 
-function readSettings(config: PortalConfig): { todayOnly: boolean; days: number } {
+function readSettings(config: PortalConfig): { todayOnly: boolean; days: number; unlock: number } {
   const raw = config.moduleSettings[SETTINGS_ID] || {};
   const n = Math.round(Number(raw.windowDays));
+  const u = Math.round(Number(raw.unlockHours));
   return {
+    unlock: Number.isFinite(u) ? Math.min(MAX_UNLOCK, Math.max(MIN_UNLOCK, u)) : DEFAULT_UNLOCK,
     todayOnly: raw.todayOnly === true,
     days: Number.isFinite(n) ? Math.min(MAX_DAYS, Math.max(MIN_DAYS, n)) : DEFAULT_DAYS
   };
@@ -32,6 +37,7 @@ export const DailyReportSetupView: React.FC<DailyReportSetupViewProps> = ({ conf
   const [config, setConfig] = React.useState<PortalConfig | undefined>(undefined);
   const [todayOnly, setTodayOnly] = React.useState<boolean>(false);
   const [daysText, setDaysText] = React.useState<string>(String(DEFAULT_DAYS));
+  const [unlockText, setUnlockText] = React.useState<string>(String(DEFAULT_UNLOCK));
   const [isSaving, setIsSaving] = React.useState<boolean>(false);
   const [toast, setToast] = React.useState<ToastState | undefined>(undefined);
 
@@ -45,6 +51,7 @@ export const DailyReportSetupView: React.FC<DailyReportSetupViewProps> = ({ conf
         setConfig(c);
         setTodayOnly(s.todayOnly);
         setDaysText(String(s.days));
+        setUnlockText(String(s.unlock));
       })
       .catch((e) => console.error(e));
     return () => {
@@ -54,14 +61,16 @@ export const DailyReportSetupView: React.FC<DailyReportSetupViewProps> = ({ conf
 
   const days = Number(daysText);
   const daysValid = Number.isInteger(days) && days >= MIN_DAYS && days <= MAX_DAYS;
+  const unlock = Number(unlockText);
+  const unlockValid = Number.isInteger(unlock) && unlock >= MIN_UNLOCK && unlock <= MAX_UNLOCK;
   const saved = config ? readSettings(config) : undefined;
-  const dirty = Boolean(saved) && (saved?.todayOnly !== todayOnly || saved?.days !== days);
+  const dirty = Boolean(saved) && (saved?.todayOnly !== todayOnly || saved?.days !== days || saved?.unlock !== unlock);
 
   const save = async (): Promise<void> => {
-    if (!daysValid) return;
+    if (!daysValid || !unlockValid) return;
     setIsSaving(true);
     try {
-      const next = await configService.setModuleSettings(SETTINGS_ID, { todayOnly, windowDays: days }, adminName);
+      const next = await configService.setModuleSettings(SETTINGS_ID, { todayOnly, windowDays: days, unlockHours: unlock }, adminName);
       setConfig(next);
       setToast({ type: 'success', text: 'Đã lưu cài đặt DailyReport.' });
     } catch (err: unknown) {
@@ -126,8 +135,33 @@ export const DailyReportSetupView: React.FC<DailyReportSetupViewProps> = ({ conf
             <p className="admin-setup-hint">Mặc định {DEFAULT_DAYS} ngày. Chỉ đổi phạm vi hiển thị, không xoá hay đổi dữ liệu báo cáo.</p>
           </section>
 
+          <section className="admin-setup-block">
+            <h3 className="admin-setup-title">Tự khoá lại sau khi mở khoá</h3>
+            <div className="field admin-setup-days">
+              <label htmlFor="admin-setup-unlock" className="field__label">
+                Khi admin bấm OPEN một báo cáo, tự khoá lại sau (giờ, {MIN_UNLOCK}–{MAX_UNLOCK})
+              </label>
+              <input
+                id="admin-setup-unlock"
+                type="number"
+                className={`input${unlockValid ? '' : ' input--danger'}`}
+                min={MIN_UNLOCK}
+                max={MAX_UNLOCK}
+                step={1}
+                inputMode="numeric"
+                value={unlockText}
+                onChange={(e) => setUnlockText(e.target.value)}
+                disabled={isSaving}
+              />
+            </div>
+            <p className="admin-setup-hint">
+              Mặc định {DEFAULT_UNLOCK} giờ. Hết giờ, báo cáo quay về quy tắc mặc định (đã ký hoặc ngày cũ khi bật chế độ trên thì khoá). Người đang nhập dở cần Lưu trước giờ đó.
+              Cần cột <code>UnlockUntil</code> (Text) trong list DRPRegistry; chưa có cột thì mở khoá không có hạn.
+            </p>
+          </section>
+
           <div className="admin-setup-actions">
-            <button type="button" className="btn btn--primary" onClick={save} disabled={isSaving || !daysValid || !dirty}>
+            <button type="button" className="btn btn--primary" onClick={save} disabled={isSaving || !daysValid || !unlockValid || !dirty}>
               <Icon name="save" />
               <span>{isSaving ? 'Đang lưu...' : 'Lưu cài đặt'}</span>
             </button>

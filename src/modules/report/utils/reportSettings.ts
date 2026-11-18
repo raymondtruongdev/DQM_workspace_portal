@@ -9,6 +9,8 @@ export interface ReportSettings {
   todayOnly: boolean;
   /** Số ngày gần nhất hiện ở lịch và tab Tổng quan. */
   windowDays: number;
+  /** Admin bấm OPEN một báo cáo thì sau bấy nhiêu giờ tự khoá lại (cần cột `UnlockUntil` trong DRPRegistry). */
+  unlockHours: number;
 }
 
 export const REPORT_SETTINGS_ID = 'report';
@@ -16,12 +18,18 @@ export const DEFAULT_WINDOW_DAYS = 14;
 export const MIN_WINDOW_DAYS = 1;
 export const MAX_WINDOW_DAYS = 60;
 
-export const DEFAULT_REPORT_SETTINGS: ReportSettings = { todayOnly: false, windowDays: DEFAULT_WINDOW_DAYS };
+export const DEFAULT_UNLOCK_HOURS = 3;
+export const MIN_UNLOCK_HOURS = 1;
+export const MAX_UNLOCK_HOURS = 72;
+
+export const DEFAULT_REPORT_SETTINGS: ReportSettings = { todayOnly: false, windowDays: DEFAULT_WINDOW_DAYS, unlockHours: DEFAULT_UNLOCK_HOURS };
 
 /** Đọc cài đặt từ dữ liệu thô; thiếu hoặc sai kiểu thì dùng mặc định. */
 export function parseReportSettings(raw: Record<string, unknown> | undefined): ReportSettings {
   const days = raw ? Math.round(Number(raw.windowDays)) : NaN;
+  const hours = raw ? Math.round(Number(raw.unlockHours)) : NaN;
   return {
+    unlockHours: Number.isFinite(hours) ? Math.min(MAX_UNLOCK_HOURS, Math.max(MIN_UNLOCK_HOURS, hours)) : DEFAULT_UNLOCK_HOURS,
     todayOnly: raw ? raw.todayOnly === true : false,
     windowDays: Number.isFinite(days) ? Math.min(MAX_WINDOW_DAYS, Math.max(MIN_WINDOW_DAYS, days)) : DEFAULT_WINDOW_DAYS
   };
@@ -40,4 +48,21 @@ export function isPastDate(dateStr: string, today: string = todayDateStr()): boo
 /** Ngày không có dòng khoá riêng trong sổ có bị khoá theo chế độ "chỉ nhập ngày hiện tại" không. */
 export function isLockedByTodayOnly(settings: ReportSettings, dateStr: string): boolean {
   return settings.todayOnly && isPastDate(dateStr);
+}
+
+/** Giờ tự khoá lại, dạng "HH:mm" (kèm "dd/MM" khi không phải hôm nay). */
+export function formatUnlockUntil(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return '';
+  const p = (n: number): string => (n < 10 ? `0${n}` : String(n));
+  const hm = `${p(d.getHours())}:${p(d.getMinutes())}`;
+  return d.toDateString() === new Date().toDateString() ? hm : `${hm} ${p(d.getDate())}/${p(d.getMonth() + 1)}`;
+}
+
+/** Thời gian còn lại đến hạn tự khoá, dạng "2 giờ 15 phút" / "12 phút" (tối thiểu 1 phút, hết hạn trả "0 phút"). */
+export function formatUnlockLeft(iso: string, nowMs: number = Date.now()): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t) || t <= nowMs) return '0 phút';
+  const m = Math.ceil((t - nowMs) / 60000);
+  return m >= 60 ? `${Math.floor(m / 60)} giờ ${m % 60} phút` : `${m} phút`;
 }

@@ -31,6 +31,8 @@ export interface IReportLock {
   /** Đã có dòng trong sổ (báo cáo chưa lưu lần nào thì chưa có dòng, không khoá được). */
   exists: boolean;
   locked: boolean;
+  /** Đang mở khoá có hạn: thời điểm (ISO) báo cáo tự khoá lại; không có hạn hoặc đã hết hạn thì undefined. */
+  unlockUntil?: string;
   /** List có cột `Locked` (chưa có thì không bật/tắt khoá được). */
   canToggle: boolean;
 }
@@ -40,9 +42,29 @@ export interface IReportLock {
  * cột → khoá khi đã upload bản ký (`Status = done`), nên báo cáo đã ký từ trước khi có tính năng này cũng được khoá,
  * hoặc khi `pastLocked` (ngày cũ trong chế độ "chỉ nhập ngày hiện tại"; admin đã mở khoá riêng với `Locked = 0` thì vẫn mở).
  */
-export function isRegistryRowLocked(locked: boolean | undefined, status: RegistryStatus, pastLocked = false): boolean {
+export function isRegistryRowLocked(
+  locked: boolean | undefined,
+  status: RegistryStatus,
+  pastLocked = false,
+  unlockUntil = '',
+  now: number = Date.now()
+): boolean {
+  // Mở khoá có hạn (`UnlockUntil`): quá hạn thì coi như không còn giá trị mở khoá riêng, quay về quy tắc mặc định bên dưới
+  if (locked === false && isUnlockExpired(unlockUntil, now)) locked = undefined;
   if (locked !== undefined) return locked;
   return pastLocked || status === 'done';
+}
+
+/** Thời hạn mở khoá (ISO) đã qua. Trống hoặc không đọc được = không có hạn. */
+export function isUnlockExpired(unlockUntil: string, now: number = Date.now()): boolean {
+  if (!unlockUntil) return false;
+  const t = Date.parse(unlockUntil);
+  return Number.isFinite(t) && t <= now;
+}
+
+/** Hạn mở khoá còn hiệu lực của dòng sổ (đang mở khoá riêng và chưa quá hạn), không thì undefined. */
+function activeUnlockUntil(item: { Locked: boolean | undefined; UnlockUntil: string }): string | undefined {
+  return item.Locked === false && item.UnlockUntil && !isUnlockExpired(item.UnlockUntil) ? item.UnlockUntil : undefined;
 }
 
 /** Dấu vết bản đã ký: ai upload bản hiện tại, ai xoá và lúc nào (lần xoá gần nhất). */
@@ -53,7 +75,7 @@ export interface ISignedTrail {
 }
 
 /** Tên (tiêu đề) các cột của list; tên nội bộ thật được tra từ list vì có thể khác (vd Unit -> Unit0). */
-const COLS = ['No', 'Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy', 'Locked'] as const;
+const COLS = ['No', 'Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy', 'Locked', 'UnlockUntil'] as const;
 type Col = (typeof COLS)[number];
 
 /** Một dòng của list (khoá = tên cột chuẩn ở trên, đã đổi từ tên nội bộ). */
@@ -79,6 +101,8 @@ interface IRegistryRow {
   SignedRemovedBy: string;
   /** Cột `Locked` (Number 1/0, tuỳ chọn): 1 = khoá, 0 = admin đã mở khoá, trống = theo trạng thái (xem isRegistryRowLocked). */
   Locked: boolean | undefined;
+  /** Cột `UnlockUntil` (Text ISO, tuỳ chọn): admin mở khoá có hạn, quá giờ này báo cáo tự khoá lại (xem isRegistryRowLocked). */
+  UnlockUntil: string;
 }
 
 const esc = (v: string): string => v.replace(/'/g, "''");
@@ -102,6 +126,8 @@ export class ReportRegistryService {
   private _hasNo = false;
   /** List đã có cột Locked chưa (chưa có thì không bật/tắt khoá được; báo cáo đã ký vẫn coi là khoá). */
   private _hasLocked = false;
+  /** List có cột UnlockUntil chưa (chưa có thì mở khoá không có hạn). */
+  private _hasUnlockUntil = false;
 
   /** Đọc cài đặt báo cáo của admin (chế độ chỉ nhập ngày hiện tại); lỗi hoặc không truyền = tắt. */
   private readonly _settings: () => Promise<ReportSettings>;
@@ -134,6 +160,7 @@ export class ReportRegistryService {
           this._hasUploadBy = map.signeduploadby !== undefined;
           this._hasNo = map.no !== undefined;
           this._hasLocked = map.locked !== undefined;
+          this._hasUnlockUntil = map.unlockuntil !== undefined;
           this._hasRemoval = map.signedremovedat !== undefined && map.signedremovedby !== undefined;
           COLS.forEach((c) => {
             out[c] = map[c.toLowerCase()] || c;
@@ -176,7 +203,8 @@ export class ReportRegistryService {
       SignedUploadBy: str('SignedUploadBy'),
       SignedRemovedAt: str('SignedRemovedAt'),
       SignedRemovedBy: str('SignedRemovedBy'),
-      Locked: str('Locked') === '' ? undefined : /^(1|true|yes)$/i.test(str('Locked'))
+      Locked: str('Locked') === '' ? undefined : /^(1|true|yes)$/i.test(str('Locked')),
+      UnlockUntil: str('UnlockUntil')
     };
   }
 
@@ -309,7 +337,8 @@ export class ReportRegistryService {
         Status: 'done',
         SignedAt: new Date().toISOString(),
         ...(this._hasUploadBy ? { SignedUploadBy: uploader || reporter } : {}),
-        ...(this._hasLocked ? { Locked: true } : {})
+        ...(this._hasLocked ? { Locked: true } : {}),
+        ...(this._hasUnlockUntil ? { UnlockUntil: '' } : {})
       })
     );
   }
@@ -329,7 +358,7 @@ export class ReportRegistryService {
       this._siteUrl,
       REPORT_REGISTRY_LIST,
       item.id,
-      this.toInternal(n, { Status: 'unsigned', SignedAt: '', ...(this._hasUploadBy ? { SignedUploadBy: '' } : {}), ...(this._hasLocked ? { Locked: false } : {}), ...removal })
+      this.toInternal(n, { Status: 'unsigned', SignedAt: '', ...(this._hasUploadBy ? { SignedUploadBy: '' } : {}), ...(this._hasLocked ? { Locked: false } : {}), ...(this._hasUnlockUntil ? { UnlockUntil: '' } : {}), ...removal })
     );
     return this._hasRemoval;
   }
@@ -339,20 +368,26 @@ export class ReportRegistryService {
     await this.names();
     const past = isLockedByTodayOnly(await this._settings(), dateStr);
     const item = await this.findItem(unit, docId, dateStr);
+    const until = item ? activeUnlockUntil(item) : undefined;
     return {
       exists: Boolean(item),
-      locked: item ? isRegistryRowLocked(item.Locked, item.Status, past) : past,
+      locked: item ? isRegistryRowLocked(item.Locked, item.Status, past, item.UnlockUntil) : past,
+      ...(until ? { unlockUntil: until } : {}),
       canToggle: this._hasLocked
     };
   }
 
   /** Admin bật/tắt khoá một báo cáo; ngày chưa nhập thì tạo dòng giữ chỗ để khoá trước (xem `isPlaceholderRow`). Ném lỗi nếu list chưa có cột `Locked`. */
-  public async setLocked(unit: string, docId: string, dateStr: string, locked: boolean): Promise<void> {
+  public async setLocked(unit: string, docId: string, dateStr: string, locked: boolean, unlockHours = 0): Promise<void> {
     const n = await this.names();
     if (!this._hasLocked) throw new Error('List DRPRegistry chưa có cột Locked (Number 1/0) nên chưa bật/tắt khoá được.');
     const item = await this.findItem(unit, docId, dateStr);
+    // Mở khoá có hạn: ghi giờ tự khoá lại (cần cột UnlockUntil); khoá lại thì xoá hạn cũ
+    const expiry: Partial<Omit<IRegistryRow, 'id'>> = this._hasUnlockUntil
+      ? { UnlockUntil: !locked && unlockHours > 0 ? new Date(Date.now() + unlockHours * 3600000).toISOString() : '' }
+      : {};
     if (item) {
-      await this._client.updateItem<Record<string, unknown>>(this._siteUrl, REPORT_REGISTRY_LIST, item.id, this.toInternal(n, { Locked: locked }));
+      await this._client.updateItem<Record<string, unknown>>(this._siteUrl, REPORT_REGISTRY_LIST, item.id, this.toInternal(n, { Locked: locked, ...expiry }));
       return;
     }
     // Chưa có dòng nghĩa là chưa khoá: không cần mở, trừ ngày cũ đang bị khoá theo chế độ "chỉ nhập ngày hiện tại"
@@ -375,7 +410,8 @@ export class ReportRegistryService {
         ReportDate: dateStr,
         ReportNo: 0,
         Status: 'unsigned',
-        Locked: locked
+        Locked: locked,
+        ...expiry
       })
     );
   }
@@ -420,7 +456,8 @@ export class ReportRegistryService {
         savedAt: it.SavedAt || undefined,
         reporter: it.Reporter || undefined,
         reportNo: it.ReportNo > 0 ? formatReportNo(it.ReportNo) : undefined,
-        locked: isRegistryRowLocked(it.Locked, it.Status, isLockedByTodayOnly(settings, it.ReportDate)),
+        locked: isRegistryRowLocked(it.Locked, it.Status, isLockedByTodayOnly(settings, it.ReportDate), it.UnlockUntil),
+        unlockUntil: activeUnlockUntil(it),
         signed: done
           ? {
               // Tên file = <DocCode>_signed.pdf: sổ không lưu Doc. code nên chỉ biết khi mở (openSignedDocument)

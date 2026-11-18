@@ -203,4 +203,5 @@ export interface ReportDayInfo {
   reporter?: string;          // người lập (email) – từ sổ DRPRegistry
   reportNo?: string;          // số báo cáo – từ sổ DRPRegistry
   locked?: boolean;           // báo cáo đang khoá (đã upload bản ký hoặc admin khoá): người dùng chỉ xem – từ sổ DRPRegistry
+  unlockUntil?: string;       // đang mở khoá có hạn: giờ (ISO) tự khoá lại – từ sổ DRPRegistry
 }

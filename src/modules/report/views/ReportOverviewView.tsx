@@ -5,7 +5,7 @@ import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { buildExportRows, exportFileName, exportXlsx } from '../utils/reportExport';
 import { ReportDataService } from '../services/ReportDataService';
 import { ReportDayInfo, ReportDayStatus } from '../types/report.types';
-import { DEFAULT_WINDOW_DAYS, isLockedByTodayOnly } from '../utils/reportSettings';
+import { DEFAULT_WINDOW_DAYS, formatUnlockUntil, isLockedByTodayOnly } from '../utils/reportSettings';
 import {
   buildRecentDates,
   DAY_STATUS_BADGE,
@@ -603,7 +603,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
                           aria-label={i.info && i.info.locked ? 'Trạng thái LOCKED, bấm để mở khoá' : 'Trạng thái OPEN, bấm để khoá'}
                         >
                           <Icon name={i.info && i.info.locked ? 'lock' : 'lock-open'} size={16} />
-                          <span>{i.info && i.info.locked ? 'LOCKED' : 'OPEN'}</span>
+                          <span>{i.info && i.info.locked ? 'LOCKED' : i.info && i.info.unlockUntil ? `OPEN · đến ${formatUnlockUntil(i.info.unlockUntil)}` : 'OPEN'}</span>
                         </button>
                       )}
                       {i.status === 'missing' && (

@@ -1716,6 +1716,7 @@
   .report-cal-day__num { min-width: 28px; }
   .report-cal-day__wd { display: block; min-width: 72px; }
   .report-cal-day__note { flex-basis: 100%; padding-left: 40px; }
+  .report-cal-day__open { flex-basis: 100%; padding-left: 40px; }
   .report-cal-day__today { position: static; }
   .report-cal-summary { grid-template-columns: 1fr; }
   .report-cal-strip__seg { height: 10px; }
@@ -2222,6 +2223,17 @@
   color: var(--color-danger-text);
 }
 .report-lock-note__text { min-width: 0; line-height: 1.45; }
+.report-lock-note--open { border-color: var(--color-success-border); background: var(--color-success-bg); color: var(--color-success-text); }
+.report-lock-note--soon { border-color: var(--color-warning-border); background: var(--color-warning-bg); color: var(--color-warning-text); }
+.report-cal-day__open {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-success-text);
+}
 .report-cal-day__lock { flex: 0 0 auto; margin-left: var(--space-1); }
 .report-ov-cell { position: relative; }
 .report-ov-cell__lock {

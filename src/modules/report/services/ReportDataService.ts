@@ -115,7 +115,8 @@ export class ReportDataService {
 
   /** Admin bật/tắt khoá báo cáo một ngày. Nơi gọi phải `checkMaintenance()` trước. Lỗi (chưa có dòng, thiếu cột Locked, thiếu quyền) thì ném ra. */
   public async setReportLocked(unit: string, docId: string, dateStr: string, locked: boolean): Promise<void> {
-    await this._registry.setLocked(unit, docId, dateStr, locked);
+    const settings = await this._settings();
+    await this._registry.setLocked(unit, docId, dateStr, locked, settings.unlockHours);
   }
 
   /** Mọi thao tác ghi vào báo cáo của một ngày phải qua đây: báo cáo đang khoá thì ném `ReportLockedError`. Không đọc được sổ thì cho qua. */
