@@ -43,7 +43,7 @@ test('isRegistryRowLocked: cột Locked trống thì theo trạng thái (đã k�
 test('getLock: báo cáo đã ký từ trước (Locked trống) coi là khoá; chưa có dòng thì không khoá', async () => {
   const c = fakeClient([row({ Status: 'done' })], BASE_COLS.concat('Locked'));
   const s = service(c);
-  assert.deepEqual(await s.getLock('ST01', 'DRP', '2026-11-14'), { exists: true, locked: true, canToggle: true });
+  assert.deepEqual(await s.getLock('ST01', 'DRP', '2026-11-14'), { exists: true, saved: true, signed: true, locked: true, canToggle: true });
   assert.deepEqual(await s.getLock('ST01', 'DRP', '2026-11-13'), { exists: false, locked: false, canToggle: true });
 });
 
@@ -84,7 +84,7 @@ test('lịch/Tổng quan: ReportDayInfo.locked lấy từ sổ', async () => {
 test('list chưa có cột Locked: báo cáo đã ký vẫn khoá nhưng không bật/tắt được', async () => {
   const c = fakeClient([row({ Status: 'done' })], BASE_COLS);
   const s = service(c);
-  assert.deepEqual(await s.getLock('ST01', 'DRP', '2026-11-14'), { exists: true, locked: true, canToggle: false });
+  assert.deepEqual(await s.getLock('ST01', 'DRP', '2026-11-14'), { exists: true, saved: true, signed: true, locked: true, canToggle: false });
   await assert.rejects(() => s.setLocked('ST01', 'DRP', '2026-11-14', false), /Locked/);
 });
 
@@ -95,7 +95,7 @@ test('admin khoá trước ngày chưa nhập: tạo dòng giữ chỗ, vẫn t�
   assert.equal(c.rows.length, 1);
   assert.equal(c.rows[0].Locked, 1);
   assert.equal(c.rows[0].ReportNo, 0);
-  assert.deepEqual(await s.getLock('ST01', 'DRP', '2026-11-14'), { exists: true, locked: true, canToggle: true });
+  assert.deepEqual(await s.getLock('ST01', 'DRP', '2026-11-14'), { exists: true, saved: false, signed: false, locked: true, canToggle: true });
   const all = await s.getDayInfosSince('DRP', '2026-11-01');
   const info = all[Object.keys(all)[0]]['2026-11-14'];
   assert.equal(info.status, 'missing');
@@ -214,4 +214,11 @@ test('getLock dùng giờ máy chủ: ngày cũ (theo giờ VN) khoá, hết h�
   // ngày chưa có dòng: 16:59Z ngày 17 (23:59 VN) thì ngày 17 còn là hôm nay, 17:00Z thì đã là ngày cũ
   assert.equal((await mk('2026-11-17T16:59:00Z').getLock('ST01', 'DRP', '2026-11-17')).locked, false);
   assert.equal((await mk('2026-11-17T17:00:00Z').getLock('ST01', 'DRP', '2026-11-17')).locked, true);
+});
+
+test('khoá vẫn cho upload bản ký khi báo cáo đã Lưu và chưa ký', () => {
+  assert.equal(R.canUploadSignedWhileLocked({ saved: true, signed: false }), true); // đã lưu, chưa ký
+  assert.equal(R.canUploadSignedWhileLocked({ saved: true, signed: true }), false); // đã ký: cần admin mở khoá
+  assert.equal(R.canUploadSignedWhileLocked({ saved: false, signed: false }), false); // dòng giữ chỗ (chưa lưu)
+  assert.equal(R.canUploadSignedWhileLocked(undefined), false); // chưa có dòng trong sổ
 });

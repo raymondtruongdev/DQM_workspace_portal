@@ -3,7 +3,7 @@ import { RoleEntry, ToastState } from '../../../core/types';
 import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { PhotoGroup, ReportDoc, ReportMetadata, ReportPhotoSection, ReportSection, SignedDocInfo } from '../types/report.types';
 import { ReportDataService } from '../services/ReportDataService';
-import { IReportLock, ISignedTrail, ReportLockedError } from '../services/ReportRegistryService';
+import { IReportLock, ISignedTrail, ReportLockedError, canUploadSignedWhileLocked } from '../services/ReportRegistryService';
 import { extractTemplateVersionDate, formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 import { buildSectionNumbering } from '../utils/reportSections';
 import { recalculateAllRates } from '../utils/reportTaskTree';
@@ -76,6 +76,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   /** Hiện hộp thoại "Báo cáo đã bị khoá" (khi đang làm dở mà admin khoá, lúc lưu bị từ chối). */
   const [lockedNotice, setLockedNotice] = React.useState<boolean>(false);
   const isLocked = Boolean(lock && lock.locked);
+  // Khoá nhưng báo cáo đã Lưu và chưa ký: người dùng vẫn upload được bản đã ký (nội dung vẫn chỉ xem)
+  const canSignWhileLocked = isLocked && canUploadSignedWhileLocked(lock);
 
   /** Lỗi khi ghi: báo cáo đã bị khoá (admin vừa khoá hoặc đã ký) thì hiện hộp thoại và chuyển sang chỉ xem; lỗi khác hiện toast. */
   const handleWriteError = (err: unknown, fallback: string): void => {
@@ -844,9 +846,12 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
               </span>
             )}
             {isLocked && (
-              <span className="badge badge--danger" title="Báo cáo đã khoá: chỉ xem, không chỉnh sửa được">
+              <span
+                className={`badge ${canSignWhileLocked ? 'badge--info' : 'badge--danger'}`}
+                title={canSignWhileLocked ? 'Nội dung đã khoá (chỉ xem) nhưng bạn vẫn upload được bản đã ký' : 'Báo cáo đã khoá: chỉ xem, không chỉnh sửa được'}
+              >
                 <Icon name="lock" size={16} />
-                Đã khoá
+                {canSignWhileLocked ? 'Khoá nội dung · vẫn upload bản ký' : 'Đã khoá'}
               </span>
             )}
             {doc && (
@@ -948,16 +953,35 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       )}
 
       {isLocked && !isLoading && (
-        <div className="card report-lock-note" role="status">
-          <Icon name="lock" size={20} />
+        <div className={`card report-lock-note${canSignWhileLocked ? ' report-lock-note--sign' : ''}`} role="status">
+          <Icon name={canSignWhileLocked ? 'file-up' : 'lock'} size={20} />
           <div className="report-lock-note__text">
-            <strong>Báo cáo này đã khoá, chỉ xem.</strong>
-            <span>
-              {' '}
-              Bạn có thể xem và sao chép nội dung nhưng không chỉnh sửa được.
-              {canManageLock ? ' Bấm nút LOCKED ở trên để mở khoá, cho phép chỉnh sửa lại.' : ' Cần chỉnh sửa thì liên hệ admin để mở khoá.'}
-            </span>
+            {canSignWhileLocked ? (
+              <>
+                <strong>Nội dung báo cáo đã khoá, chỉ xem. Bạn vẫn upload được bản đã ký.</strong>
+                <span>
+                  {' '}
+                  Không sửa được dữ liệu đã lưu. Nếu báo cáo đã được in và ký, hãy upload file PDF đã ký ở mục BẢN ĐÃ KÝ (cuối trang).
+                  {canManageLock ? ' Admin: bấm nút LOCKED ở trên để mở khoá nếu cần sửa nội dung.' : ' Cần sửa nội dung thì liên hệ admin để mở khoá.'}
+                </span>
+              </>
+            ) : (
+              <>
+                <strong>Báo cáo này đã khoá, chỉ xem.</strong>
+                <span>
+                  {' '}
+                  Bạn có thể xem và sao chép nội dung nhưng không chỉnh sửa được.
+                  {canManageLock ? ' Bấm nút LOCKED ở trên để mở khoá, cho phép chỉnh sửa lại.' : ' Cần chỉnh sửa thì liên hệ admin để mở khoá.'}
+                </span>
+              </>
+            )}
           </div>
+          {canSignWhileLocked && (
+            <button type="button" className="btn btn--primary btn--sm report-lock-note__action" onClick={() => scrollToSection('report-sec-signed')}>
+              <Icon name="upload" />
+              <span>Đến mục Bản đã ký</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -1080,10 +1104,11 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
           {!isWeekly && (
             <ReportSignedDocument
               folderLabel={`data/${role.unit}/${getReportFolderName(role.docId, role.unit, dateStr)}/`}
-              canUpload={Boolean(doc.isExisting) && !hasUnsavedChanges && !isLocked}
+              highlight={canSignWhileLocked && !signedDoc}
+              canUpload={Boolean(doc.isExisting) && !hasUnsavedChanges && (!isLocked || canSignWhileLocked)}
               blockedReason={
                 isLocked
-                  ? 'Báo cáo đã khoá. Liên hệ admin để mở khoá nếu cần thay bản đã ký.'
+                  ? 'Báo cáo đã có bản ký và đang khoá. Liên hệ admin để mở khoá nếu cần thay bản đã ký.'
                   : doc.isExisting
                   ? 'Có thay đổi chưa lưu. Hãy lưu báo cáo trước khi upload bản đã ký để file ký khớp với nội dung.'
                   : 'Lưu báo cáo trước, sau đó mới upload được bản đã ký.'

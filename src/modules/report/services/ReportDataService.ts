@@ -12,7 +12,7 @@ import { Clock, LOCAL_CLOCK } from '../../../core/services/ServerClock';
 import { DEFAULT_REPORT_SETTINGS, ReportSettings, isLockedByTodayOnly, vnDateAsLocal, vnDateStr } from '../utils/reportSettings';
 import { ReportFileService } from './ReportFileService';
 import { LoadedTemplate, ReportTemplateService } from './ReportTemplateService';
-import { IReportLock, ISignedTrail, ReportLockedError, ReportRegistryService } from './ReportRegistryService';
+import { IReportLock, ISignedTrail, ReportLockedError, ReportRegistryService, canUploadSignedWhileLocked } from './ReportRegistryService';
 import { ReportCatalogService } from './ReportCatalogService';
 
 export interface LoadedReportResult {
@@ -512,7 +512,9 @@ export class ReportDataService {
     docCode = '',
     uploader = ''
   ): Promise<{ info: SignedDocInfo; registryWarning?: string }> {
-    await this.assertUnlocked(unit, docId, dateStr); // đã khoá (đã có bản ký): admin mở khoá mới được thay bản ký
+    // Báo cáo khoá: vẫn upload được bản ký lần đầu khi báo cáo đã Lưu (không sửa được nội dung); đã có bản ký thì admin mở khoá mới được thay
+    const lock = await this.getLockState(unit, docId, dateStr);
+    if (lock && lock.locked && !canUploadSignedWhileLocked(lock)) throw new ReportLockedError();
     // Upload từ lịch không biết Doc. code: đọc từ file báo cáo đã lưu
     let code = docCode;
     if (!code) {

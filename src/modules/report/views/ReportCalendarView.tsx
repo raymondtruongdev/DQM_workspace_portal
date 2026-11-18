@@ -207,7 +207,8 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   };
 
   const pickFile = (dateStr: string): void => {
-    if (byDate[dateStr] && byDate[dateStr].locked) {
+    // Báo cáo đã Lưu mà chưa ký (Chưa upload bản ký) vẫn upload được khi khoá; đã ký rồi thì cần admin mở khoá
+    if (byDate[dateStr] && byDate[dateStr].locked && statusOf(dateStr) !== 'unsigned') {
       setToast({ type: 'error', text: 'Báo cáo ngày này đã khoá. Liên hệ admin để mở khoá nếu cần thay bản ký.' });
       return;
     }
@@ -275,6 +276,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
           {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
         </span>
         {lockedMissing && <span className="report-cal-day__note">Chưa nhập · chỉ xem</span>}
+        {st === 'unsigned' && info && info.locked && <span className="report-cal-day__sign">Khoá nội dung · vẫn upload bản ký</span>}
         {info && info.unlockUntil && (
           <span className="report-cal-day__open" title={`Admin đã mở khoá, tự khoá lại lúc ${formatUnlockUntil(info.unlockUntil)}`}>
             <Icon name="lock-open" size={14} />
@@ -446,6 +448,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                                   {DAY_STATUS_LABEL[st]}
                                 </span>
                                 {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
+                                {st === 'unsigned' && info && info.locked && <span className="report-cal-day__sign">Khoá nội dung · vẫn upload bản ký</span>}
                                 {info && info.unlockUntil && (
                                   <span className="report-cal-day__open">
                                     <Icon name="lock-open" size={14} />
@@ -457,7 +460,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                               <td>{info && info.signed ? 'Có' : '—'}</td>
                               <td>
                                 {st === 'unsigned' ? (
-                                  <button type="button" className="btn btn--primary btn--sm" onClick={(e) => { e.stopPropagation(); pickFile(d); }} disabled={isUploading || Boolean(info && info.locked)}>
+                                  <button type="button" className="btn btn--primary btn--sm" onClick={(e) => { e.stopPropagation(); pickFile(d); }} disabled={isUploading}>
                                     Upload bản ký
                                   </button>
                                 ) : (
@@ -478,7 +481,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--missing" />Chưa nhập: chưa bấm Lưu</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--unsigned" />Chưa upload bản ký: đã lưu, thiếu file PDF đã ký</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--done" />Hoàn tất: có file PDF trong thư mục báo cáo</span>
-                <span><i className="report-cal-legend__dot report-cal-legend__dot--locked" /><Icon name="lock" size={14} /> Đã khoá (chưa nhập): chỉ xem, admin mới mở khoá được</span>
+                <span><i className="report-cal-legend__dot report-cal-legend__dot--locked" /><Icon name="lock" size={14} /> Đã khoá: chỉ xem, admin mới mở khoá được. Đã lưu mà chưa ký thì vẫn upload được bản ký</span>
               </div>
             </div>
           </div>
@@ -506,9 +509,12 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                     </span>
                   )}
                   {selLocked && (
-                    <span className="badge badge--danger" title="Báo cáo đã khoá: chỉ xem, không chỉnh sửa được">
+                    <span
+                      className={`badge ${selStatus === 'unsigned' ? 'badge--info' : 'badge--danger'}`}
+                      title={selStatus === 'unsigned' ? 'Nội dung đã khoá (chỉ xem) nhưng vẫn upload được bản đã ký' : 'Báo cáo đã khoá: chỉ xem, không chỉnh sửa được'}
+                    >
                       <Icon name="lock" size={14} />
-                      Đã khoá
+                      {selStatus === 'unsigned' ? 'Khoá nội dung · vẫn upload bản ký' : 'Đã khoá'}
                     </span>
                   )}
                 </div>
@@ -522,7 +528,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 )}
                 {selStatus === 'unsigned' && (
                   <>
-                    <button type="button" className="btn btn--primary" onClick={() => pickFile(selected)} disabled={isUploading || selLocked}>
+                    <button type="button" className="btn btn--primary" onClick={() => pickFile(selected)} disabled={isUploading}>
                       <Icon name="upload" />
                       <span>{isUploading ? 'Đang tải lên...' : 'Upload bản ký'}</span>
                     </button>
@@ -594,9 +600,11 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 <Icon name="info" size={16} />
                 <span>
                   {selStatus === 'missing' && 'Chưa có báo cáo ngày này. Biểu mẫu mới sẽ điền sẵn từ báo cáo gần nhất (không sao chép ảnh).'}
-                  {selStatus === 'unsigned' && 'Báo cáo đã lưu. In PDF, ký tên rồi upload bản đã ký để hoàn tất.'}
+                  {selStatus === 'unsigned' && 'Báo cáo đã lưu. In PDF, ký tên rồi upload bản đã ký để hoàn tất. '}
                   {selLocked
-                    ? canManageLock
+                    ? selStatus === 'unsigned'
+                      ? `Nội dung báo cáo đã khoá (chỉ xem) nhưng bạn vẫn upload được bản đã ký bằng nút "Upload bản ký".${canManageLock ? ' Admin: bấm nút LOCKED để mở khoá nếu cần sửa nội dung.' : ' Cần sửa nội dung thì liên hệ admin để mở khoá.'}`
+                      : canManageLock
                       ? 'Báo cáo đã khoá: người dùng chỉ xem được. Bấm nút LOCKED để mở khoá, cho phép chỉnh sửa lại.'
                       : 'Báo cáo đã khoá: chỉ xem, không chỉnh sửa được. Cần sửa thì liên hệ admin để mở khoá.'
                     : selStatus === 'done' && 'Đã có PDF đã ký nên ngày này hoàn tất.'}

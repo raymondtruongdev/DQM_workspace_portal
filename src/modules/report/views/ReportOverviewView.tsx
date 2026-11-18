@@ -413,7 +413,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
                           <button
                             type="button"
                             className={`report-ov-cell report-ov-cell--${st}${dim ? ' is-dim' : ''}${d === todayStr ? ' is-today' : ''}`}
-                            title={`${r.target.unit} · ${weekdayLong(d)} ${formatDM(d)} · ${DAY_STATUS_LABEL[st]}${cellLocked ? ' · Đã khoá' : ''}`}
+                            title={`${r.target.unit} · ${weekdayLong(d)} ${formatDM(d)} · ${DAY_STATUS_LABEL[st]}${cellLocked ? (st === 'unsigned' ? ' · Khoá nội dung, vẫn upload bản ký' : ' · Đã khoá') : ''}`}
                             aria-label={`${r.target.unit} ${formatDM(d)} ${DAY_STATUS_LABEL[st]}${cellLocked ? ', đã khoá' : ''}`}
                             onClick={() => onOpenDate(r.target.role, d)}
                           >
@@ -545,9 +545,12 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
                         <span className="report-ov-unit">{i.target.unit}</span>
                         <span className={`badge ${DAY_STATUS_BADGE[i.status]} report-ov-dotted`}>{DAY_STATUS_LABEL[i.status]}</span>
                         {i.info && i.info.locked && (
-                          <span className="badge badge--danger" title="Báo cáo đã khoá: người dùng chỉ xem">
+                          <span
+                            className={`badge ${i.status === 'unsigned' ? 'badge--info' : 'badge--danger'}`}
+                            title={i.status === 'unsigned' ? 'Nội dung đã khoá (chỉ xem) nhưng người dùng vẫn upload được bản đã ký' : 'Báo cáo đã khoá: người dùng chỉ xem'}
+                          >
                             <Icon name="lock" size={14} />
-                            Đã khoá
+                            {i.status === 'unsigned' ? 'Khoá nội dung · vẫn upload bản ký' : 'Đã khoá'}
                           </span>
                         )}
                       </div>

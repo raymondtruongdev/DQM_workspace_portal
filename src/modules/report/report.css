@@ -1716,7 +1716,8 @@
   .report-cal-day__num { min-width: 28px; }
   .report-cal-day__wd { display: block; min-width: 72px; }
   .report-cal-day__note { flex-basis: 100%; padding-left: 40px; }
-  .report-cal-day__open { flex-basis: 100%; padding-left: 40px; }
+  .report-cal-day__open,
+  .report-cal-day__sign { flex-basis: 100%; padding-left: 40px; }
   .report-cal-day__today { position: static; }
   .report-cal-summary { grid-template-columns: 1fr; }
   .report-cal-strip__seg { height: 10px; }
@@ -2223,6 +2224,10 @@
   color: var(--color-danger-text);
 }
 .report-lock-note__text { min-width: 0; line-height: 1.45; }
+.report-lock-note--sign { border-color: var(--color-accent-border); background: var(--color-accent-subtle); color: var(--color-accent-active); }
+.report-lock-note__action { flex: 0 0 auto; margin-left: auto; align-self: center; }
+.report-signed--attention { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-ring); }
+.report-cal-day__sign { font-size: var(--text-xs); font-weight: 600; color: var(--color-accent); }
 .report-lock-note--open { border-color: var(--color-success-border); background: var(--color-success-bg); color: var(--color-success-text); }
 .report-lock-note--soon { border-color: var(--color-warning-border); background: var(--color-warning-bg); color: var(--color-warning-text); }
 .report-cal-day__open {
@@ -2267,7 +2272,8 @@
 }
 
 @media (max-width: 640px) {
-  .report-lock-note { padding: var(--space-3); }
+  .report-lock-note { padding: var(--space-3); flex-wrap: wrap; }
+  .report-lock-note__action { width: 100%; margin-left: 0; }
 }
 
 /* PDF đính kèm dưới dòng (mục có rowPdf, vd Sự kiện): hàng link chỉ hiện khi dòng có file */

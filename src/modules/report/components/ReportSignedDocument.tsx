@@ -9,6 +9,8 @@ export interface IReportSignedDocumentProps {
   folderLabel: string;
   /** Báo cáo đã lưu lên SharePoint (và không còn thay đổi chưa lưu). */
   canUpload: boolean;
+  /** Làm nổi mục này (viền xanh): báo cáo đang khoá nội dung nhưng người dùng còn bước upload bản ký. */
+  highlight?: boolean;
   /** Lý do chưa upload được (hiện khi canUpload = false). */
   blockedReason: string;
   signed: SignedDocInfo | undefined;
@@ -30,6 +32,7 @@ export interface IReportSignedDocumentProps {
 export const ReportSignedDocument: React.FC<IReportSignedDocumentProps> = ({
   folderLabel,
   canUpload,
+  highlight = false,
   blockedReason,
   signed,
   isLoading,
@@ -69,7 +72,7 @@ export const ReportSignedDocument: React.FC<IReportSignedDocumentProps> = ({
   const hasSigned = Boolean(signed);
 
   return (
-    <div id="report-sec-signed" className="section-card">
+    <div id="report-sec-signed" className={`section-card${highlight ? ' report-signed--attention' : ''}`}>
       <div className="section-card__banner">
         <span className="section-card__title">
           BẢN ĐÃ KÝ <span className="section-card__title-sub">| SIGNED DOCUMENT</span>

@@ -32,6 +32,10 @@ export interface IReportLock {
   /** Đã có dòng trong sổ (báo cáo chưa lưu lần nào thì chưa có dòng, không khoá được). */
   exists: boolean;
   locked: boolean;
+  /** Báo cáo đã Lưu (có dòng thật trong sổ, không phải dòng giữ chỗ). Chỉ có khi `exists`. */
+  saved?: boolean;
+  /** Đã upload bản ký (`Status = done`). Chỉ có khi `exists`. */
+  signed?: boolean;
   /** Đang mở khoá có hạn: thời điểm (ISO) báo cáo tự khoá lại; không có hạn hoặc đã hết hạn thì undefined. */
   unlockUntil?: string;
   /** List có cột `Locked` (chưa có thì không bật/tắt khoá được). */
@@ -54,6 +58,14 @@ export function isRegistryRowLocked(
   if (locked === false && isUnlockExpired(unlockUntil, now)) locked = undefined;
   if (locked !== undefined) return locked;
   return pastLocked || status === 'done';
+}
+
+/**
+ * Báo cáo đang khoá vẫn cho NGƯỜI DÙNG upload bản đã ký khi báo cáo đã Lưu mà chưa có bản ký (không sửa được nội dung).
+ * Đã có bản ký thì vẫn khoá hẳn (thay bản ký phải nhờ admin mở khoá).
+ */
+export function canUploadSignedWhileLocked(lock: Pick<IReportLock, 'saved' | 'signed'> | undefined): boolean {
+  return Boolean(lock && lock.saved && !lock.signed);
 }
 
 /** Thời hạn mở khoá (ISO) đã qua. Trống hoặc không đọc được = không có hạn. */
@@ -378,6 +390,7 @@ export class ReportRegistryService {
     const until = item ? activeUnlockUntil(item, now) : undefined;
     return {
       exists: Boolean(item),
+      ...(item ? { saved: !isPlaceholderRow(item.SavedAt, item.ReportNo, item.Status), signed: item.Status === 'done' } : {}),
       locked: item ? isRegistryRowLocked(item.Locked, item.Status, past, item.UnlockUntil, now) : past,
       ...(until ? { unlockUntil: until } : {}),
       canToggle: this._hasLocked
