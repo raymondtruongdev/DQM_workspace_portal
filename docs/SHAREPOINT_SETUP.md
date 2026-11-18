@@ -145,6 +145,24 @@ Web part tự lấy site hiện hành từ `pageContext.web.absoluteUrl` (hoặc
 Mỗi báo cáo là một thư mục tự chứa: `.json` là dữ liệu gốc, `.html` là bản xem/in độc lập (mở offline), `photos/` là ảnh, `*_signed.pdf` là bản ký. Sao chép thư mục `data/` là đủ để sao lưu; sổ `DRPRegistry` chỉ là chỉ mục có thể dựng lại.
 SharePoint Online thường buộc file `.html` trong thư viện **tải về** thay vì mở trực tiếp: người dùng tải về rồi mở bằng trình duyệt.
 
+### 7.1 Sao lưu và khôi phục dữ liệu của các list (CSV)
+Các file `docs/sharepoint_setup/*_list.xlsx` chỉ là **mẫu để tạo list lần đầu** (có bảng + sheet `Huong_dan`). Dữ liệu thật của list sao lưu bằng CSV:
+
+**Sao lưu:** mở list > **Export** > **Export to CSV**, lưu file `.csv` (ví dụ `DRPRegistry_2026-11-18.csv`). CSV là file chữ thuần nên vẫn giữ đúng giá trị như trong list (vd `2026-11-14`, `2026-11-18T03:09:57.239Z`).
+
+**Khôi phục:** tạo list MỚI, chọn kiểu từ **CSV** (New list > From CSV), upload file CSV, đặt đúng tên list (vd `DRPRegistry`, đúng chữ hoa/thường). Ở bước kiểm tra kiểu cột, **đặt lại kiểu cột cho đúng**, vì SharePoint tự đoán và có thể đoán sai:
+
+| Cột | Kiểu phải chọn | Ghi chú |
+|---|---|---|
+| Mọi cột email: `Email` (`UserProfiles`, `DRPRole`), `Reporter`, `SignedUploadBy`, `SignedRemovedBy` (`DRPRegistry`) | **Single line of text** | SharePoint hay đoán thành *Person or Group*: PHẢI đổi lại thành Single line of text (web đọc/ghi email dạng chữ; riêng `DRPRole.Email` có thể chứa nhiều email ngăn bằng `;`) |
+| `ReportDate`, `SavedAt`, `SignedAt`, `SignedRemovedAt`, `UnlockUntil` (`DRPRegistry`) | **Single line of text** | Không chọn Date / Date and time (ngày dạng chữ `yyyy-MM-dd`, giờ dạng ISO 8601) |
+| `ReportNo`, `No`, `Locked` | Number (0 số lẻ) | Thường tự nhận đúng |
+| Các cột còn lại | Single line of text (hoặc Number theo bảng mục 3) | Giữ nguyên TÊN cột đúng như dòng 1 của CSV |
+
+Sau khi tạo xong làm lại phần thiết lập của list (index, Enforce unique values cho `Title`, version history, phân quyền: xem sheet `Huong_dan` của file `*_list.xlsx` tương ứng).
+
+**Cảnh báo về Excel:** KHÔNG bấm đúp mở file CSV bằng Excel rồi lưu hoặc copy sang file khác: Excel tự đổi `2026-11-14` thành ngày (hiển thị `14/11/2026`, bên trong là số `46341`) nên khi import cột `ReportDate` bị sai kiểu Number và web không ghép được dòng vào ô lịch. Cần xem hoặc sửa thì dùng trình soạn thảo chữ (VS Code, Sublime, Notepad), hoặc trong Excel dùng Data > From Text/CSV rồi đặt các cột trên là Text. Nếu vẫn phải dán dữ liệu vào file `*_list.xlsx`, các cột trên trong `DRPRegistry_list.xlsx` đã đặt sẵn định dạng Text, nhưng việc đổi đã xảy ra ngay khi Excel mở CSV nên định dạng Text ở file đích không cứu được.
+
 ## 8. Kiểm tra sau khi cài (làm lần lượt)
 
 | # | Thao tác | Kết quả đúng |
