@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { PortalConfig, ToastState } from '../../../core/types';
-import { Icon, LoadingState, PageHeader, ToastAlert } from '../../../core/components';
+import { Icon, LoadingState, NumberStepper, PageHeader, Switch, ToastAlert } from '../../../core/components';
 import { PortalConfigService } from '../../../core/services';
 
 /**
@@ -31,6 +31,23 @@ function readSettings(config: PortalConfig): { todayOnly: boolean; days: number;
     days: Number.isFinite(n) ? Math.min(MAX_DAYS, Math.max(MIN_DAYS, n)) : DEFAULT_DAYS
   };
 }
+
+/** Đồng hồ ở banner (giờ máy người dùng, chỉ để xem; khoá báo cáo vẫn tính theo giờ máy chủ). */
+const BannerClock: React.FC = () => {
+  const [now, setNow] = React.useState<Date>(() => new Date());
+  React.useEffect(() => {
+    const t = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+  const p = (n: number): string => (n < 10 ? '0' : '') + String(n);
+  const text = `${p(now.getDate())}/${p(now.getMonth() + 1)}/${now.getFullYear()} - ${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+  return (
+    <span className="admin-setup-clock" title="Giờ máy của bạn">
+      <Icon name="clock" size={16} />
+      <span>{text}</span>
+    </span>
+  );
+};
 
 /** Setup DailyReport: chỉ cho nhập báo cáo ngày hiện tại + số ngày thống kê người dùng thấy. */
 export const DailyReportSetupView: React.FC<DailyReportSetupViewProps> = ({ configService, adminName, onBack }) => {
@@ -81,6 +98,13 @@ export const DailyReportSetupView: React.FC<DailyReportSetupViewProps> = ({ conf
     }
   };
 
+  const resetChanges = (): void => {
+    if (!saved) return;
+    setTodayOnly(saved.todayOnly);
+    setDaysText(String(saved.days));
+    setUnlockText(String(saved.unlock));
+  };
+
   return (
     <div className="admin-module-root">
       <PageHeader
@@ -99,77 +123,100 @@ export const DailyReportSetupView: React.FC<DailyReportSetupViewProps> = ({ conf
       {!config ? (
         <LoadingState message="Đang tải cấu hình..." />
       ) : (
-        <div className="card admin-setup-panel">
-          <section className="admin-setup-block">
-            <h3 className="admin-setup-title">Chỉ nhập báo cáo ngày hiện tại</h3>
-            <label className="admin-setup-check">
-              <input type="checkbox" checked={todayOnly} onChange={(e) => setTodayOnly(e.target.checked)} disabled={isSaving} />
-              <span>Chỉ cho người dùng nhập báo cáo của ngày hôm nay</span>
-            </label>
-            <p className="admin-setup-hint">
-              Khi bật, mọi báo cáo của ngày cũ hơn hôm nay tự khoá: người dùng chỉ xem, không nhập mới, sửa, lưu hay upload bản ký được.
-              Nút OPEN / LOCKED của từng báo cáo vẫn dùng bình thường: admin bấm OPEN ở một ngày cũ để cho phép sửa riêng ngày đó
-              (báo cáo tự khoá lại khi upload bản ký), bấm LOCKED để khoá riêng một ngày. Ngày và giờ hết hạn tính theo giờ máy chủ SharePoint, múi giờ Việt Nam (UTC+7), nên người dùng chỉnh giờ máy cũng không lách được; báo cáo của ngày hôm qua khoá lúc 0:00.
-            </p>
-          </section>
+        <div className="section-card admin-setup-panel">
+          <div className="section-card__banner">
+            <span className="section-card__title">
+              CÀI ĐẶT BÁO CÁO <span className="section-card__title-sub">| REPORT SETTINGS</span>
+            </span>
+            <BannerClock />
+          </div>
 
-          <section className="admin-setup-block">
-            <h3 className="admin-setup-title">Số ngày thống kê</h3>
-            <div className="field admin-setup-days">
-              <label htmlFor="admin-setup-days" className="field__label">
-                Số ngày gần nhất hiện ở lịch và tab Tổng quan ({MIN_DAYS}–{MAX_DAYS})
-              </label>
-              <input
-                id="admin-setup-days"
-                type="number"
-                className={`input${daysValid ? '' : ' input--danger'}`}
-                min={MIN_DAYS}
-                max={MAX_DAYS}
-                step={1}
-                inputMode="numeric"
-                value={daysText}
-                onChange={(e) => setDaysText(e.target.value)}
-                disabled={isSaving}
-              />
+          <div className="admin-setup-body">
+            <section className="admin-setup-group">
+              <h3 className="admin-setup-group__label">Nhập liệu</h3>
+              <div className="admin-setup-row">
+                <div className="admin-setup-row__text">
+                  <h4 className="admin-setup-title">Chỉ nhập báo cáo ngày hiện tại</h4>
+                  <p className="admin-setup-hint">
+                    Báo cáo của các ngày trước hôm nay tự khoá: người dùng chỉ xem, không nhập mới, sửa, lưu hay upload bản ký.
+                    Ngày và giờ tính theo giờ máy chủ SharePoint (UTC+7), báo cáo hôm qua khoá lúc 0:00.
+                  </p>
+                  <p className="admin-setup-legend">
+                    <span className="admin-setup-tag admin-setup-tag--open"><Icon name="lock-open" size={16} /></span>
+                    <span><strong>OPEN</strong> — admin mở riêng một ngày cũ để cho sửa; tự khoá lại khi upload bản ký.</span>
+                  </p>
+                  <p className="admin-setup-legend">
+                    <span className="admin-setup-tag admin-setup-tag--locked"><Icon name="lock" size={16} /></span>
+                    <span><strong>LOCKED</strong> — khoá riêng một ngày bất kỳ.</span>
+                  </p>
+                </div>
+                <Switch checked={todayOnly} onChange={setTodayOnly} disabled={isSaving} label={todayOnly ? 'Đang bật' : 'Đang tắt'} />
+              </div>
+            </section>
+
+            <section className="admin-setup-group">
+              <h3 className="admin-setup-group__label">Hiển thị</h3>
+              <div className="admin-setup-row">
+                <div className="admin-setup-row__text">
+                  <h4 className="admin-setup-title">Số ngày thống kê</h4>
+                  <p className="admin-setup-hint">
+                    Số ngày gần nhất hiện ở lịch và tab Tổng quan. Chỉ đổi phạm vi hiển thị, không xoá hay đổi dữ liệu báo cáo.
+                  </p>
+                </div>
+                <div className="admin-setup-row__control">
+                  <NumberStepper id="admin-setup-days" text={daysText} unit="ngày" min={MIN_DAYS} max={MAX_DAYS} valid={daysValid} disabled={isSaving} onChange={setDaysText} />
+                  <span className="admin-setup-range">{MIN_DAYS}–{MAX_DAYS} · mặc định {DEFAULT_DAYS}</span>
+                </div>
+              </div>
+            </section>
+
+            <section className="admin-setup-group">
+              <h3 className="admin-setup-group__label">Khoá báo cáo</h3>
+              <div className="admin-setup-row">
+                <div className="admin-setup-row__text">
+                  <h4 className="admin-setup-title">Tự khoá lại sau khi mở khoá</h4>
+                  <p className="admin-setup-hint">
+                    Khi admin bấm OPEN một báo cáo, hết thời gian này báo cáo quay về quy tắc mặc định (đã ký, hoặc ngày cũ khi bật chế độ trên, thì khoá).
+                    Người đang nhập dở cần Lưu trước giờ đó.
+                  </p>
+                  <p className="admin-setup-note">
+                    <Icon name="warning" size={16} />
+                    <span>
+                      Cần cột <code>UnlockUntil</code> (Text) trong list <strong>DRPRegistry</strong>. Chưa có cột thì mở khoá không có hạn.
+                    </span>
+                  </p>
+                </div>
+                <div className="admin-setup-row__control">
+                  <NumberStepper id="admin-setup-unlock" text={unlockText} unit="giờ" min={MIN_UNLOCK} max={MAX_UNLOCK} valid={unlockValid} disabled={isSaving} onChange={setUnlockText} />
+                  <span className="admin-setup-range">{MIN_UNLOCK}–{MAX_UNLOCK} · mặc định {DEFAULT_UNLOCK}</span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div className="admin-setup-foot">
+            <span className="admin-setup-foot__meta">
+              {config.updatedAt ? (
+                <>
+                  <span className="admin-setup-foot__dot" />
+                  <span>
+                    Cập nhật bởi <strong>{config.updatedBy || 'admin'}</strong>
+                    <span className="admin-setup-foot__time"> lúc {new Date(config.updatedAt).toLocaleString('vi-VN')}</span>
+                  </span>
+                </>
+              ) : (
+                <span>Chưa có cập nhật nào</span>
+              )}
+            </span>
+            <div className="admin-setup-foot__actions">
+              <button type="button" className="btn btn--secondary" onClick={resetChanges} disabled={isSaving || !dirty}>
+                <span>Huỷ thay đổi</span>
+              </button>
+              <button type="button" className="btn btn--primary" onClick={save} disabled={isSaving || !daysValid || !unlockValid || !dirty}>
+                <Icon name="save" />
+                <span>{isSaving ? 'Đang lưu...' : 'Lưu cài đặt'}</span>
+              </button>
             </div>
-            <p className="admin-setup-hint">Mặc định {DEFAULT_DAYS} ngày. Chỉ đổi phạm vi hiển thị, không xoá hay đổi dữ liệu báo cáo.</p>
-          </section>
-
-          <section className="admin-setup-block">
-            <h3 className="admin-setup-title">Tự khoá lại sau khi mở khoá</h3>
-            <div className="field admin-setup-days">
-              <label htmlFor="admin-setup-unlock" className="field__label">
-                Khi admin bấm OPEN một báo cáo, tự khoá lại sau (giờ, {MIN_UNLOCK}–{MAX_UNLOCK})
-              </label>
-              <input
-                id="admin-setup-unlock"
-                type="number"
-                className={`input${unlockValid ? '' : ' input--danger'}`}
-                min={MIN_UNLOCK}
-                max={MAX_UNLOCK}
-                step={1}
-                inputMode="numeric"
-                value={unlockText}
-                onChange={(e) => setUnlockText(e.target.value)}
-                disabled={isSaving}
-              />
-            </div>
-            <p className="admin-setup-hint">
-              Mặc định {DEFAULT_UNLOCK} giờ. Hết giờ, báo cáo quay về quy tắc mặc định (đã ký hoặc ngày cũ khi bật chế độ trên thì khoá). Người đang nhập dở cần Lưu trước giờ đó.
-              Cần cột <code>UnlockUntil</code> (Text) trong list DRPRegistry; chưa có cột thì mở khoá không có hạn.
-            </p>
-          </section>
-
-          <div className="admin-setup-actions">
-            <button type="button" className="btn btn--primary" onClick={save} disabled={isSaving || !daysValid || !unlockValid || !dirty}>
-              <Icon name="save" />
-              <span>{isSaving ? 'Đang lưu...' : 'Lưu cài đặt'}</span>
-            </button>
-            {config.updatedAt && (
-              <span className="admin-setup-hint">
-                Cập nhật bởi {config.updatedBy || 'admin'} lúc {new Date(config.updatedAt).toLocaleString('vi-VN')}
-              </span>
-            )}
           </div>
         </div>
       )}

@@ -8,3 +8,5 @@ export * from './TileGrid';
 export * from './PromptDialog';
 export * from './ConfirmDialog';
 export * from './CreatableSelect';
+export * from './Switch';
+export * from './NumberStepper';

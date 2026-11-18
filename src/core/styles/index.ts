@@ -6,6 +6,7 @@ import './tokens.css';
 import './base.css';
 import './components/button.css';
 import './components/form.css';
+import './components/controls.css';
 import './components/badge.css';
 import './components/card.css';
 import './components/table.css';

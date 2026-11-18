@@ -7,9 +7,11 @@ import {
   ICON_NAMES,
   Icon,
   LoadingState,
+  NumberStepper,
   PageHeader,
   PromptDialog,
   SearchInput,
+  Switch,
   TileGrid,
   ToastAlert
 } from '../../../core/components';
@@ -41,6 +43,8 @@ export interface StyleGuideViewProps {
 export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
   const [chip, setChip] = React.useState<string>('ALL');
   const [query, setQuery] = React.useState<string>('');
+  const [guideOn, setGuideOn] = React.useState<boolean>(true);
+  const [guideNum, setGuideNum] = React.useState<string>('14');
   const [kind, setKind] = React.useState<string>('NGHIEM_THU');
   const [kinds, setKinds] = React.useState<string[]>(['KIEM_TRA_ATLD', 'NGHIEM_THU', 'CHI_THI_TVGS']);
   const [promptOpen, setPromptOpen] = React.useState<boolean>(false);
@@ -203,6 +207,13 @@ export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
             onCancel={() => setPromptOpen(false)}
           />
         )}
+      </SectionBlock>
+
+      <SectionBlock title="Switch · NumberStepper" hint={<>Công tắc bật/tắt và ô số nguyên có nút −/+ (tự giới hạn <code>min</code>–<code>max</code>)</>}>
+        <div className="admin-guide-row">
+          <Switch checked={guideOn} onChange={setGuideOn} label={guideOn ? 'Đang bật' : 'Đang tắt'} />
+          <NumberStepper text={guideNum} onChange={setGuideNum} min={1} max={60} unit="ngày" valid={Number(guideNum) >= 1 && Number(guideNum) <= 60} />
+        </div>
       </SectionBlock>
 
       <SectionBlock title="Trạng thái & thông báo" hint={<><code>LoadingState</code>, <code>EmptyState</code>, <code>ToastAlert</code></>}>
