@@ -3,6 +3,7 @@ import type { UserSession, UserProfileRecord } from '../../core/auth';
 import { UserProfileService, extractCleanEmail, checkIsAdmin } from '../../core/auth';
 import type { PortalModule } from '../../core/types';
 import { Icon, TileGrid } from '../../core/components';
+import { getInitials } from '../../core/utils';
 
 export interface HomeViewProps {
   currentUser?: UserSession;
@@ -35,7 +36,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   const cleanCurrentEmail = extractCleanEmail(userEmail || userLoginName);
   const activeDisplayName = currentUser?.displayName || userDisplayName;
-  const userInitials = activeDisplayName.slice(0, 2).toUpperCase();
+  const userInitials = getInitials(activeDisplayName);
 
   // Chỉ admin thật (PortalShell truyền onSelectProfile) mới tải danh sách hồ sơ để chuyển vai trò
   const canSwitchRole = Boolean(onSelectProfile);
@@ -89,7 +90,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="landing-profile-box">
             {/* Centered Avatar */}
             <div className="landing-avatar-wrapper">
-              <div className="landing-user-avatar">{userInitials}</div>
+              <div className="landing-user-avatar" data-len={userInitials.length}>{userInitials}</div>
               {isAuthorized && <span className="landing-avatar-status" title="Đã xác thực Microsoft 365" />}
             </div>
 
