@@ -3,6 +3,7 @@ import { ReportDayInfo } from '../types/report.types';
 import { getDocShortPrefix, getReportFolderRelativePath } from '../utils/reportFileNaming';
 import { formatReportNo } from '../utils/reportMeta';
 import { normalizeDocId } from '../utils/reportRole';
+import { DEFAULT_REPORT_SETTINGS, ReportSettings, isLockedByTodayOnly } from '../utils/reportSettings';
 
 /** Tên SharePoint List quản lý trạng thái và số báo cáo (cột cần tạo: xem AGENTS.md mục 5.3). */
 export const REPORT_REGISTRY_LIST = 'DRPRegistry';
@@ -36,10 +37,12 @@ export interface IReportLock {
 
 /**
  * Khoá hiệu lực của một dòng sổ: cột `Locked` = 1 → khoá, = 0 → mở (admin đã mở khoá); cột trống hoặc không có
- * cột → khoá khi đã upload bản ký (`Status = done`), nên báo cáo đã ký từ trước khi có tính năng này cũng được khoá.
+ * cột → khoá khi đã upload bản ký (`Status = done`), nên báo cáo đã ký từ trước khi có tính năng này cũng được khoá,
+ * hoặc khi `pastLocked` (ngày cũ trong chế độ "chỉ nhập ngày hiện tại"; admin đã mở khoá riêng với `Locked = 0` thì vẫn mở).
  */
-export function isRegistryRowLocked(locked: boolean | undefined, status: RegistryStatus): boolean {
-  return locked === undefined ? status === 'done' : locked;
+export function isRegistryRowLocked(locked: boolean | undefined, status: RegistryStatus, pastLocked = false): boolean {
+  if (locked !== undefined) return locked;
+  return pastLocked || status === 'done';
 }
 
 /** Dấu vết bản đã ký: ai upload bản hiện tại, ai xoá và lúc nào (lần xoá gần nhất). */
@@ -100,7 +103,16 @@ export class ReportRegistryService {
   /** List đã có cột Locked chưa (chưa có thì không bật/tắt khoá được; báo cáo đã ký vẫn coi là khoá). */
   private _hasLocked = false;
 
-  constructor(client: ISharePointClient, siteUrl: string, libraryPath: () => string) {
+  /** Đọc cài đặt báo cáo của admin (chế độ chỉ nhập ngày hiện tại); lỗi hoặc không truyền = tắt. */
+  private readonly _settings: () => Promise<ReportSettings>;
+
+  constructor(
+    client: ISharePointClient,
+    siteUrl: string,
+    libraryPath: () => string,
+    settings: () => Promise<ReportSettings> = () => Promise.resolve(DEFAULT_REPORT_SETTINGS)
+  ) {
+    this._settings = settings;
     this._client = client;
     this._siteUrl = siteUrl;
     this._libraryPath = libraryPath;
@@ -325,10 +337,11 @@ export class ReportRegistryService {
   /** Trạng thái khoá của báo cáo một ngày (chưa có dòng trong sổ = chưa khoá). Lỗi đọc sổ thì ném ra. */
   public async getLock(unit: string, docId: string, dateStr: string): Promise<IReportLock> {
     await this.names();
+    const past = isLockedByTodayOnly(await this._settings(), dateStr);
     const item = await this.findItem(unit, docId, dateStr);
     return {
       exists: Boolean(item),
-      locked: item ? isRegistryRowLocked(item.Locked, item.Status) : false,
+      locked: item ? isRegistryRowLocked(item.Locked, item.Status, past) : past,
       canToggle: this._hasLocked
     };
   }
@@ -342,7 +355,9 @@ export class ReportRegistryService {
       await this._client.updateItem<Record<string, unknown>>(this._siteUrl, REPORT_REGISTRY_LIST, item.id, this.toInternal(n, { Locked: locked }));
       return;
     }
-    if (!locked) return; // chưa có dòng nghĩa là chưa khoá, không cần mở
+    // Chưa có dòng nghĩa là chưa khoá: không cần mở, trừ ngày cũ đang bị khoá theo chế độ "chỉ nhập ngày hiện tại"
+    // (cần dòng giữ chỗ `Locked = 0` để ghi nhận admin đã mở khoá riêng ngày đó)
+    if (!locked && !isLockedByTodayOnly(await this._settings(), dateStr)) return;
     // Ngày chưa nhập báo cáo: tạo dòng giữ chỗ để khoá trước (người dùng chỉ xem, chưa lưu được)
     let no: Partial<Omit<IRegistryRow, 'id'>> = {};
     if (this._hasNo) {
@@ -360,7 +375,7 @@ export class ReportRegistryService {
         ReportDate: dateStr,
         ReportNo: 0,
         Status: 'unsigned',
-        Locked: true
+        Locked: locked
       })
     );
   }
@@ -387,6 +402,7 @@ export class ReportRegistryService {
     fromDate: string,
     unit?: string
   ): Promise<Record<string, Record<string, ReportDayInfo>>> {
+    const settings = await this._settings();
     const rows = await this.query(
       (n) =>
         `$filter=${n.DocID} eq '${esc(getDocShortPrefix(docId))}' and ${n.ReportDate} ge '${esc(fromDate)}'` +
@@ -404,7 +420,7 @@ export class ReportRegistryService {
         savedAt: it.SavedAt || undefined,
         reporter: it.Reporter || undefined,
         reportNo: it.ReportNo > 0 ? formatReportNo(it.ReportNo) : undefined,
-        locked: isRegistryRowLocked(it.Locked, it.Status),
+        locked: isRegistryRowLocked(it.Locked, it.Status, isLockedByTodayOnly(settings, it.ReportDate)),
         signed: done
           ? {
               // Tên file = <DocCode>_signed.pdf: sổ không lưu Doc. code nên chỉ biết khi mở (openSignedDocument)

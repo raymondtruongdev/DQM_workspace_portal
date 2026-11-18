@@ -27,6 +27,8 @@ export interface IReportLandingViewProps {
   canManageLock?: boolean;
   /** true = portal đang bảo trì, không được ghi lên SharePoint. */
   onCheckMaintenance?: () => Promise<boolean>;
+  /** Số ngày thống kê hiện ở tab Tổng quan (admin đặt ở Admin Config). */
+  windowDays?: number;
 }
 
 export const ReportLandingView: React.FC<IReportLandingViewProps> = ({
@@ -45,7 +47,8 @@ export const ReportLandingView: React.FC<IReportLandingViewProps> = ({
   onChangeView,
   onOpenReportDate,
   canManageLock = false,
-  onCheckMaintenance
+  onCheckMaintenance,
+  windowDays
 }) => {
   const [searchTerm, setSearchTerm] = React.useState<string>('');
 
@@ -157,6 +160,7 @@ export const ReportLandingView: React.FC<IReportLandingViewProps> = ({
           onOpenDate={onOpenReportDate}
           canManageLock={canManageLock}
           onCheckMaintenance={onCheckMaintenance}
+          windowDays={windowDays}
         />
       </div>
     );

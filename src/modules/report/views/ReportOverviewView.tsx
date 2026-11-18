@@ -5,6 +5,7 @@ import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { buildExportRows, exportFileName, exportXlsx } from '../utils/reportExport';
 import { ReportDataService } from '../services/ReportDataService';
 import { ReportDayInfo, ReportDayStatus } from '../types/report.types';
+import { DEFAULT_WINDOW_DAYS, isLockedByTodayOnly } from '../utils/reportSettings';
 import {
   buildRecentDates,
   DAY_STATUS_BADGE,
@@ -49,7 +50,6 @@ const LiveClock: React.FC = () => {
   );
 };
 
-const WINDOW_DAYS = 14;
 const CACHE_TTL_MS = 3 * 60 * 1000;
 const PAGE_SIZE = 30;
 
@@ -83,18 +83,22 @@ export interface IReportOverviewViewProps {
   canManageLock?: boolean;
   /** true = portal đang bảo trì, không được ghi lên SharePoint. */
   onCheckMaintenance?: () => Promise<boolean>;
+  /** Số ngày gần nhất hiển thị (admin đặt ở Admin Config; mặc định 14). */
+  windowDays?: number;
 }
 
-/** Tổng quan cho admin: hôm nay đơn vị nào thiếu gì, ma trận đơn vị × 14 ngày, danh sách cần xử lý. */
+/** Tổng quan cho admin: hôm nay đơn vị nào thiếu gì, ma trận đơn vị × số ngày, danh sách cần xử lý. */
 export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
   assignments,
   dataService,
   onOpenUnit,
   onOpenDate,
   canManageLock = false,
-  onCheckMaintenance
+  onCheckMaintenance,
+  windowDays = DEFAULT_WINDOW_DAYS
 }) => {
-  const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS), []);
+  const WINDOW_DAYS = windowDays;
+  const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS), [WINDOW_DAYS]);
   const todayStr = dates[dates.length - 1];
   const targets = React.useMemo(() => buildTargets(assignments), [assignments]);
   const cacheKey = React.useMemo(() => `${targets.map((t) => t.key).join(',')}@${dates[0]}`, [targets, dates]);
@@ -185,12 +189,16 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
         for (const docId of docIds) {
           Object.assign(merged, await dataService.getRegistryDayInfos(docId, dates[0]));
         }
+        const settings = await dataService.getSettings();
         if (runId.current !== myRun) return;
-        const next: OverviewRow[] = targets.map((t) => ({
-          target: t,
-          state: 'ready',
-          infos: merged[`${t.unit}|${t.docId}`.toLowerCase()] || {}
-        }));
+        const next: OverviewRow[] = targets.map((t) => {
+          const infos = { ...(merged[`${t.unit}|${t.docId}`.toLowerCase()] || {}) };
+          // Ngày cũ chưa có dòng trong sổ vẫn bị khoá khi bật chế độ "chỉ nhập ngày hiện tại"
+          dates.forEach((d) => {
+            if (!infos[d] && isLockedByTodayOnly(settings, d)) infos[d] = { dateStr: d, status: 'missing', locked: true };
+          });
+          return { target: t, state: 'ready', infos };
+        });
         setRows(next);
         saveOverviewCache({ key: cacheKey, at: Date.now(), rows: next });
       } catch (err: unknown) {

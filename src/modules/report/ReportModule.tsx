@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ModuleProps, RoleEntry } from '../../core/types';
 import { SharePointClient } from '../../core/services';
 import { EmptyState, Icon, PageHeader } from '../../core/components';
+import { DEFAULT_REPORT_SETTINGS, REPORT_SETTINGS_ID, ReportSettings, parseReportSettings } from './utils/reportSettings';
 import { REPORT_STORAGE_KEYS } from './constants/reportStorageKeys';
 import {
   ReportDataService,
@@ -26,7 +27,8 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
     siteUrl,
     isRealAdmin = false,
     onGoHome,
-    checkMaintenance
+    checkMaintenance,
+    getModuleSettings
   } = props;
 
   const isAdmin = !!currentUser?.isAdmin;
@@ -39,18 +41,46 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
   const fileService = React.useMemo(() => new ReportFileService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
   const roleService = React.useMemo(() => new ReportRoleService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
   const templateService = React.useMemo(() => new ReportTemplateService(fileService), [fileService]);
+  // Cài đặt do admin đặt (Admin Config → Setup DailyReport). Đọc lại từ SharePoint, nhớ vài giây để các lần kiểm tra khoá liên tiếp không đọc file nhiều lần.
+  const settingsCache = React.useRef<{ at: number; promise: Promise<ReportSettings> } | undefined>(undefined);
+  const loadSettings = React.useCallback((): Promise<ReportSettings> => {
+    const cached = settingsCache.current;
+    if (cached && Date.now() - cached.at < 5000) return cached.promise;
+    const promise = getModuleSettings(REPORT_SETTINGS_ID)
+      .then(parseReportSettings)
+      .catch((err: unknown) => {
+        console.warn('[ReportModule] Could not read report settings:', err);
+        return DEFAULT_REPORT_SETTINGS;
+      });
+    settingsCache.current = { at: Date.now(), promise };
+    return promise;
+  }, [getModuleSettings]);
+  const [settings, setSettings] = React.useState<ReportSettings>(DEFAULT_REPORT_SETTINGS);
   const registryService = React.useMemo(
-    () => new ReportRegistryService(sharePointClient, siteUrl, () => fileService.getLibraryPath()),
-    [sharePointClient, siteUrl, fileService]
+    () => new ReportRegistryService(sharePointClient, siteUrl, () => fileService.getLibraryPath(), loadSettings),
+    [sharePointClient, siteUrl, fileService, loadSettings]
   );
   const catalogService = React.useMemo(() => new ReportCatalogService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
   const dataService = React.useMemo(
-    () => new ReportDataService(fileService, templateService, registryService, catalogService),
-    [fileService, templateService, registryService, catalogService]
+    () => new ReportDataService(fileService, templateService, registryService, catalogService, loadSettings),
+    [fileService, templateService, registryService, catalogService, loadSettings]
   );
 
   // View state
   const [currentView, setCurrentView] = React.useState<'landing' | 'calendar' | 'entry'>('landing');
+  // Đọc lại cài đặt mỗi khi đổi màn hình (admin vừa đổi thì người dùng thấy ở lần chuyển màn hình kế tiếp)
+  React.useEffect(() => {
+    let alive = true;
+    settingsCache.current = undefined;
+    loadSettings()
+      .then((s) => {
+        if (alive) setSettings(s);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [currentView, loadSettings]);
   const [entryDate, setEntryDate] = React.useState<string | undefined>(undefined);
   // Tab đang xem ở trang danh sách (admin: Tổng quan / Báo cáo của tôi, mặc định Tổng quan); giữ khi quay lại từ lịch/form
   const [landingView, setLandingView] = React.useState<'mine' | 'overview'>(isAdmin ? 'overview' : 'mine');
@@ -158,6 +188,7 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
           onOpenDate={handleOpenDate}
           currentUserEmail={effectiveEmail}
           canManageLock={canManageLock}
+          windowDays={settings.windowDays}
         />
       ) : currentView === 'entry' && selectedRole ? (
         <ReportEntryView
@@ -213,6 +244,7 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
           onOpenReportDate={handleOpenReportDate}
           canManageLock={canManageLock}
           onCheckMaintenance={checkMaintenance}
+          windowDays={settings.windowDays}
         />
       )}
     </div>

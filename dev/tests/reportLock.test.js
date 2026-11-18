@@ -134,3 +134,32 @@ test('ReportLockedError có thông điệp hướng dẫn liên hệ admin', () 
   assert.ok(e instanceof Error);
   assert.match(e.message, /admin/);
 });
+
+// ---- Chế độ "chỉ nhập ngày hiện tại" (Setup DailyReport) ----
+const S = require(path.join(root, 'temp', 'dev', 'js', 'src', 'modules', 'report', 'utils', 'reportSettings'));
+
+test('parseReportSettings: mặc định, ép kiểu và kẹp số ngày', () => {
+  assert.deepEqual(S.parseReportSettings(undefined), { todayOnly: false, windowDays: 14 });
+  assert.deepEqual(S.parseReportSettings({ todayOnly: true, windowDays: 7 }), { todayOnly: true, windowDays: 7 });
+  assert.equal(S.parseReportSettings({ windowDays: 999 }).windowDays, 60);
+  assert.equal(S.parseReportSettings({ windowDays: 0 }).windowDays, 1);
+  assert.equal(S.parseReportSettings({ windowDays: 'abc', todayOnly: 'yes' }).windowDays, 14);
+  assert.equal(S.parseReportSettings({ todayOnly: 'yes' }).todayOnly, false);
+});
+
+test('isLockedByTodayOnly: chỉ khoá ngày cũ khi bật', () => {
+  const today = S.todayDateStr();
+  assert.equal(S.isLockedByTodayOnly({ todayOnly: true, windowDays: 14 }, today), false);
+  assert.equal(S.isLockedByTodayOnly({ todayOnly: true, windowDays: 14 }, '2000-01-01'), true);
+  assert.equal(S.isLockedByTodayOnly({ todayOnly: false, windowDays: 14 }, '2000-01-01'), false);
+});
+
+test('isRegistryRowLocked: ngày cũ khoá tự động nhưng admin mở khoá riêng (Locked = 0) vẫn được', () => {
+  const R = require(path.join(root, 'temp', 'dev', 'js', 'src', 'modules', 'report', 'services', 'ReportRegistryService'));
+  assert.equal(R.isRegistryRowLocked(undefined, 'unsigned', true), true);
+  assert.equal(R.isRegistryRowLocked(false, 'unsigned', true), false);
+  assert.equal(R.isRegistryRowLocked(false, 'done', true), false);
+  assert.equal(R.isRegistryRowLocked(true, 'unsigned', false), true);
+  assert.equal(R.isRegistryRowLocked(undefined, 'unsigned', false), false);
+  assert.equal(R.isRegistryRowLocked(undefined, 'done', false), true);
+});

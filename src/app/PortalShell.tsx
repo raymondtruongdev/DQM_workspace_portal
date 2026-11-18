@@ -59,6 +59,14 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
     return c.maintenance && !isRealAdmin;
   }, [configService, isRealAdmin]);
 
+  const getModuleSettings = useCallback(
+    async (moduleId: string): Promise<Record<string, unknown>> => {
+      const c = await configService.getConfig();
+      return c.moduleSettings[moduleId] || {};
+    },
+    [configService]
+  );
+
   // Người dùng đang ở trong module khi admin bật bảo trì: kiểm tra định kỳ và khi quay lại tab
   useEffect(() => {
     let alive = true;
@@ -187,6 +195,7 @@ export const PortalShell: React.FC<IPortalProps> = (props) => {
             isRealAdmin={isRealAdmin}
             onGoHome={() => setActiveModuleId(null)}
             checkMaintenance={checkMaintenance}
+            getModuleSettings={getModuleSettings}
           />
         </main>
       </div>

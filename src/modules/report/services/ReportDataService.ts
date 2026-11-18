@@ -8,6 +8,7 @@ import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
 import { CatalogRow, ReportCatalog, emptyCatalog, mergeCatalogRows, parseCatalogFromWorkbook } from '../utils/reportCatalog';
 import { buildStandaloneHtml, ReportHtmlAssets } from '../utils/reportHtml';
 import { bufferToDataUrl, embeddableImage, mimeOfFile } from '../utils/reportImage';
+import { DEFAULT_REPORT_SETTINGS, ReportSettings, isLockedByTodayOnly } from '../utils/reportSettings';
 import { ReportFileService } from './ReportFileService';
 import { LoadedTemplate, ReportTemplateService } from './ReportTemplateService';
 import { IReportLock, ISignedTrail, ReportLockedError, ReportRegistryService } from './ReportRegistryService';
@@ -31,12 +32,16 @@ export class ReportDataService {
   private _registry: ReportRegistryService;
   private _catalogSource: ReportCatalogService;
 
+  private readonly _settings: () => Promise<ReportSettings>;
+
   constructor(
     fileService: ReportFileService,
     templateService: ReportTemplateService,
     registry: ReportRegistryService,
-    catalogSource: ReportCatalogService
+    catalogSource: ReportCatalogService,
+    settings: () => Promise<ReportSettings> = () => Promise.resolve(DEFAULT_REPORT_SETTINGS)
   ) {
+    this._settings = settings;
     this._fileService = fileService;
     this._templateService = templateService;
     this._registry = registry;
@@ -432,12 +437,23 @@ export class ReportDataService {
         const from = dateStrs.slice().sort()[0];
         const byKey = await this._registry.getDayInfosSince(docId, from, unit);
         const days = byKey[`${unit}|${docId}`.toLowerCase()] || {};
-        return dateStrs.map((d): ReportDayInfo => days[d] || { dateStr: d, status: 'missing' });
+        const settings = await this._settings();
+        // Ngày chưa có dòng trong sổ: ngày cũ vẫn bị khoá khi bật chế độ "chỉ nhập ngày hiện tại"
+        return dateStrs.map((d): ReportDayInfo => days[d] || { dateStr: d, status: 'missing', locked: isLockedByTodayOnly(settings, d) || undefined });
       } catch (err: unknown) {
         console.warn('[DRPRegistry] Could not read day infos, scanning folders instead:', err);
       }
     }
-    return await this._fileService.getReportDayInfos(unit, docId, dateStrs, concurrency);
+    // Quét thư mục (sổ không đọc được): khoá ngày cũ theo chế độ "chỉ nhập ngày hiện tại" (không biết khoá riêng từng ngày)
+    const infos = await this._fileService.getReportDayInfos(unit, docId, dateStrs, concurrency);
+    if (!this.isDaily(docId)) return infos;
+    const settings = await this._settings();
+    return infos.map((i) => (isLockedByTodayOnly(settings, i.dateStr) ? { ...i, locked: true } : i));
+  }
+
+  /** Cài đặt báo cáo của admin (số ngày thống kê, chế độ chỉ nhập ngày hiện tại). */
+  public getSettings(): Promise<ReportSettings> {
+    return this._settings();
   }
 
   /** Doc. code ghi trong file báo cáo đã lưu ('' nếu chưa có file). */

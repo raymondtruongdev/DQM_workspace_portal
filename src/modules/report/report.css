@@ -1393,6 +1393,11 @@
 .report-cal-day--done { background: var(--color-success-bg); border-color: var(--color-success-border); }
 .report-cal-day--unsigned { background: var(--color-warning-bg); border-color: var(--color-warning-border); }
 .report-cal-day--missing { background: var(--color-danger-bg); border-color: var(--color-danger-border); }
+.report-cal-day--locked {
+  background: repeating-linear-gradient(135deg, var(--color-surface-subtle) 0 8px, var(--color-surface) 8px 16px);
+  border-color: var(--color-border-focus);
+}
+.report-cal-day--locked .report-cal-day__status { color: var(--color-text-muted); }
 .report-cal-day.is-today { border-color: var(--color-accent); }
 
 .report-cal-day--blank,
@@ -1479,6 +1484,7 @@
 .report-cal-legend__dot--done { background: var(--color-success); }
 .report-cal-legend__dot--unsigned { background: var(--color-warning); }
 .report-cal-legend__dot--missing { background: var(--color-danger); }
+.report-cal-legend__dot--locked { background: var(--color-border-focus); }
 
 .report-signed-folder code {
   padding: 1px var(--space-1-5);

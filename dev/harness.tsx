@@ -50,7 +50,12 @@ const props: ModuleProps = {
   spHttpClient: {} as ModuleProps['spHttpClient'],
   siteUrl: SITE,
   onGoHome: () => window.alert('Trang chủ (khung chạy thử)'),
-  checkMaintenance: () => Promise.resolve(false)
+  checkMaintenance: () => Promise.resolve(false),
+  // ?todayOnly=1 và ?days=<n> thử cài đặt "Setup DailyReport" của admin
+  getModuleSettings: () => {
+    const q = new URLSearchParams(window.location.search);
+    return Promise.resolve({ todayOnly: q.get('todayOnly') === '1', windowDays: Number(q.get('days')) || 14 });
+  }
 };
 
 createRoot(document.getElementById('root') as HTMLElement).render(

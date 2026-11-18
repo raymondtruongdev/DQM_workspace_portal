@@ -4,9 +4,10 @@ import { Icon, PageHeader, TileGrid } from '../../core/components';
 import { PortalConfigService, SharePointClient } from '../../core/services';
 import { StyleGuideView } from './views/StyleGuideView';
 import { ShutdownView } from './views/ShutdownView';
+import { DailyReportSetupView } from './views/DailyReportSetupView';
 import './admin.css';
 
-type AdminView = 'menu' | 'styleguide' | 'shutdown';
+type AdminView = 'menu' | 'styleguide' | 'shutdown' | 'dailyreport';
 
 /** Admin Config: menu các công cụ quản trị (chỉ admin thấy). */
 export const AdminModule: React.FC<ModuleProps> = ({ currentUser, spHttpClient, siteUrl, onGoHome }) => {
@@ -23,6 +24,16 @@ export const AdminModule: React.FC<ModuleProps> = ({ currentUser, spHttpClient, 
   if (view === 'shutdown') {
     return (
       <ShutdownView
+        configService={configService}
+        adminName={currentUser?.email || currentUser?.username || 'admin'}
+        onBack={() => setView('menu')}
+      />
+    );
+  }
+
+  if (view === 'dailyreport') {
+    return (
+      <DailyReportSetupView
         configService={configService}
         adminName={currentUser?.email || currentUser?.username || 'admin'}
         onBack={() => setView('menu')}
@@ -48,6 +59,12 @@ export const AdminModule: React.FC<ModuleProps> = ({ currentUser, spHttpClient, 
             title: 'UI Kit (Style Guide)',
             icon: <Icon name="paint" size={26} />,
             onClick: () => setView('styleguide')
+          },
+          {
+            id: 'dailyreport',
+            title: 'Setup DailyReport',
+            icon: <Icon name="calendar" size={26} />,
+            onClick: () => setView('dailyreport')
           },
           {
             id: 'shutdown',

@@ -6,11 +6,14 @@ export interface PortalConfig {
   message: string;
   updatedBy: string;
   updatedAt: string;
+  /** Cài đặt riêng của từng module (khoá = id module), module tự đọc và diễn giải; core chỉ lưu giữ. */
+  moduleSettings: Record<string, Record<string, unknown>>;
 }
 
 export const DEFAULT_PORTAL_CONFIG: PortalConfig = {
   maintenance: false,
   message: '',
   updatedBy: '',
-  updatedAt: ''
+  updatedAt: '',
+  moduleSettings: {}
 };

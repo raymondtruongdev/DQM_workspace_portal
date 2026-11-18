@@ -24,9 +24,8 @@ import {
   WEEKDAY_SHORT_MON_FIRST,
   weekdayLong
 } from '../utils/reportCalendar';
+import { DEFAULT_WINDOW_DAYS } from '../utils/reportSettings';
 import { getReportFolderName } from '../utils/reportFileNaming';
-
-const WINDOW_DAYS = 14;
 
 export interface IReportCalendarViewProps {
   role: RoleEntry;
@@ -40,6 +39,8 @@ export interface IReportCalendarViewProps {
   currentUserEmail: string;
   /** Được khoá/mở khoá (admin thật và đang xem bằng hồ sơ admin) báo cáo từng ngày. */
   canManageLock?: boolean;
+  /** Số ngày gần nhất hiển thị (admin đặt ở Admin Config; mặc định 14). */
+  windowDays?: number;
 }
 
 type CalendarMode = 'cal' | 'list';
@@ -60,9 +61,11 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   onBack,
   onOpenDate,
   currentUserEmail,
-  canManageLock = false
+  canManageLock = false,
+  windowDays = DEFAULT_WINDOW_DAYS
 }) => {
-  const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS), []);
+  const WINDOW_DAYS = windowDays;
+  const dates = React.useMemo(() => buildRecentDates(WINDOW_DAYS), [WINDOW_DAYS]);
   const todayStr = dates[dates.length - 1];
 
   const [infos, setInfos] = React.useState<ReportDayInfo[]>([]);
@@ -231,11 +234,13 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
   const dayButton = (dateStr: string): React.ReactNode => {
     const st = statusOf(dateStr);
     const info = byDate[dateStr];
+    // Ngày chưa nhập mà đã khoá: màu xám riêng để không lẫn với "Chưa nhập" (đỏ, người dùng nhập được)
+    const lockedMissing = st === 'missing' && Boolean(info && info.locked);
     return (
       <button
         key={dateStr}
         type="button"
-        className={`report-cal-day report-cal-day--${st}${dateStr === todayStr ? ' is-today' : ''}`}
+        className={`report-cal-day report-cal-day--${lockedMissing ? 'locked' : st}${dateStr === todayStr ? ' is-today' : ''}`}
         aria-pressed={selected === dateStr}
         onClick={() => setSelected(dateStr)}
       >
@@ -246,9 +251,10 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
         </span>
         <span className="report-cal-day__status">
           <StatusIcon status={st} />
-          {DAY_STATUS_LABEL[st]}
+          {lockedMissing ? 'Đã khoá' : DAY_STATUS_LABEL[st]}
           {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
         </span>
+        {lockedMissing && <span className="report-cal-day__note">Chưa nhập · chỉ xem</span>}
         {info && info.savedAt && <span className="report-cal-day__note">{formatSavedAt(info.savedAt)}</span>}
       </button>
     );
@@ -287,15 +293,15 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
       {toast && <ToastAlert toast={toast} onClose={() => setToast(null)} />}
 
       {isLoading && infos.length === 0 ? (
-        <LoadingState message="Đang kiểm tra các báo cáo của 14 ngày gần nhất..." />
+        <LoadingState message={`Đang kiểm tra các báo cáo của ${WINDOW_DAYS} ngày gần nhất...`} />
       ) : (
         <>
-          <section className="card report-cal-summary" aria-label="Tóm tắt 14 ngày">
+          <section className="card report-cal-summary" aria-label={`Tóm tắt ${WINDOW_DAYS} ngày`}>
             <div className="report-cal-summary__big">
               <b>{counts.done}</b>
               <span>/ {WINDOW_DAYS} ngày hoàn tất</span>
             </div>
-            <div className="report-cal-strip" role="img" aria-label="Trạng thái 14 ngày">
+            <div className="report-cal-strip" role="img" aria-label={`Trạng thái ${WINDOW_DAYS} ngày`}>
               {dates.map((d) => (
                 <i key={d} className={`report-cal-strip__seg report-cal-strip__seg--${statusOf(d)}`} title={`${formatDM(d)} · ${DAY_STATUS_LABEL[statusOf(d)]}`} />
               ))}
@@ -440,7 +446,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--missing" />Chưa nhập: chưa bấm Lưu</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--unsigned" />Chưa upload bản ký: đã lưu, thiếu file PDF đã ký</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--done" />Hoàn tất: có file PDF trong thư mục báo cáo</span>
-                <span><Icon name="lock" size={14} /> Đã khoá: chỉ xem, admin mới mở khoá được</span>
+                <span><i className="report-cal-legend__dot report-cal-legend__dot--locked" /><Icon name="lock" size={14} /> Đã khoá (chưa nhập): chỉ xem, admin mới mở khoá được</span>
               </div>
             </div>
           </div>

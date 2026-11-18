@@ -16,6 +16,8 @@ export interface ModuleProps {
    * module phải gọi trước mỗi thao tác ghi lên SharePoint và dừng nếu true.
    */
   checkMaintenance: () => Promise<boolean>;
+  /** Đọc cài đặt của module (do admin đặt trong Admin Config) ngay lúc gọi; chưa có hoặc lỗi đọc thì trả {} (module dùng mặc định). */
+  getModuleSettings: (moduleId: string) => Promise<Record<string, unknown>>;
 }
 
 /** Definition a feature module registers with the portal */

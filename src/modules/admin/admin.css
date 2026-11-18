@@ -129,6 +129,75 @@
   gap: var(--space-3);
 }
 
+/* Setup DailyReport */
+.admin-setup-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+}
+
+.admin-setup-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.admin-setup-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-setup-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-h);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-setup-check input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  accent-color: var(--color-accent);
+}
+
+.admin-setup-days {
+  max-width: 360px;
+}
+
+.admin-setup-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.admin-setup-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+@media (max-width: 640px) {
+  .admin-setup-panel {
+    padding: var(--space-4);
+  }
+
+  .admin-setup-days {
+    max-width: none;
+  }
+
+  .admin-setup-actions .btn {
+    width: 100%;
+  }
+}
+
 @media (max-width: 640px) {
   .admin-shutdown-panel {
     padding: var(--space-4);
