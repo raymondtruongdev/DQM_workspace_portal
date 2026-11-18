@@ -9,6 +9,8 @@ export interface IReportMetaFormProps {
   metadata: ReportMetadata;
   dateStr: string;
   onDateChange: (newDate: string) => void;
+  /** true = ô ngày chỉ xem (báo cáo ngày: người dùng đã chọn ngày ở lịch rồi mới vào form). */
+  dateLocked?: boolean;
   onMetadataChange: <K extends keyof ReportMetadata>(field: K, value: ReportMetadata[K]) => void;
   isExisting: boolean;
   /** Danh sách đơn vị thi công để chọn (danh mục dùng chung `subcontractor`). */
@@ -24,6 +26,7 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
   metadata,
   dateStr,
   onDateChange,
+  dateLocked = false,
   onMetadataChange,
   subcontractorOptions,
   onAddSubcontractor,
@@ -77,10 +80,11 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
               <input
                 id="report-date-picker-input"
                 type="date"
-                className="input report-date-width"
+                className={`input report-date-width${dateLocked ? ' input--locked' : ''}`}
                 value={dateStr}
                 onChange={(e) => onDateChange(e.target.value)}
-                disabled={disabled}
+                disabled={disabled || dateLocked}
+                title={dateLocked ? 'Ngày đã chọn ở lịch. Muốn đổi ngày, quay lại lịch và chọn ngày khác.' : undefined}
               />
             </div>
           </div>

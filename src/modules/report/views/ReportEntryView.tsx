@@ -1074,6 +1074,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             metadata={doc.metadata}
             dateStr={dateStr}
             onDateChange={handleDateChange}
+            dateLocked={!isWeekly}
             onMetadataChange={handleMetadataChange}
             isExisting={!!doc.isExisting}
             subcontractorOptions={catalogOptions(catalog, 'subcontractor', false, true)}
