@@ -24,8 +24,8 @@ export interface ReportMetadata {
   docCodePattern?: string;      // Mẫu mã tài liệu có {unit} và {reportNo} (từ template, không lưu trong file báo cáo)
   templateVersion?: string;     // e.g. "template_DRP_ST01_20261115"
   location: string;             // Luôn = mã đơn vị (ST01), tự điền, không sửa được
-  reportNo: string;             // Số báo cáo 5 chữ số, tự tăng độc lập theo từng đơn vị, e.g. "00001"
-  geoTag: string;               // Tọa độ (vd "10.771091, 106.698838"): chọn từ danh mục `location`, '' = chưa chọn
+  reportNo: string;             // Số báo cáo 5 chữ số = (ngày báo cáo - StartDate của nhà ga trong DRPUnitConfig) + 1, e.g. "00001"
+  geoTag: string;               // Tọa độ (vd "10.771091, 106.698838"): tự điền từ cột GeoTag của DRPUnitConfig, '' = chưa có
   subcontractors: string[];     // Các đơn vị thi công được chọn trong báo cáo này
   attachedDocs: string;         // Tài liệu đính kèm: văn bản tự nhập, mỗi dòng một tài liệu
   email: string;                // Người lưu gần nhất (updated.by)
@@ -203,5 +203,6 @@ export interface ReportDayInfo {
   reporter?: string;          // người lập (email) – từ sổ DRPRegistry
   reportNo?: string;          // số báo cáo – từ sổ DRPRegistry
   locked?: boolean;           // báo cáo đang khoá (đã upload bản ký hoặc admin khoá): người dùng chỉ xem – từ sổ DRPRegistry
+  beforeStart?: boolean;      // ngày trước ngày bắt đầu của nhà ga (DRPUnitConfig.StartDate): chưa bắt đầu báo cáo, không tính là thiếu
   unlockUntil?: string;       // đang mở khoá có hạn: giờ (ISO) tự khoá lại – từ sổ DRPRegistry
 }

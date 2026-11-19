@@ -238,20 +238,6 @@ export class ReportRegistryService {
   }
 
   /**
-   * Số báo cáo cho một ngày: nếu ngày đó đã có dòng trong sổ thì dùng lại số đó (vd file báo cáo bị xoá),
-   * nếu chưa thì số lớn nhất của đơn vị + 1 (đơn vị chưa có dòng nào = 00001). Lỗi đọc sổ thì ném ra.
-   */
-  public async getReportNoFor(unit: string, docId: string, dateStr: string): Promise<string> {
-    const existing = await this.findItem(unit, docId, dateStr);
-    if (existing && existing.ReportNo > 0) return formatReportNo(existing.ReportNo);
-    const top = await this.query(
-      (n) =>
-        `$filter=${n.Unit} eq '${esc(unit)}' and ${n.DocID} eq '${esc(getDocShortPrefix(docId))}'&$orderby=${n.ReportNo} desc&$top=1`
-    );
-    return formatReportNo((top[0] ? top[0].ReportNo : 0) + 1);
-  }
-
-  /**
    * Bộ đếm mã tự tăng (Event ID, Issue ID…) lớn nhất của đơn vị: lấy từ dòng có số báo cáo cao nhất (mỗi lần lưu ghi
    * bộ đếm cộng dồn nên dòng mới nhất luôn lớn nhất). Chưa có cột Counters hoặc chưa có dòng nào thì trả rỗng.
    */

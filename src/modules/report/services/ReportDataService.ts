@@ -2,7 +2,7 @@ import { ReportDayInfo, ReportDoc, ReportMetadata, ReportSection, SignedDocInfo,
 import { ReportJson } from '../types/reportJson.types';
 import { applyTemplate, carryForwardDoc, docFromTemplate, docToJson, jsonToDoc, parseReportJson, serializeReportJson } from '../utils/reportJson';
 import { applyFormDefaults } from '../utils/reportForm';
-import { formatReportNo, nextReportNo, syncMetadata } from '../utils/reportMeta';
+import { formatReportNo, reportNoForDate, syncMetadata } from '../utils/reportMeta';
 import { collectAutoIdCounters, fillAutoIds } from '../utils/reportTable';
 import { isTemplateVersionOutdated } from '../utils/reportFileNaming';
 import { CatalogRow, ReportCatalog, emptyCatalog, mergeCatalogRows, parseCatalogFromWorkbook } from '../utils/reportCatalog';
@@ -14,10 +14,35 @@ import { ReportFileService } from './ReportFileService';
 import { LoadedTemplate, ReportTemplateService } from './ReportTemplateService';
 import { IReportLock, ISignedTrail, ReportLockedError, ReportRegistryService, canUploadSignedWhileLocked } from './ReportRegistryService';
 import { ReportCatalogService } from './ReportCatalogService';
+import { ReportUnitConfigService } from './ReportUnitConfigService';
+
+/** Lý do không đánh được số báo cáo: nhà ga chưa cấu hình ngày bắt đầu, ngày báo cáo trước ngày bắt đầu, hoặc không đọc được cấu hình. */
+export type ReportNumberingReason = 'noConfig' | 'beforeStart' | 'configError';
+
+/** Không đánh được số báo cáo theo ngày bắt đầu của nhà ga (list DRPUnitConfig): không tạo/lưu được báo cáo. */
+export class ReportNumberingError extends Error {
+  public readonly reason: ReportNumberingReason;
+  constructor(reason: ReportNumberingReason, message: string) {
+    super(message);
+    this.name = 'ReportNumberingError';
+    Object.setPrototypeOf(this, ReportNumberingError.prototype); // `instanceof` đúng cả khi biên dịch xuống ES5
+    this.reason = reason;
+  }
+}
 
 export interface LoadedReportResult {
   doc: ReportDoc;
   isExisting: boolean;
+  /** Tọa độ của nhà ga (cột GeoTag của DRPUnitConfig); rỗng = chưa có. */
+  unitGeoTag?: string;
+  /** Có giá trị thì báo cáo xem được nhưng KHÔNG lưu được (không đánh được số). */
+  numberingIssue?: ReportNumberingError;
+}
+
+/** `yyyy-MM-dd` -> `dd/MM/yyyy` để hiện trong thông báo. */
+function displayDate(dateStr: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : dateStr;
 }
 
 /** Chi tiết lỗi SharePoint (rút gọn) để người dùng/admin biết cột nào sai hoặc thiếu quyền. */
@@ -32,6 +57,7 @@ export class ReportDataService {
   private _templateService: ReportTemplateService;
   private _registry: ReportRegistryService;
   private _catalogSource: ReportCatalogService;
+  private _unitConfig: ReportUnitConfigService;
 
   private readonly _settings: () => Promise<ReportSettings>;
   private readonly _clock: Clock;
@@ -41,6 +67,7 @@ export class ReportDataService {
     templateService: ReportTemplateService,
     registry: ReportRegistryService,
     catalogSource: ReportCatalogService,
+    unitConfig: ReportUnitConfigService,
     settings: () => Promise<ReportSettings> = () => Promise.resolve(DEFAULT_REPORT_SETTINGS),
     clock: Clock = LOCAL_CLOCK
   ) {
@@ -50,6 +77,7 @@ export class ReportDataService {
     this._templateService = templateService;
     this._registry = registry;
     this._catalogSource = catalogSource;
+    this._unitConfig = unitConfig;
   }
 
   private _catalogFile?: { at: number; wb: Promise<{ XLSX: typeof import('xlsx'); wb: import('xlsx').WorkBook } | undefined> };
@@ -102,7 +130,6 @@ export class ReportDataService {
     }
   }
 
-  /** Báo cáo ngày mới có số báo cáo theo sổ DRPRegistry (báo cáo tuần là placeholder nên bỏ qua). */
   /**
    * Trạng thái khoá của báo cáo một ngày (chỉ báo cáo ngày). Báo cáo tuần hoặc không đọc được sổ thì undefined
    * (coi là không khoá, form vẫn dùng được; việc ghi vẫn được kiểm tra lại ở `assertUnlocked`).
@@ -134,18 +161,25 @@ export class ReportDataService {
   }
 
   /**
-   * Gán số báo cáo từ sổ DRPRegistry (số lớn nhất của đơn vị + 1, hoặc số đã có của ngày này).
-   * Không đọc được sổ (chưa tạo list, không có quyền…) thì giữ số suy ra từ báo cáo ngày trước.
+   * Số báo cáo và tọa độ của nhà ga theo list DRPUnitConfig: số = (ngày báo cáo - StartDate của nhà ga) + 1.
+   * Ném `ReportNumberingError` khi nhà ga chưa có StartDate, ngày báo cáo trước StartDate, hoặc không đọc được list.
    */
-  private async applyRegistryNo(doc: ReportDoc): Promise<ReportDoc> {
-    if (!this.isDaily(doc.docId)) return doc;
+  public async resolveNumbering(unit: string, dateStr: string): Promise<{ reportNo: string; geoTag: string }> {
+    let cfg;
     try {
-      const no = await this._registry.getReportNoFor(doc.unit, doc.docId, doc.dateStr);
-      return { ...doc, metadata: syncMetadata({ ...doc.metadata, reportNo: no }, doc.unit) };
+      cfg = await this._unitConfig.get(unit);
     } catch (err: unknown) {
-      console.warn('[DRPRegistry] Could not read next report no., using previous report:', err);
-      return doc;
+      console.warn('[DRPUnitConfig] Could not read unit config:', err);
+      throw new ReportNumberingError('configError', `Chưa đọc được cấu hình nhà ga (list DRPUnitConfig). Vui lòng liên hệ Admin để xử lý. ${errorDetail(err)}`);
     }
+    if (!cfg || !cfg.startDate) {
+      throw new ReportNumberingError('noConfig', `Nhà ga ${unit} chưa được cấu hình ngày bắt đầu đánh số báo cáo. Vui lòng liên hệ Admin để xử lý.`);
+    }
+    const no = reportNoForDate(cfg.startDate, dateStr);
+    if (no === undefined) {
+      throw new ReportNumberingError('beforeStart', `Ngày ${displayDate(dateStr)} trước ngày bắt đầu của ${unit} (${displayDate(cfg.startDate)}), không tạo hoặc lưu được báo cáo.`);
+    }
+    return { reportNo: formatReportNo(no), geoTag: cfg.geoTag };
   }
 
   /**
@@ -195,7 +229,22 @@ export class ReportDataService {
     siteManager?: string
   ): Promise<LoadedReportResult> {
     const result = await this.loadReportCore(docId, unit, dateStr, currentUserEmail, siteManager);
-    return { ...result, doc: await this.applyIdCounters(result.doc) };
+    let doc = result.doc;
+    let unitGeoTag: string | undefined;
+    let numberingIssue: ReportNumberingError | undefined;
+    if (this.isDaily(docId)) {
+      try {
+        const n = await this.resolveNumbering(unit, dateStr);
+        unitGeoTag = n.geoTag;
+        // Báo cáo mới nhận số theo ngày; báo cáo đã lưu giữ đúng số đã lưu
+        if (!result.isExisting) doc = { ...doc, metadata: syncMetadata({ ...doc.metadata, reportNo: n.reportNo }, unit) };
+      } catch (err: unknown) {
+        if (!(err instanceof ReportNumberingError)) throw err;
+        numberingIssue = err;
+        if (!result.isExisting) doc = { ...doc, metadata: syncMetadata({ ...doc.metadata, reportNo: '' }, unit) }; // không hiện số của ngày trước
+      }
+    }
+    return { ...result, doc: await this.applyIdCounters(doc), unitGeoTag, numberingIssue };
   }
 
   private async loadReportCore(
@@ -223,10 +272,7 @@ export class ReportDataService {
       const prevDoc = jsonToDoc(parseReportJson(prev.text), latest ? latest.template : undefined);
       let doc = carryForwardDoc({ ...prevDoc, dateStr: prevDoc.dateStr }, dateStr, currentUserEmail);
       doc = { ...doc, copiedFromDate: prev.sourceDateStr };
-      // Số báo cáo tự nhảy theo từng đơn vị: số của báo cáo ngày trước + 1 (rồi theo sổ DRPRegistry)
-      doc = { ...doc, metadata: syncMetadata({ ...doc.metadata, reportNo: nextReportNo(doc.metadata.reportNo) }, unit) };
       doc = applyFormDefaults(doc, ctx);
-      doc = await this.applyRegistryNo(doc);
       return { doc: this.flagOutdated(doc, latest, 'previous_day'), isExisting: false };
     }
 
@@ -236,7 +282,7 @@ export class ReportDataService {
     }
     let doc = docFromTemplate(latest.template, { docId, unit, dateStr, email: currentUserEmail, siteManager, version: latest.info.version });
     doc = { ...doc, latestTemplateInfo: latest.info };
-    return { doc: await this.applyRegistryNo(doc), isExisting: false };
+    return { doc, isExisting: false };
   }
 
   /** Báo cáo tuần (placeholder): chưa có template JSON nên chỉ là khung trống. */
@@ -283,7 +329,12 @@ export class ReportDataService {
     userEmail: string
   ): Promise<{ serverRelativeUrl: string; eTag?: string; metadata: ReportMetadata; registryWarning?: string; htmlWarning?: string }> {
     await this.assertUnlocked(doc.unit, doc.docId, doc.dateStr);
-    const base = doc.isExisting ? doc : await this.applyRegistryNo(doc);
+    // Số báo cáo theo ngày bắt đầu của nhà ga; chưa cấu hình hoặc ngày trước ngày bắt đầu thì không lưu được (báo cáo tuần không đánh số)
+    let base = doc;
+    if (this.isDaily(doc.docId)) {
+      const n = await this.resolveNumbering(doc.unit, doc.dateStr);
+      if (!doc.isExisting) base = { ...doc, metadata: syncMetadata({ ...doc.metadata, reportNo: n.reportNo }, doc.unit) };
+    }
     const now = new Date().toISOString();
     // updated = người đang lưu; created chỉ ghi ở lần lưu đầu tiên và giữ nguyên các lần sau
     const metadata: ReportMetadata = {
@@ -426,6 +477,28 @@ export class ReportDataService {
     await this._fileService.deleteReportPhoto(serverRelativeUrl);
   }
 
+  /** Ngày bắt đầu (`yyyy-MM-dd`) của từng nhà ga (khoá = mã nhà ga VIẾT HOA); nhà ga chưa cấu hình hoặc không đọc được list thì không có khoá. */
+  public async getUnitStartDates(): Promise<Record<string, string>> {
+    const out: Record<string, string> = {};
+    try {
+      const all = await this._unitConfig.getAll();
+      Object.keys(all).forEach((k) => {
+        if (all[k].startDate) out[k] = all[k].startDate as string;
+      });
+    } catch (err: unknown) {
+      console.warn('[DRPUnitConfig] Could not read start dates:', err);
+    }
+    return out;
+  }
+
+  /** Gắn `beforeStart` cho các ngày trước ngày bắt đầu của nhà ga (chỉ báo cáo ngày; ngày đã có báo cáo trong sổ không bị đổi trạng thái). */
+  private async markBeforeStart(unit: string, docId: string, infos: ReportDayInfo[]): Promise<ReportDayInfo[]> {
+    if (!this.isDaily(docId)) return infos;
+    const start = (await this.getUnitStartDates())[unit.toUpperCase()];
+    if (!start) return infos;
+    return infos.map((i) => (i.status === 'missing' && i.dateStr < start ? { ...i, beforeStart: true, locked: undefined } : i));
+  }
+
   /**
    * Trạng thái các ngày (YYYY-MM-DD) của một đơn vị: chưa nhập / chưa upload bản ký / hoàn tất.
    * Đọc từ sổ DRPRegistry (cùng nguồn với tab Tổng quan nên hai màn hình luôn khớp nhau);
@@ -437,6 +510,11 @@ export class ReportDataService {
     dateStrs: string[],
     concurrency?: number
   ): Promise<ReportDayInfo[]> {
+    const infos = await this.getDayInfosRaw(unit, docId, dateStrs, concurrency);
+    return await this.markBeforeStart(unit, docId, infos);
+  }
+
+  private async getDayInfosRaw(unit: string, docId: string, dateStrs: string[], concurrency?: number): Promise<ReportDayInfo[]> {
     if (this.isDaily(docId) && dateStrs.length > 0) {
       try {
         const from = dateStrs.slice().sort()[0];

@@ -105,7 +105,7 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
             />
           </div>
 
-          {/* Row 1, Col 2: Tọa độ (tự điền theo nhà ga từ danh mục `location`, không sửa) */}
+          {/* Row 1, Col 2: Tọa độ (tự điền theo nhà ga từ cấu hình DRPUnitConfig, không sửa) */}
           <div className="field">
             <label htmlFor="report-geotag-input" className="field__label">Tọa độ (Geo-tag)</label>
             <input
@@ -115,11 +115,11 @@ export const ReportMetaForm: React.FC<IReportMetaFormProps> = ({
               value={metadata.geoTag ? `${metadata.location} - ${metadata.geoTag}` : ''}
               readOnly
               placeholder="Chưa có tọa độ cho nhà ga này"
-              title="Tự điền theo nhà ga (danh mục location), không sửa được"
+              title="Tự điền theo nhà ga (cấu hình DRPUnitConfig), không sửa được"
             />
           </div>
 
-          {/* Row 2, Col 1: Số báo cáo (tự nhảy theo từng đơn vị, không sửa) */}
+          {/* Row 2, Col 1: Số báo cáo (theo ngày bắt đầu của nhà ga, không sửa) */}
           <div className="field">
             <label htmlFor="report-no-input" className="field__label">Số báo cáo (Report no.)</label>
             <input

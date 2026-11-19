@@ -9,6 +9,7 @@ import {
   ReportFileService,
   ReportRegistryService,
   ReportCatalogService,
+  ReportUnitConfigService,
   ReportRoleService,
   ReportTemplateService
 } from './services';
@@ -78,9 +79,10 @@ export const ReportModule: React.FC<ModuleProps> = (props) => {
     [sharePointClient, siteUrl, fileService, loadSettings, clock]
   );
   const catalogService = React.useMemo(() => new ReportCatalogService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
+  const unitConfigService = React.useMemo(() => new ReportUnitConfigService(sharePointClient, siteUrl), [sharePointClient, siteUrl]);
   const dataService = React.useMemo(
-    () => new ReportDataService(fileService, templateService, registryService, catalogService, loadSettings, clock),
-    [fileService, templateService, registryService, catalogService, loadSettings, clock]
+    () => new ReportDataService(fileService, templateService, registryService, catalogService, unitConfigService, loadSettings, clock),
+    [fileService, templateService, registryService, catalogService, unitConfigService, loadSettings, clock]
   );
 
   // View state

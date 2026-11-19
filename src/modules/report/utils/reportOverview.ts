@@ -54,6 +54,12 @@ export function buildTargets(assignments: RoleEntry[]): OverviewTarget[] {
     .sort((a, b) => collator.compare(a.unit, b.unit) || collator.compare(a.docId, b.docId));
 }
 
+/** Ngày trước ngày bắt đầu của nhà ga: không tính là thiếu báo cáo (không đưa vào bộ đếm, danh sách, bộ lọc trạng thái). */
+export function isBeforeStart(row: OverviewRow, dateStr: string): boolean {
+  const info = row.infos[dateStr];
+  return Boolean(info && info.beforeStart);
+}
+
 export function statusOfDay(row: OverviewRow, dateStr: string): ReportDayStatus {
   const info = row.infos[dateStr];
   return info ? info.status : 'missing';
@@ -63,7 +69,7 @@ export function statusOfDay(row: OverviewRow, dateStr: string): ReportDayStatus 
 export function countByStatus(rows: OverviewRow[], dateStr: string): Record<ReportDayStatus, number> {
   const c: Record<ReportDayStatus, number> = { missing: 0, unsigned: 0, done: 0 };
   rows.forEach((r) => {
-    if (r.state !== 'ready') return;
+    if (r.state !== 'ready' || isBeforeStart(r, dateStr)) return;
     c[statusOfDay(r, dateStr)] += 1;
   });
   return c;
@@ -76,6 +82,7 @@ export function countWindow(rows: OverviewRow[], dates: string[]): { counts: Rec
   rows.forEach((r) => {
     if (r.state !== 'ready') return;
     dates.forEach((d) => {
+      if (isBeforeStart(r, d)) return;
       counts[statusOfDay(r, d)] += 1;
       total += 1;
     });
@@ -101,6 +108,7 @@ export function buildReportList(rows: OverviewRow[], dates: string[], filter: St
   rows.forEach((r) => {
     if (r.state !== 'ready' || !matchesSearch(r.target, term)) return;
     dates.forEach((d) => {
+      if (isBeforeStart(r, d)) return;
       const st = statusOfDay(r, d);
       if (filter !== 'ALL' && st !== filter) return;
       items.push({ target: r.target, dateStr: d, status: st, info: r.infos[d] });

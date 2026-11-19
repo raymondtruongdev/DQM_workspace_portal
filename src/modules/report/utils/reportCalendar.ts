@@ -68,6 +68,12 @@ export function formatDM(dateStr: string): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 }
 
+/** d/M không đệm số 0 (vd 1/6): số lớn trên ô lịch, đủ ngắn để vừa ô nhưng vẫn cho biết tháng. */
+export function formatDayMonth(dateStr: string): string {
+  const d = parseDateStr(dateStr);
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
 /** dd/MM/yyyy */
 export function formatDMY(dateStr: string): string {
   return `${formatDM(dateStr)}/${parseDateStr(dateStr).getFullYear()}`;

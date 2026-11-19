@@ -23,6 +23,7 @@ import {
   countByStatus,
   countWindow,
   doneCount,
+  isBeforeStart,
   matchesSearch,
   ownerDisplay,
   OverviewRow,
@@ -190,9 +191,17 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
           Object.assign(merged, await dataService.getRegistryDayInfos(docId, dates[0]));
         }
         const settings = await dataService.getSettings();
+        const startDates = await dataService.getUnitStartDates();
         if (runId.current !== myRun) return;
         const next: OverviewRow[] = targets.map((t) => {
           const infos = { ...(merged[`${t.unit}|${t.docId}`.toLowerCase()] || {}) };
+          // Ngày trước ngày bắt đầu của nhà ga (DRPUnitConfig) chưa có báo cáo: "Chưa bắt đầu", không tính là thiếu
+          const start = startDates[t.unit.toUpperCase()];
+          if (start) {
+            dates.forEach((d) => {
+              if (d < start && (!infos[d] || infos[d].status === 'missing')) infos[d] = { dateStr: d, status: 'missing', beforeStart: true };
+            });
+          }
           // Ngày cũ chưa có dòng trong sổ vẫn bị khoá khi bật chế độ "chỉ nhập ngày hiện tại"
           dates.forEach((d) => {
             if (!infos[d] && isLockedByTodayOnly(settings, d, dataService.today())) infos[d] = { dateStr: d, status: 'missing', locked: true };
@@ -228,7 +237,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
   const visibleRows = rows.filter((r) => {
     if (!matchesSearch(r.target, search)) return false;
     if (filter === 'ALL' || r.state !== 'ready') return true;
-    return dates.some((d) => statusOfDay(r, d) === filter);
+    return dates.some((d) => !isBeforeStart(r, d) && statusOfDay(r, d) === filter);
   });
   // Danh sách "Cần xử lý" có bộ lọc riêng: trạng thái (Chưa nhập / Chưa upload bản ký) và đơn vị
   const allowedDates: string[] = listDate === 'day' ? dates.filter((d) => d === listDay) : dates;
@@ -405,6 +414,17 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
                           </td>
                         );
                       }
+                      if (isBeforeStart(r, d)) {
+                        return (
+                          <td key={d}>
+                            <span
+                              className="report-ov-cell report-ov-cell--notstarted"
+                              title={`${r.target.unit} · ${weekdayLong(d)} ${formatDM(d)} · Chưa bắt đầu (trước ngày bắt đầu của nhà ga)`}
+                              aria-label={`${r.target.unit} ${formatDM(d)} chưa bắt đầu`}
+                            />
+                          </td>
+                        );
+                      }
                       const st = statusOfDay(r, d);
                       const dim = filter !== 'ALL' && st !== filter;
                       const cellLocked = Boolean(r.infos[d] && r.infos[d].locked);
@@ -426,7 +446,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
                       );
                     })}
                     <td className="report-ov-matrix__rate">
-                      {r.state === 'ready' ? `${doneCount(r, dates)}/${WINDOW_DAYS}` : r.state === 'error' ? 'Lỗi' : '…'}
+                      {r.state === 'ready' ? `${doneCount(r, dates)}/${dates.filter((d) => !isBeforeStart(r, d)).length}` : r.state === 'error' ? 'Lỗi' : '…'}
                     </td>
                   </tr>
                 ))}
@@ -438,6 +458,7 @@ export const ReportOverviewView: React.FC<IReportOverviewViewProps> = ({
             <span><i className="report-cal-legend__dot report-cal-legend__dot--unsigned" />Chưa upload bản ký</span>
             <span><i className="report-cal-legend__dot report-cal-legend__dot--done" />Hoàn tất</span>
             <span><i className="report-cal-legend__dot report-cal-legend__dot--open" />Admin đang mở khoá</span>
+            <span><i className="report-cal-legend__dot report-cal-legend__dot--notstarted" />Chưa bắt đầu (trước ngày bắt đầu của nhà ga)</span>
             <span>Bấm một ô để mở báo cáo của đơn vị ở ngày đó; bấm mã đơn vị để mở lịch.</span>
           </div>
         </div>

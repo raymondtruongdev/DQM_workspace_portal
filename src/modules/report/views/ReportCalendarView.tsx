@@ -17,6 +17,7 @@ import {
   DAY_STATUS_BADGE,
   DAY_STATUS_LABEL,
   formatDM,
+  formatDayMonth,
   formatDMY,
   formatFileSize,
   formatMonthKey,
@@ -162,11 +163,13 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
 
   const statusOf = (dateStr: string): ReportDayStatus => (byDate[dateStr] ? byDate[dateStr].status : 'missing');
 
+  /** Ngày trước ngày bắt đầu của nhà ga: chưa bắt đầu báo cáo, không tính là thiếu và không nhập được. */
+  const beforeStart = (dateStr: string): boolean => Boolean(byDate[dateStr] && byDate[dateStr].beforeStart);
   const counts = { done: 0, unsigned: 0, missing: 0 };
   dates.forEach((d) => {
-    counts[statusOf(d)] += 1;
+    if (!beforeStart(d)) counts[statusOf(d)] += 1;
   });
-  const missingDates = dates.filter((d) => statusOf(d) === 'missing');
+  const missingDates = dates.filter((d) => statusOf(d) === 'missing' && !beforeStart(d));
   const unsignedDates = dates.filter((d) => statusOf(d) === 'unsigned');
 
   const selInfo = byDate[selected];
@@ -293,22 +296,25 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
     const info = byDate[dateStr];
     // Ngày chưa nhập mà đã khoá: màu xám riêng để không lẫn với "Chưa nhập" (đỏ, người dùng nhập được)
     const lockedMissing = st === 'missing' && Boolean(info && info.locked);
+    const notStarted = beforeStart(dateStr);
     return (
       <button
         key={dateStr}
         type="button"
-        className={`report-cal-day report-cal-day--${lockedMissing ? 'locked' : st}${dateStr === todayStr ? ' is-today' : ''}`}
+        className={`report-cal-day report-cal-day--${notStarted ? 'notstarted' : lockedMissing ? 'locked' : st}${dateStr === todayStr ? ' is-today' : ''}`}
         aria-pressed={selected === dateStr}
         onClick={() => setSelected(dateStr)}
+        onDoubleClick={notStarted ? undefined : () => onOpenDate(dateStr)}
+        title={notStarted ? undefined : 'Bấm đúp để mở báo cáo ngày này'}
       >
         {dateStr === todayStr && <span className="report-cal-day__today">Hôm nay</span>}
-        <span className="report-cal-day__num">{parseDateStr(dateStr).getDate()}</span>
+        <span className="report-cal-day__num">{formatDayMonth(dateStr)}</span>
         <span className="report-cal-day__wd">
           {weekdayLong(dateStr)} · {formatDM(dateStr)}
         </span>
         <span className="report-cal-day__status">
-          <StatusIcon status={st} />
-          {lockedMissing ? 'Đã khoá' : DAY_STATUS_LABEL[st]}
+          {!notStarted && <StatusIcon status={st} />}
+          {notStarted ? 'Chưa bắt đầu' : lockedMissing ? 'Đã khoá' : DAY_STATUS_LABEL[st]}
           {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
         </span>
         {lockedMissing && <span className="report-cal-day__note">Chưa nhập · chỉ xem</span>}
@@ -496,17 +502,21 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                                   <strong>{formatDM(d)}</strong> {weekdayLong(d)}
                                 </td>
                                 <td>
+                                  {info && info.beforeStart ? (
+                                    <span className="badge">Chưa bắt đầu</span>
+                                  ) : (
                                   <span className={`badge ${DAY_STATUS_BADGE[st]}`}>
                                     <StatusIcon status={st} />
                                     {DAY_STATUS_LABEL[st]}
                                   </span>
+                                  )}
                                   {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
                                   {st === 'missing' && old && <span className="report-cal-day__sign">chỉ xem</span>}
                                 </td>
                                 <td>{info && info.savedAt ? formatSavedAt(info.savedAt) : '—'}</td>
                                 <td>{info && info.signed ? 'Có' : '—'}</td>
                                 <td>
-                                  {!(st === 'missing' && old) && (
+                                  {!(st === 'missing' && old) && !(info && info.beforeStart) && (
                                     <span className="report-cal-history-actions">
                                       <button
                                         type="button"
@@ -551,7 +561,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                     {dates.map((d) => dayButton(d))}
                     {futureDays.map((d) => (
                       <div key={d} className="report-cal-day report-cal-day--future" aria-hidden="true">
-                        <span className="report-cal-day__num">{parseDateStr(d).getDate()}</span>
+                        <span className="report-cal-day__num">{formatDayMonth(d)}</span>
                         <span className="report-cal-day__note">Chưa đến</span>
                       </div>
                     ))}
@@ -577,15 +587,19 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                           const st = statusOf(d);
                           const info = byDate[d];
                           return (
-                            <tr key={d} className={selected === d ? 'report-cal-row-selected' : ''} onClick={() => setSelected(d)}>
+                            <tr key={d} className={selected === d ? 'report-cal-row-selected' : ''} onClick={() => setSelected(d)} onDoubleClick={beforeStart(d) ? undefined : () => onOpenDate(d)}>
                               <td>
                                 <strong>{formatDM(d)}</strong> {weekdayLong(d)}
                               </td>
                               <td>
+                                {beforeStart(d) ? (
+                                  <span className="badge">Chưa bắt đầu</span>
+                                ) : (
                                 <span className={`badge ${DAY_STATUS_BADGE[st]}`}>
                                   <StatusIcon status={st} />
                                   {DAY_STATUS_LABEL[st]}
                                 </span>
+                                )}
                                 {info && info.locked && <Icon name="lock" size={14} className="report-cal-day__lock" />}
                                 {st === 'unsigned' && info && info.locked && <span className="report-cal-day__sign">Khoá nội dung · vẫn upload bản ký</span>}
                                 {info && info.unlockUntil && (
@@ -598,7 +612,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                               <td>{info ? formatSavedAt(info.savedAt) : '—'}</td>
                               <td>{info && info.signed ? 'Có' : '—'}</td>
                               <td>
-                                {st === 'unsigned' ? (
+                                {beforeStart(d) ? null : st === 'unsigned' ? (
                                   <button type="button" className="btn btn--primary btn--sm" onClick={(e) => { e.stopPropagation(); pickFile(d); }} disabled={isUploading}>
                                     Upload bản ký
                                   </button>
@@ -622,6 +636,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--unsigned" />Chưa upload bản ký: đã lưu, thiếu file PDF đã ký</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--done" />Hoàn tất: có file PDF trong thư mục báo cáo</span>
                 <span><i className="report-cal-legend__dot report-cal-legend__dot--locked" /><Icon name="lock" size={14} /> Đã khoá: chỉ xem, admin mới mở khoá được. Đã lưu mà chưa ký thì vẫn upload được bản ký</span>
+                <span>Bấm đúp vào một ngày để mở báo cáo của ngày đó.</span>
               </div>
               )}
             </div>
@@ -640,10 +655,14 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                   <h3>
                     {weekdayLong(selected)}, {formatDMY(selected)}
                   </h3>
+                  {beforeStart(selected) ? (
+                    <span className="badge">Chưa bắt đầu</span>
+                  ) : (
                   <span className={`badge ${DAY_STATUS_BADGE[selStatus]}`}>
                     <StatusIcon status={selStatus} />
                     {DAY_STATUS_LABEL[selStatus]}
                   </span>
+                  )}
                   {selInfo && selInfo.unlockUntil && (
                     <span className="badge badge--success" title="Admin đã mở khoá có hạn, hết giờ báo cáo tự khoá lại">
                       <Icon name="lock-open" size={14} />
@@ -662,7 +681,7 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
                 </div>
               </div>
               <div className="report-day-panel__actions">
-                {selStatus === 'missing' && (
+                {selStatus === 'missing' && !beforeStart(selected) && (
                   <button type="button" className="btn btn--primary" onClick={() => onOpenDate(selected)}>
                     <Icon name="add" />
                     <span>Nhập báo cáo</span>
@@ -741,7 +760,8 @@ export const ReportCalendarView: React.FC<IReportCalendarViewProps> = ({
               <span className="report-day-panel__hint">
                 <Icon name="info" size={16} />
                 <span>
-                  {selStatus === 'missing' && 'Chưa có báo cáo ngày này. Biểu mẫu mới sẽ điền sẵn từ báo cáo gần nhất (không sao chép ảnh).'}
+                  {beforeStart(selected) && 'Ngày này trước ngày bắt đầu báo cáo của nhà ga, chưa cần lập báo cáo.'}
+                  {selStatus === 'missing' && !beforeStart(selected) && 'Chưa có báo cáo ngày này. Biểu mẫu mới sẽ điền sẵn từ báo cáo gần nhất (không sao chép ảnh).'}
                   {selStatus === 'unsigned' && 'Báo cáo đã lưu. In PDF, ký tên rồi upload bản đã ký để hoàn tất. '}
                   {selLocked
                     ? selStatus === 'unsigned'

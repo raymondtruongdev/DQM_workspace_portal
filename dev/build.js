@@ -2,7 +2,7 @@
  * Dựng khung chạy thử cục bộ của module Report (không cần SharePoint):  node dev/build.js
  * Kết quả: temp/dev/index.html (mở bằng trình duyệt). Chi tiết: AGENTS.md mục "Chạy thử cục bộ".
  *  1. tsc biên dịch src/ + dev/ sang temp/dev/js
- *  2. nạp docs/sharepoint_setup/DailyReportLibrary (template, ActivityP6.xlsx, logo, báo cáo mẫu; list DRPCatalogItems, DRPRole từ các file *_list.xlsx ở docs/sharepoint_setup) thành seed.js
+ *  2. nạp docs/sharepoint_setup/DailyReportLibrary (template, ActivityP6.xlsx, logo, báo cáo mẫu; list DRPCatalogItems, DRPRole, DRPUnitConfig từ các file *_list.xlsx ở docs/sharepoint_setup) thành seed.js
  *  3. webpack gộp, thay `core/services/SharePointClient` bằng bản giả lập trong bộ nhớ và `@microsoft/sp-http` bằng stub
  */
 const fs = require('fs');
@@ -49,11 +49,13 @@ const files = {};
 // Nội dung list DRPCatalogItems giả lập
 const XLSX = require('xlsx');
 const catalogRows = XLSX.utils.sheet_to_json(XLSX.readFile(path.join(root, 'docs', 'sharepoint_setup', 'DRPCatalogItems_list.xlsx')).Sheets['DRPCatalogItems'], { defval: '' });
+// Cấu hình từng nhà ga (DRPUnitConfig: StartDate, GeoTag)
+const unitConfigRows = XLSX.utils.sheet_to_json(XLSX.readFile(path.join(root, 'docs', 'sharepoint_setup', 'DRPUnitConfig_list.xlsx')).Sheets['DRPUnitConfig'], { defval: '' });
 // Phân quyền báo cáo: DisplayName nằm ở cột Title của list (như hướng dẫn tạo list)
 const roleRows = XLSX.utils
   .sheet_to_json(XLSX.readFile(path.join(root, 'docs', 'sharepoint_setup', 'DRPRole_list.xlsx')).Sheets['DRPRole'], { defval: '' })
   .map((r) => ({ Title: r.DisplayName, Email: r.Email, Unit: r.Unit, DocID: r.DocID, DocTitle: r.DocTitle, Active: r.Active }));
-fs.writeFileSync(path.join(out, 'seed.js'), `window.__SEED__=${JSON.stringify({ files, catalogRows, roleRows })};\n`);
+fs.writeFileSync(path.join(out, 'seed.js'), `window.__SEED__=${JSON.stringify({ files, catalogRows, roleRows, unitConfigRows })};\n`);
 fs.writeFileSync(
   path.join(out, 'index.html'),
   `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Report – chạy thử cục bộ</title></head><body style="margin:0"><div id="root"></div><script src="seed.js"></script><script src="harness.js"></script></body></html>\n`

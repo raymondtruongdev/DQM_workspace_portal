@@ -1398,6 +1398,8 @@
   border-color: var(--color-border-focus);
 }
 .report-cal-day--locked .report-cal-day__status { color: var(--color-text-muted); }
+.report-cal-day--notstarted { background: var(--color-surface-subtle); border-style: dashed; cursor: default; }
+.report-cal-day--notstarted .report-cal-day__status { color: var(--color-text-muted); }
 .report-cal-day.is-today { border-color: var(--color-accent); }
 
 .report-cal-day--blank,
@@ -1484,6 +1486,7 @@
 .report-cal-legend__dot--done { background: var(--color-success); }
 .report-cal-legend__dot--unsigned { background: var(--color-warning); }
 .report-cal-legend__dot--missing { background: var(--color-danger); }
+.report-cal-legend__dot--notstarted { background: var(--color-surface-subtle); border: 1px dashed var(--color-border); }
 .report-cal-legend__dot--locked { background: var(--color-border-focus); }
 .report-cal-legend__dot--open { background: var(--color-accent); border: 1.5px dashed var(--color-text-primary); }
 
@@ -1714,11 +1717,11 @@
   .report-cal-day--blank,
   .report-cal-day--future { display: none; }
   .report-cal-day { flex-direction: row; flex-wrap: wrap; align-items: center; min-height: 64px; gap: var(--space-1) var(--space-3); }
-  .report-cal-day__num { min-width: 28px; }
+  .report-cal-day__num { min-width: 44px; }
   .report-cal-day__wd { display: block; min-width: 72px; }
-  .report-cal-day__note { flex-basis: 100%; padding-left: 40px; }
+  .report-cal-day__note { flex-basis: 100%; padding-left: 56px; }
   .report-cal-day__open,
-  .report-cal-day__sign { flex-basis: 100%; padding-left: 40px; }
+  .report-cal-day__sign { flex-basis: 100%; padding-left: 56px; }
   .report-cal-day__today { position: static; }
   .report-cal-summary { grid-template-columns: 1fr; }
   .report-cal-strip__seg { height: 10px; }
@@ -1886,6 +1889,7 @@
 .report-ov-cell--missing { background: var(--color-danger); }
 .report-ov-cell--pending,
 .report-ov-cell--error { cursor: default; opacity: 0.5; }
+.report-ov-cell--notstarted { cursor: default; background: var(--color-surface-subtle); border: 1px dashed var(--color-border); }
 .report-ov-cell.is-today { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent); }
 .report-ov-cell.is-dim { opacity: 0.25; }
 .report-ov-cell:hover { transform: scale(1.12); }

@@ -74,6 +74,21 @@
       "seed": { "mode": "none" }
     },
     {
+      "name": "DRPUnitConfig",
+      "description": "Cấu hình từng nhà ga: StartDate (yyyy-MM-dd, ngày được đánh số báo cáo 00001) và GeoTag (tọa độ). Người thường chỉ đọc.",
+      "titleRequired": true,
+      "titleUnique": true,
+      "versioning": true,
+      "columns": [
+        { "name": "No", "type": "Number", "decimals": 0 },
+        { "name": "Unit", "type": "Text", "indexed": true },
+        { "name": "StartDate", "type": "Text" },
+        { "name": "GeoTag", "type": "Text" },
+        { "name": "Active", "type": "Number", "decimals": 0, "default": 1 }
+      ],
+      "seed": { "mode": "sample", "file": "docs/sharepoint_setup/DRPUnitConfig_list.xlsx", "sheet": "DRPUnitConfig", "default": true }
+    },
+    {
       "name": "DRPCatalogItems",
       "description": "Danh mục dùng chung cho dropdown (Element, nhân lực, thiết bị, vật tư, thời tiết...).",
       "titleRequired": true,

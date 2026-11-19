@@ -14,6 +14,7 @@ interface Seed {
   files: Record<string, string>;
   catalogRows: Array<Record<string, unknown>>;
   roleRows: Array<Record<string, unknown>>;
+  unitConfigRows: Array<Record<string, unknown>>;
 }
 
 const SITE = 'https://dev.local/sites/demo';
@@ -36,6 +37,8 @@ seedList('DRPRegistry', [
   }
 ]);
 seedList('DRPCatalogItems', seed.catalogRows);
+// ?nocfg=1: không tạo list DRPUnitConfig để thử thông báo "chưa cấu hình"
+if (new URLSearchParams(window.location.search).get('nocfg') !== '1') seedList('DRPUnitConfig', seed.unitConfigRows);
 // ?norole=1: không tạo list DRPRole để thử thông báo lỗi
 if (new URLSearchParams(window.location.search).get('norole') !== '1') seedList('DRPRole', seed.roleRows);
 // ?as=<email>: mở như người dùng THƯỜNG có email đó (mặc định: admin) để thử phân quyền theo list DRPRole

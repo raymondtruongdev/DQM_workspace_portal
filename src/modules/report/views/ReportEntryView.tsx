@@ -2,7 +2,7 @@ import * as React from 'react';
 import { RoleEntry, ToastState } from '../../../core/types';
 import { ToastAlert } from '../../../core/components/layout/ToastAlert';
 import { PhotoGroup, ReportDoc, ReportMetadata, ReportPhotoSection, ReportSection, SignedDocInfo } from '../types/report.types';
-import { ReportDataService } from '../services/ReportDataService';
+import { ReportDataService, ReportNumberingError } from '../services/ReportDataService';
 import { IReportLock, ISignedTrail, ReportLockedError, canUploadSignedWhileLocked } from '../services/ReportRegistryService';
 import { extractTemplateVersionDate, formatTemplateVersionDisplay } from '../utils/reportFileNaming';
 import { buildSectionNumbering } from '../utils/reportSections';
@@ -76,6 +76,9 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
   /** Hiện hộp thoại "Báo cáo đã bị khoá" (khi đang làm dở mà admin khoá, lúc lưu bị từ chối). */
   const [lockedNotice, setLockedNotice] = React.useState<boolean>(false);
   const isLocked = Boolean(lock && lock.locked);
+  // Số báo cáo theo ngày bắt đầu của nhà ga (DRPUnitConfig): chưa cấu hình / ngày trước ngày bắt đầu thì xem được nhưng không lưu được
+  const [numberingIssue, setNumberingIssue] = React.useState<ReportNumberingError | undefined>(undefined);
+  const [unitGeoTag, setUnitGeoTag] = React.useState<string>('');
   // Khoá nhưng báo cáo đã Lưu và chưa ký: người dùng vẫn upload được bản đã ký (nội dung vẫn chỉ xem)
   const canSignWhileLocked = isLocked && canUploadSignedWhileLocked(lock);
 
@@ -96,6 +99,8 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
       try {
         const result = await dataService.loadReport(role.docId, role.unit, targetDate, currentUserEmail, role.siteManager);
         setDoc(result.doc);
+        setNumberingIssue(result.numberingIssue);
+        setUnitGeoTag(result.unitGeoTag || '');
         setShowRequiredErrors(false);
         setHasUnsavedChanges(false);
       } catch (err: unknown) {
@@ -262,8 +267,6 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
 
   /** Thêm đơn vị thi công mới vào danh mục dùng chung `subcontractor`; trả về giá trị để chọn. */
   // Tọa độ của nhà ga: lấy từ danh mục `location` (Code = tọa độ, NameVN = mã nhà ga), người dùng không chọn/sửa
-  const locItems = ((catalog && catalog.tables.location && catalog.tables.location.items) || []).filter((i) => i.id);
-  const unitGeoTag = (locItems.filter((i) => (i.nameVn || '').toUpperCase() === role.unit.toUpperCase())[0] || locItems[0] || { id: '' }).id;
 
   const handleAddSubcontractor = async (value: string): Promise<string | undefined> => {
     const res = await handleAddCatalogItem('subcontractor', value, false);
@@ -304,7 +307,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
 
   const isWeekly = role.docId.toLowerCase().includes('week');
 
-  // Tự điền Tọa độ theo nhà ga (không đánh dấu "chưa lưu": giá trị luôn suy ra từ danh mục); báo cáo đã khoá giữ giá trị đã lưu
+  // Tự điền Tọa độ theo nhà ga (cột GeoTag của DRPUnitConfig; không đánh dấu "chưa lưu": giá trị luôn suy ra từ cấu hình); báo cáo đã khoá giữ giá trị đã lưu
   React.useEffect(() => {
     if (!doc || isLocked || !unitGeoTag || doc.metadata.geoTag === unitGeoTag) return;
     setDoc((prev) => (prev ? { ...prev, metadata: { ...prev.metadata, geoTag: unitGeoTag } } : prev));
@@ -766,7 +769,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
 
   // Lưu báo cáo: ghi .json + .html độc lập
   const handleSave = async (): Promise<void> => {
-    if (!doc || !ensureRequiredFilled('lưu báo cáo')) return;
+    if (!doc || numberingIssue || !ensureRequiredFilled('lưu báo cáo')) return;
     if (await onCheckMaintenance()) return;
     setIsSaving(true);
     try {
@@ -911,7 +914,7 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
                 type="button"
                 className="btn btn--primary"
                 onClick={handleSave}
-                disabled={isLoading || isSaving || !doc || tplRequired || isLocked}
+                disabled={isLoading || isSaving || !doc || tplRequired || isLocked || Boolean(numberingIssue)}
               >
                 {isSaving ? (
                   <>
@@ -949,6 +952,18 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
               Bản đã ký
             </button>
           )}
+        </div>
+      )}
+
+      {numberingIssue && !isLoading && (
+        <div className="card report-lock-note" role="alert">
+          <Icon name="warning" size={20} />
+          <div className="report-lock-note__text">
+            <strong>
+              {numberingIssue.reason === 'beforeStart' ? 'Ngày này chưa được bắt đầu báo cáo, không lưu được.' : 'Chưa đánh được số báo cáo, không lưu được.'}
+            </strong>
+            <span> {numberingIssue.message}</span>
+          </div>
         </div>
       )}
 

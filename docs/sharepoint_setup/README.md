@@ -1,6 +1,6 @@
 # Tự động cài đặt SharePoint (Workspace Portal)
 
-Script `setup-sharepoint.mjs` thay cho các bước tạo tay ở mục 2 và 3 của `docs/SHAREPOINT_SETUP.md`: tạo 4 list, thư viện `DailyReportLibrary`, thư mục, upload file mẫu và nạp dữ liệu ban đầu. Chạy lại nhiều lần an toàn (chỉ bổ sung phần còn thiếu).
+Script `setup-sharepoint.mjs` thay cho các bước tạo tay ở mục 2 và 3 của `docs/SHAREPOINT_SETUP.md`: tạo 5 list, thư viện `DailyReportLibrary`, thư mục, upload file mẫu và nạp dữ liệu ban đầu. Chạy lại nhiều lần an toàn (chỉ bổ sung phần còn thiếu).
 
 | File | Vai trò |
 |---|---|
@@ -11,10 +11,10 @@ Script `setup-sharepoint.mjs` thay cho các bước tạo tay ở mục 2 và 3 
 ## 1. Việc script làm / không làm
 
 **Làm:**
-- List `UserProfiles`, `DRPRole`, `DRPRegistry`, `DRPCatalogItems`: tạo cột đúng tên nội bộ (không bị `field_N`), kiểu Text/Number(0 số lẻ)/Yes-No, `Title` Enforce unique values + Indexed (`DRPRegistry`, `DRPCatalogItems`), index `Unit`/`ReportDate`/`ReportNo`/`Email`, bật versioning.
+- List `UserProfiles`, `DRPRole`, `DRPRegistry`, `DRPCatalogItems`, `DRPUnitConfig`: tạo cột đúng tên nội bộ (không bị `field_N`), kiểu Text/Number(0 số lẻ)/Yes-No, `Title` Enforce unique values + Indexed (`DRPRegistry`, `DRPCatalogItems`), index `Unit`/`ReportDate`/`ReportNo`/`Email`, bật versioning.
 - Thư viện `DailyReportLibrary` + thư mục `_template`, `resource`, `data`, `data/<Unit>` (đơn vị lấy từ tên các file template).
 - Upload `ActivityP6.xlsx`, `_template/template_DRP_*.json`, logo `resource/*.jpg` từ `docs/sharepoint_setup/DailyReportLibrary/`. File đã có trên SharePoint thì **bỏ qua** (tránh đè bản admin đã sửa), dùng `--force` để ghi đè.
-- Nạp dữ liệu: `DRPCatalogItems` (77 dòng mẫu), admin đầu tiên vào `UserProfiles` (`--admin`), `DRPRole` mẫu (chỉ khi có `--seed-sample`). `DRPRegistry` để trống (web part tự ghi).
+- Nạp dữ liệu: `DRPCatalogItems` (mẫu), `DRPUnitConfig` (11 nhà ga: tọa độ; chỉ ST01 có `StartDate` mẫu, admin điền `StartDate` thật cho từng nhà ga, thiếu thì nhà ga đó không lưu được báo cáo), admin đầu tiên vào `UserProfiles` (`--admin`), `DRPRole` mẫu (chỉ khi có `--seed-sample`). `DRPRegistry` để trống (web part tự ghi).
 
 **Không làm (làm tay):** phân quyền list/thư viện (mục 5), build + deploy `.sppkg`, xoá dòng mẫu nếu bạn đã dùng `--seed-sample`.
 
@@ -55,7 +55,7 @@ node docs/sharepoint_setup/setup-sharepoint.mjs --site https://tenant.sharepoint
 |---|---|
 | `--admin <email>` | Admin đầu tiên (UPN M365) ghi vào `UserProfiles` với `Role = ADMIN`. **Bắt buộc lần đầu**: không có admin thì không ai vào được Admin Config |
 | `--seed-sample` | Nạp thêm `DRPRole` mẫu (email trong file mẫu là của dự án dev, chỉ dùng thử) |
-| `--no-seed-catalog` | Không nạp 77 dòng mẫu của `DRPCatalogItems` |
+| `--no-seed-catalog` | Không nạp dữ liệu mẫu của `DRPCatalogItems` và `DRPUnitConfig` |
 | `--skip-lists` / `--skip-files` | Chỉ làm phần thư viện / chỉ làm phần list |
 | `--force` | Ghi đè file đã có trong thư viện (ví dụ upload lại `ActivityP6.xlsx`) |
 | `--config <file>` | Dùng file cấu hình khác |
@@ -65,7 +65,7 @@ Sửa `setup.config.json` khi cần thêm cột, thêm file upload hay đổi d�
 
 ## 4. Sau khi chạy
 
-- Mở site, kiểm tra 4 list và thư viện đã có; cột `Title` của `DRPRegistry`/`DRPCatalogItems` có Enforce unique values.
+- Mở site, kiểm tra 5 list và thư viện đã có; cột `Title` của `DRPRegistry`/`DRPCatalogItems` có Enforce unique values.
 - Thay dữ liệu mẫu bằng dữ liệu thật: `UserProfiles` (người dùng), `DRPRole` (phân quyền báo cáo), `ActivityP6.xlsx` (Activity thật).
 - Nếu có dòng mẫu không dùng thì xoá (script không bao giờ xoá dữ liệu).
 
@@ -78,6 +78,7 @@ Script chủ ý không đổi quyền (sai quyền khó phát hiện và là ph�
 | `UserProfiles`, `DRPRole` | Chỉ đọc | Toàn quyền |
 | `DRPRegistry` | Thêm + sửa, **không xoá** | Toàn quyền |
 | `DRPCatalogItems` | Chỉ **thêm** (không sửa/xoá) | Toàn quyền |
+| `DRPUnitConfig` | Chỉ đọc | Toàn quyền |
 | Thư viện gốc, `_template`, `resource`, `ActivityP6.xlsx` | Chỉ đọc | Toàn quyền |
 | `data/` hoặc `data/<Unit>` | Contribute (không xoá file bản ký) | Toàn quyền |
 | `SiteAssets` (chỗ ghi `portal_config.json`) | Không ghi | Ghi |

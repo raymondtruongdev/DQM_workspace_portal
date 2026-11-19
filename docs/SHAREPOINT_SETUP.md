@@ -14,7 +14,8 @@ Tất cả file cần để cài đặt nằm trong `docs/sharepoint_setup/`: c�
 | `DailyReportLibrary` | Thư viện tài liệu | Template, danh mục Activity, logo, báo cáo hằng ngày | Xem bảng ở mục 2 |
 | `UserProfiles` | List | Nhận diện người đăng nhập, vai trò admin/user | Chỉ admin |
 | `DRPRole` | List | Ai được làm báo cáo của đơn vị nào (một người có thể nhiều dòng) | Chỉ admin |
-| `DRPRegistry` | List | Sổ báo cáo: số báo cáo tự tăng, trạng thái từng ngày, tab Tổng quan, lịch 14 ngày | Người báo cáo thêm/sửa, admin toàn quyền |
+| `DRPRegistry` | List | Sổ báo cáo: trạng thái từng ngày, tab Tổng quan, lịch 14 ngày, bộ đếm mã tự tăng | Người báo cáo thêm/sửa, admin toàn quyền |
+| `DRPUnitConfig` | List | Cấu hình từng nhà ga: ngày bắt đầu đánh số báo cáo (`StartDate`) và tọa độ (`GeoTag`) | Chỉ admin |
 | `DRPCatalogItems` | List | Danh mục cho dropdown (Element, nhân lực, thiết bị, vật tư, thời tiết, trạng thái, đơn vị thi công…) | Người báo cáo chỉ thêm, admin toàn quyền |
 | `SiteAssets/portal_config.json` | File | Chế độ bảo trì (Shutdown Server) | Admin (tự tạo khi bật bảo trì lần đầu) |
 
@@ -80,9 +81,9 @@ Dòng 1: `ActivityID | Unit | Description | Active`; mỗi dòng sau một Activ
 3. Nên chỉ admin được **xoá** file bản ký (`*_signed.pdf`): dùng mức quyền tuỳ chỉnh "Contribute không xoá" cho người báo cáo.
 4. Bật versioning cho thư viện (mỗi lần ghi đè `.json` có bản lịch sử).
 
-## 3. Bốn list trên site
+## 3. Năm list trên site
 
-Đủ bốn list: `UserProfiles`, `DRPRole`, `DRPRegistry`, `DRPCatalogItems`. Mỗi file `docs/sharepoint_setup/*_list.xlsx` có sẵn sheet `Huong_dan` mô tả từng bước và kiểu cột; phần dưới tóm tắt những điểm bắt buộc.
+Đủ năm list: `UserProfiles`, `DRPRole`, `DRPRegistry`, `DRPCatalogItems`, `DRPUnitConfig`. Mỗi file `docs/sharepoint_setup/*_list.xlsx` có sẵn sheet `Huong_dan` mô tả từng bước và kiểu cột; phần dưới tóm tắt những điểm bắt buộc.
 
 > **Lưu ý khi tạo list từ Excel (UserProfiles và DRPRole):** SharePoint lấy **cột chữ đầu tiên** của bảng làm cột `Title` và đặt tên hiển thị là `Title`, nên tên tiêu đề của cột đó (thường là `DisplayName`) biến mất khỏi list; các cột còn lại giữ nguyên tên. Web part đã xử lý: không có cột `DisplayName` thì dùng `Title` làm tên hiển thị. Vì vậy trong file Excel, cột chữ đầu tiên phải là `DisplayName` (không phải `Email`), và tiêu đề từng cột phải đúng dữ liệu bên dưới; nếu `Email` bị lấy làm `Title` thì web part không tìm thấy cột `Email`.
 
@@ -103,7 +104,7 @@ Dòng 1: `ActivityID | Unit | Description | Active`; mỗi dòng sau một Activ
 - Tạo list từ Excel (bảng `DRPRegistry`); cột tuỳ chọn `No` (Number, 0 số lẻ, Indexed) để web tự đánh số thứ tự khi tạo dòng mới; cột `ReportDate`, `SavedAt`, `SignedAt`, `Status`, `Counters`, `SignedUploadBy`, `SignedRemovedAt`, `SignedRemovedBy` (ba cột cuối tuỳ chọn: người upload bản ký hiện tại, lần xoá bản ký gần nhất) đều chọn **Single line of text** (không chọn Date/Choice); `ReportNo` kiểu Number, **0 chữ số thập phân**.
 - Xoá dòng mẫu `DRP_20000101_ST00` sau khi tạo.
 - List settings: cột `Title` bật **Indexed** và **Enforce unique values**; tạo Index cho `Title`, `Unit`, `ReportDate`, `ReportNo` (tránh ngưỡng 5000 dòng); bật versioning.
-- Quyền: người báo cáo được **thêm và sửa**, **không xoá** ("Contribute không xoá"); admin toàn quyền. Không xoá dòng cũ (số báo cáo kế tiếp lấy từ số lớn nhất trong list).
+- Quyền: người báo cáo được **thêm và sửa**, **không xoá** ("Contribute không xoá"); admin toàn quyền. Không xoá dòng cũ (mất lịch sử báo cáo và bộ đếm mã tự tăng).
 
 ### 3.4 `DRPCatalogItems` (từ `docs/sharepoint_setup/DRPCatalogItems_list.xlsx`)
 - Tạo list từ Excel (bảng `DRPCatalogItems`), mọi cột **Single line of text**, riêng `Active` chọn **Number** (0 số lẻ, mặc định 1). File đã gồm 77 dòng: mã nhân lực/thiết bị dùng chung (`Unit = ALL`), Element và Vật tư theo từng đơn vị, và các danh sách chọn dùng chung (`ALL`): `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`.
@@ -119,6 +120,15 @@ Dòng 1: `ActivityID | Unit | Description | Active`; mỗi dòng sau một Activ
 - Mục người dùng thêm bằng "Thêm mới…" tự ghi `Active = 1`.
 - Báo cáo đã lưu giữ nguyên giá trị cũ dù mục bị ẩn. Gõ lại đúng giá trị của mục đang ẩn bằng "Thêm mới…" thì chọn lại mục đó, không tạo dòng mới.
 - Chỉ là bộ lọc hiển thị, không phải bảo mật (quyền sửa cột do SharePoint quyết định).
+
+### 3.6 `DRPUnitConfig` (từ `docs/sharepoint_setup/DRPUnitConfig_list.xlsx`): ngày bắt đầu và tọa độ từng nhà ga
+- Mỗi nhà ga **một dòng**. Cột: `Title` (= mã nhà ga, vd `ST01`; bật **Enforce unique values**), `Unit` (= mã nhà ga, Indexed), `StartDate`, `GeoTag`, `Active` (Number, 0 số lẻ, tuỳ chọn). Cột `No` trong file mẫu chỉ để xem, có thể bỏ.
+- **`StartDate`: Single line of text, định dạng `yyyy-MM-dd` (vd `2026-10-20`). Không chọn kiểu Date and Time** (SharePoint lưu UTC nên dễ lệch một ngày và lệch số báo cáo). Không mở CSV bằng Excel bấm đúp (Excel đổi ngày thành số).
+- **Số báo cáo = (ngày báo cáo − `StartDate`) + 1.** Ví dụ ST01 có `StartDate = 2026-10-20`: ngày 20/10/2026 là báo cáo `00001`, ngày 30/10/2026 là `00011`.
+- **Nhà ga chưa có dòng hoặc chưa có `StartDate` (hay sai định dạng) thì người dùng KHÔNG lưu được báo cáo** và được báo liên hệ Admin; ngày báo cáo trước `StartDate` cũng không tạo/lưu được (lịch và Tổng quan hiện xám "Chưa bắt đầu"). Vì vậy phải điền `StartDate` cho mọi nhà ga trước khi đưa vào dùng; file mẫu chỉ điền sẵn ST01 làm ví dụ.
+- **Không đổi `StartDate` sau khi nhà ga đã có báo cáo**: báo cáo đã lưu giữ số cũ nên sẽ lệch so với công thức.
+- `GeoTag`: Single line of text `vĩ độ, kinh độ` (vd `10.7721033, 106.6970692`), tự điền vào ô "Tọa độ" của báo cáo; để trống thì ô tọa độ trống nhưng vẫn lưu được. File mẫu đã có tọa độ ST01–ST11 (trước đây nằm ở danh mục `location` của `DRPCatalogItems`, đã bỏ).
+- Quyền: người báo cáo chỉ **đọc**, chỉ admin được ghi; bật versioning.
 
 ## 4. `SiteAssets/portal_config.json` (chế độ bảo trì)
 Không cần tạo tay: admin vào Admin Config > Shutdown Server rồi bật/tắt, web part ghi file này. Cần để quyền **ghi vào SiteAssets** chỉ cho admin. Không có file nghĩa là không bảo trì.
@@ -139,6 +149,7 @@ Web part tự lấy site hiện hành từ `pageContext.web.absoluteUrl` (hoặc
 2. `_template/`: upload `template_DRP_ST06_<yyyyMMdd>.json` (sao chép template đơn vị khác, đổi dòng mẫu nếu cần).
 3. `ActivityP6.xlsx`: thêm các dòng Activity với `Unit = ST06`.
 4. `DRPCatalogItems`: thêm Element/Vật tư riêng của ST06 (nếu có); mã nhân lực/thiết bị `ALL` đã dùng chung.
+4b. `DRPUnitConfig`: thêm một dòng `ST06` với `StartDate` (ngày bắt đầu đánh số báo cáo, `yyyy-MM-dd`) và `GeoTag`. Thiếu dòng này thì ST06 không lưu được báo cáo.
 5. Tạo sẵn thư mục `data/ST06` và cấp quyền Contribute cho nhóm của đơn vị (nếu phân quyền theo đơn vị; xem mục 2.5).
 
 ## 7. Sao lưu
@@ -169,15 +180,15 @@ Sau khi tạo xong làm lại phần thiết lập của list (index, Enforce un
 |---|---|---|
 | 1 | Mở web part bằng tài khoản **admin** | Trang chủ hiện tên, vai trò Admin; có Admin Config |
 | 2 | Vào Quản lý Báo cáo | Tab "Tổng quan" hiện danh sách đơn vị (không có cảnh báo vàng về `DRPRegistry`) |
-| 3 | Mở một đơn vị, ngày hôm nay (chưa có báo cáo) | Form tạo từ template, số báo cáo `00001`, có đủ 11 mục |
+| 3 | Mở một đơn vị, ngày hôm nay (chưa có báo cáo) | Form tạo từ template, số báo cáo = (hôm nay − `StartDate` của nhà ga) + 1, có đủ 11 mục; nhà ga chưa cấu hình `StartDate` thì hiện khung cảnh báo và nút Lưu bị tắt |
 | 4 | Mở dropdown Activity ở mục Khối lượng | Có mã + mô tả của đúng đơn vị đó; không có cảnh báo danh mục |
 | 5 | Chọn "Thêm mới…" ở một ô (vd Thời tiết), nhập giá trị mới | Giá trị được chọn; list `DRPCatalogItems` có thêm một dòng |
 | 6 | Chọn một mã nhân lực | Ô "Loại" tự điền và khoá |
-| 7 | Điền đơn vị thi công, bấm **Lưu báo cáo** | Thông báo "Đã lưu báo cáo số 00001"; thư mục `data/<Unit>/DRP_<yyyyMMdd>_<Unit>/` có `.json` và `.html`; `DRPRegistry` có 1 dòng `unsigned` |
+| 7 | Điền đơn vị thi công, bấm **Lưu báo cáo** | Thông báo "Đã lưu báo cáo số …" (số theo `StartDate`); thư mục `data/<Unit>/DRP_<yyyyMMdd>_<Unit>/` có `.json` và `.html`; `DRPRegistry` có 1 dòng `unsigned` |
 | 8 | Tải `.html` về và mở bằng trình duyệt (tắt mạng) | Hiện đủ bản in A4, nút In/Lưu PDF hoạt động |
 | 9 | Tải một ảnh ở mục Ảnh hiện trường, Lưu lại | Ảnh nằm ở `photos/g1/`; `.html` mới nhúng ảnh |
 | 10 | Upload bản PDF đã ký | File `<MãTàiLiệu>_signed.pdf` trong thư mục; sổ chuyển `done` |
-| 11 | Mở ngày hôm sau | Kế thừa ngày trước: luỹ kế cộng dồn, ô "hôm nay" về 0, số báo cáo `00002` |
+| 11 | Mở ngày hôm sau | Kế thừa ngày trước: luỹ kế cộng dồn, ô "hôm nay" về 0, số báo cáo tăng thêm 1 |
 | 12 | Đăng nhập bằng tài khoản **thường** | Chỉ thấy ô báo cáo của mình; không có Admin Config; không xoá được dòng list |
 
 ## 9. Lỗi thường gặp
