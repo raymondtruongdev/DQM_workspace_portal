@@ -333,6 +333,7 @@ export const TasksModule: React.FC<ModuleProps> = ({ onGoHome }) => (
 7. Xem trên workbench ở 1440 / 1024 / 768 / 390px. KHÔNG chạy `npm run build` khi `npm run start` đang chạy (build xoá `dist/` đang phục vụ nên workbench rơi về bản cũ).
 
 ### 8.6 Nợ kỹ thuật đã biết (đừng nhân rộng)
+* **Lỗi trình duyệt khác nhau giữa macOS và Windows (BẮT BUỘC cân nhắc khi làm UI):** popup `<select>` của Chrome trên Windows tự vẽ bằng CSS của trang và KẾ THỪA kiểu chữ từ `<select>`, còn macOS dùng popup của hệ điều hành nên không lộ lỗi. Đã gặp: `select--compact` đặt chữ `<select>` trong suốt (`color`/`-webkit-text-fill-color: transparent`) thì danh sách xổ trên Windows trắng chữ, không đọc được (chỉ dòng đang rê chuột thấy). Cách đã sửa (`form.css`): `option` đặt rõ `color` + `background-color`, quy tắc `option` và `select:focus` KHÔNG dùng `:where` (CSS của trang SharePoint có thể ghi đè), khi ô focus thì bỏ chữ trong suốt và ẩn `.select__shown`. Quy tắc chung: không dùng chữ/nền trong suốt hoặc ẩn trên `<select>`, `<option>` và các điều khiển có popup gốc mà không đặt lại màu cho popup; kiểm tra bằng Chrome trên Windows (máy Mac không tái hiện được); trang SharePoint đã publish chỉ nhận bản sửa sau khi build + deploy `.sppkg` và tải lại cứng (Ctrl+F5).
 * `report.css` còn một số class chưa có tiền tố thuộc phần Weekly placeholder (`kpi-box`, `id-tag`, `rate-input`… – danh sách trong `scripts/check-styles.js` → `LEGACY_CLASSES`). Dọn (đổi sang `report-…`) khi làm báo cáo tuần; KHÔNG thêm class mới không tiền tố.
 
 ---

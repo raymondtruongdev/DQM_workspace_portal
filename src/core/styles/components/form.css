@@ -196,9 +196,19 @@
   color: transparent;
   -webkit-text-fill-color: transparent;
 }
-:where(.app-layout) .select--compact option {
+/* Không dùng :where ở quy tắc option/focus: CSS của trang SharePoint có thể ghi đè (popup Windows) */
+.app-layout .select--compact option {
   color: var(--color-text);
   -webkit-text-fill-color: var(--color-text);
+  background-color: var(--color-surface);
+}
+/* Khi ô đang focus (lúc bấm mở danh sách) bỏ chữ trong suốt và ẩn dòng phủ: popup <select> của Chrome trên Windows kế thừa chữ trong suốt từ select nên danh sách bị trắng chữ */
+.app-layout .select--compact select:focus {
+  color: var(--color-text);
+  -webkit-text-fill-color: var(--color-text);
+}
+:where(.app-layout) .select--compact:focus-within .select__shown {
+  visibility: hidden;
 }
 :where(.app-layout) .select__shown {
   position: absolute;
