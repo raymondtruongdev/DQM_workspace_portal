@@ -14,7 +14,7 @@ export interface ReportSettings {
 export const REPORT_SETTINGS_ID = 'report';
 export const DEFAULT_WINDOW_DAYS = 14;
 export const MIN_WINDOW_DAYS = 1;
-export const MAX_WINDOW_DAYS = 60;
+export const MAX_WINDOW_DAYS = 180; // TẠM nâng để nhập dữ liệu cũ; xong thì trả về 60 (và MAX_DAYS ở DailyReportSetupView.tsx)
 
 export const DEFAULT_UNLOCK_HOURS = 3;
 export const MIN_UNLOCK_HOURS = 1;

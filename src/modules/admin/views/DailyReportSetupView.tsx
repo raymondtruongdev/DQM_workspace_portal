@@ -10,7 +10,7 @@ import { PortalConfigService } from '../../../core/services';
 const SETTINGS_ID = 'report';
 const DEFAULT_DAYS = 14;
 const MIN_DAYS = 1;
-const MAX_DAYS = 60;
+const MAX_DAYS = 180; // TẠM nâng để nhập dữ liệu cũ; xong thì trả về 60 (và MAX_WINDOW_DAYS ở reportSettings.ts)
 const DEFAULT_UNLOCK = 3;
 const MIN_UNLOCK = 1;
 const MAX_UNLOCK = 72;

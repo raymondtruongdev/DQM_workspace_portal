@@ -141,7 +141,7 @@ const S = require(path.join(root, 'temp', 'dev', 'js', 'src', 'modules', 'report
 test('parseReportSettings: mặc định, ép kiểu và kẹp số ngày', () => {
   assert.deepEqual(S.parseReportSettings(undefined), { todayOnly: false, windowDays: 14, unlockHours: 3 });
   assert.deepEqual(S.parseReportSettings({ todayOnly: true, windowDays: 7 }), { todayOnly: true, windowDays: 7, unlockHours: 3 });
-  assert.equal(S.parseReportSettings({ windowDays: 999 }).windowDays, 60);
+  assert.equal(S.parseReportSettings({ windowDays: 999 }).windowDays, S.MAX_WINDOW_DAYS);
   assert.equal(S.parseReportSettings({ windowDays: 0 }).windowDays, 1);
   assert.equal(S.parseReportSettings({ windowDays: 'abc', todayOnly: 'yes' }).windowDays, 14);
   assert.equal(S.parseReportSettings({ todayOnly: 'yes' }).todayOnly, false);
