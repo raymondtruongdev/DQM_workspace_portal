@@ -29,6 +29,25 @@ export interface CreatableSelectProps {
    * Ô `<select>` gốc luôn hiện nhãn của mục đang chọn nên chữ của nó được làm trong suốt và phủ lên một dòng chữ chỉ có giá trị.
    */
   compactSelected?: boolean;
+  /** true (mặc định) = sắp xếp các mục tăng dần (so tự nhiên: A2 trước A10), "---" lên đầu, "NA" (nếu có) xuống cuối các mục, "Thêm mới…" luôn ở cuối cùng. false = giữ đúng thứ tự `options`. */
+  sorted?: boolean;
+}
+
+/** Mục "chưa chọn" luôn đứng đầu danh sách. */
+const NONE_VALUE = '---';
+
+/** Mục "không áp dụng" (nếu danh mục có) luôn đứng cuối danh sách mục, ngay trước "Thêm mới…". */
+const NOT_APPLICABLE_VALUE = 'NA';
+
+/** Sắp xếp tăng dần theo giá trị (so tự nhiên, không phân biệt hoa thường/dấu), "---" lên đầu, "NA" xuống cuối. */
+export function sortSelectOptions(options: string[]): string[] {
+  return options.slice().sort((a, b) => {
+    if (a === NONE_VALUE) return b === NONE_VALUE ? 0 : -1;
+    if (b === NONE_VALUE) return 1;
+    if (a === NOT_APPLICABLE_VALUE) return b === NOT_APPLICABLE_VALUE ? 0 : 1;
+    if (b === NOT_APPLICABLE_VALUE) return -1;
+    return a.localeCompare(b, 'vi', { numeric: true, sensitivity: 'base' });
+  });
 }
 
 const OTHER = '__other__';
@@ -61,13 +80,15 @@ export const CreatableSelect: React.FC<CreatableSelectProps> = ({
   placeholder,
   allowOther = true,
   optionLabels,
-  compactSelected = false
+  compactSelected = false,
+  sorted = true
 }) => {
   const [open, setOpen] = React.useState(false);
   const compact = compactSelected && Boolean(value) && Boolean(optionLabels && optionLabels[value] && optionLabels[value] !== value);
   const alignMatch = /\btext-(center|right)\b/.exec(className);
   const onSelectOpen = React.useContext(SelectOpenContext);
-  const list = value && options.indexOf(value) === -1 ? [value].concat(options) : options;
+  const withValue = value && options.indexOf(value) === -1 ? [value].concat(options) : options;
+  const list = React.useMemo(() => (sorted ? sortSelectOptions(withValue) : withValue), [sorted, withValue]);
 
   const handleAdd = (raw: string): void => {
     setOpen(false);
