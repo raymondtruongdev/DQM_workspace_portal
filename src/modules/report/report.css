@@ -526,6 +526,10 @@
   white-space: nowrap;
 }
 
+.report-grid-table td.report-row-actions {
+  white-space: nowrap;
+}
+
 .report-grid-table td {
   padding: 6px 8px;
   border-bottom: 1px solid var(--color-border);
@@ -2400,6 +2404,8 @@
 
 .report-layout-actions {
   display: flex;
+  align-items: center;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
@@ -2457,4 +2463,25 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+/* Cột nút điều khiển (đổi vị trí / xoá) đứng ĐẦU dòng, dính trái khi bảng cuộn ngang */
+.report-grid-table th.report-row-actions,
+.report-grid-table td.report-row-actions {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+.report-grid-table td.report-row-actions {
+  background-color: var(--color-surface);
+}
+.report-grid-table tr.report-row-moved > td {
+  animation: report-row-moved-flash 900ms ease;
+}
+@keyframes report-row-moved-flash {
+  0%, 60% { background-color: var(--color-accent-soft); }
+  100% { background-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .report-grid-table tr.report-row-moved > td { animation: none; }
 }

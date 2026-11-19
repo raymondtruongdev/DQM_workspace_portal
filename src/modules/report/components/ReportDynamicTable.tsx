@@ -6,6 +6,9 @@ import { ReportCatalog, applyCatalogLinks, canAddToTable, catalogOptionLabels, c
 import { Icon } from '../../../core/components/Icon';
 import { PromptDialog } from '../../../core/components/PromptDialog';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
+import { ConfirmDialog } from '../../../core/components/ConfirmDialog';
+import { MoveButtons } from '../../../core/components/MoveButtons';
+import { moveItem } from '../../../core/utils/arrayUtils';
 import {
   columnAlign,
   columnMinPx,
@@ -240,12 +243,62 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     change({ ...t, rows: [...t.rows, createRow(t, unit, counters)] });
   };
 
+  // Hiệu ứng khi đổi vị trí dòng (FLIP): ghi vị trí cũ trước khi đổi thứ tự, sau khi vẽ lại thì trượt từ vị trí cũ về vị trí mới
+  const rowEls = React.useRef<Map<string, HTMLElement>>(new Map());
+  const prevTops = React.useRef<Map<string, number> | null>(null);
+  const [movedId, setMovedId] = React.useState<string | null>(null);
+  const setRowEl = (key: string, el: HTMLElement | null): void => {
+    if (el) rowEls.current.set(key, el);
+    else rowEls.current.delete(key);
+  };
+  React.useLayoutEffect(() => {
+    const before = prevTops.current;
+    if (!before) return;
+    prevTops.current = null;
+    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const animated: HTMLElement[] = [];
+    rowEls.current.forEach((el, key) => {
+      const old = before.get(key);
+      if (old === undefined) return;
+      const delta = old - el.getBoundingClientRect().top;
+      if (Math.abs(delta) < 1) return;
+      el.style.transition = 'none';
+      el.style.transform = `translateY(${delta}px)`;
+      animated.push(el);
+    });
+    if (animated.length === 0) return;
+    animated[0].getBoundingClientRect(); // ép tính lại bố cục để trạng thái đầu được ghi nhận
+    animated.forEach((el) => {
+      el.style.transition = 'transform 220ms ease';
+      el.style.transform = '';
+    });
+  });
+  React.useEffect(() => {
+    if (!movedId) return undefined;
+    const t = window.setTimeout(() => setMovedId(null), 900);
+    return () => window.clearTimeout(t);
+  }, [movedId]);
+
+  /** Đưa dòng lên/xuống một vị trí (kể cả dòng khoá theo template: khoá chỉ chặn sửa dữ liệu và xoá). Chỉ đổi thứ tự, `id` dòng giữ nguyên. */
+  const moveRow = (index: number, delta: -1 | 1): void => {
+    const target = rows[index];
+    if (!target) return;
+    const tops = new Map<string, number>();
+    rowEls.current.forEach((el, key) => tops.set(key, el.getBoundingClientRect().top));
+    prevTops.current = tops;
+    setMovedId(target.id);
+    setRows(moveItem(rows, index, delta));
+  };
+
+  // Xoá dòng luôn hỏi xác nhận (Xoá / Huỷ) để tránh xoá nhầm
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
+  const confirmDeleteRow = confirmDeleteId ? rows.find((r) => r.id === confirmDeleteId) : undefined;
+
   const removeRow = async (index: number): Promise<void> => {
     const row = rows[index];
     if (!row || row.isLocked) return;
-    // Dòng có PDF đính kèm: xoá cả file trên SharePoint (có xác nhận), tránh để lại file mồ côi
+    // Dòng có PDF đính kèm: xoá cả file trên SharePoint (đã xác nhận ở hộp thoại), tránh để lại file mồ côi
     if (table.rowPdf && row.files && row.files.length > 0 && onPurgeRowPdf) {
-      if (!window.confirm(`Xoá dòng này và ${row.files.length} file PDF đính kèm khỏi SharePoint?`)) return;
       try {
         await onPurgeRowPdf(row.id, row.files);
       } catch {
@@ -277,7 +330,9 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     }
   };
 
-  const tableMinWidth = columns.reduce((acc, c) => acc + columnMinPx(c), table.single ? 0 : 56);
+  // Cột thao tác cuối dòng: cặp nút lên/xuống + xoá/khoá (+ nút đính kèm PDF)
+  const actionColPx = table.rowPdf ? 164 : 128;
+  const tableMinWidth = columns.reduce((acc, c) => acc + columnMinPx(c), table.single ? 0 : actionColPx);
   const renderCell = (col: TableColumn, row: TableRow, idx: number): React.ReactNode => {
     const value = row.values[col.code];
     // Cột dropdown khoá (key/readonly): dòng thêm tay luôn giữ giá trị mặc định (vd "---"), không chọn đổi được
@@ -397,6 +452,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
         <table className={`portal-table report-grid-table${table.single ? ' report-grid-table--fixed' : ''}`} style={{ minWidth: tableMinWidth }}>
           <thead>
             <tr>
+              {!table.single && <th className="report-row-actions" style={{ width: actionColPx, minWidth: actionColPx, textAlign: 'center' }} />}
               {columns.map((col) => {
                 const lbl = splitLabel(col.label);
                 return (
@@ -409,18 +465,18 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                   </th>
                 );
               })}
-              {!table.single && <th style={{ width: table.rowPdf ? 96 : 56, minWidth: table.rowPdf ? 96 : 56, textAlign: 'center' }} />}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, idx) => (
               <React.Fragment key={row.id || idx}>
-              <tr className={row.isLocked ? 'report-row-locked' : ''}>
-                {columns.map((col) => (
-                  <React.Fragment key={col.code}>{renderCell(col, row, idx)}</React.Fragment>
-                ))}
+              <tr
+                ref={(el) => setRowEl(row.id, el)}
+                className={`${row.isLocked ? 'report-row-locked' : ''}${movedId === row.id ? ' report-row-moved' : ''}`.trim()}
+              >
                 {!table.single && (
-                  <td className="text-center">
+                  <td className="text-center report-row-actions">
+                    <MoveButtons index={idx} count={rows.length} onMove={(d) => moveRow(idx, d)} disabled={disabled} />
                     {table.rowPdf && onUploadRowPdf && (
                       <button
                         type="button"
@@ -441,9 +497,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                       <button
                         type="button"
                         className="btn btn--ghost-danger btn--icon btn--sm"
-                        onClick={() => {
-                          removeRow(idx).catch(() => undefined);
-                        }}
+                        onClick={() => setConfirmDeleteId(row.id)}
                         disabled={disabled}
                         title="Xoá dòng"
                       >
@@ -452,9 +506,12 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                     )}
                   </td>
                 )}
+                {columns.map((col) => (
+                  <React.Fragment key={col.code}>{renderCell(col, row, idx)}</React.Fragment>
+                ))}
               </tr>
               {table.rowPdf && row.files && row.files.length > 0 && (
-                <tr className="report-row-pdf">
+                <tr ref={(el) => setRowEl(`${row.id}:pdf`, el)} className="report-row-pdf">
                   <td colSpan={columns.length + 1}>
                     <div className="report-row-pdf__list">
                       <span className="report-row-pdf__label">
@@ -497,7 +554,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
             ))}
             {hasTotals(table) && (
               <tr className="report-table-total-row">
-                <td colSpan={totalLabelSpan}>
+                <td colSpan={totalLabelSpan + (table.single ? 0 : 1)}>
                   <strong>Tổng | Total</strong>
                 </td>
                 {columns.slice(totalLabelSpan).map((col) => (
@@ -505,7 +562,6 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
                     {col.total && <strong>{columnTotal(table, col).toLocaleString('vi-VN')}</strong>}
                   </td>
                 ))}
-                {!table.single && <td />}
               </tr>
             )}
           </tbody>
@@ -555,6 +611,25 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           />
         </div>
       </div>
+      )}
+      {confirmDeleteRow && (
+        <ConfirmDialog
+          danger
+          title="Xoá dòng này?"
+          message={
+            table.rowPdf && confirmDeleteRow.files && confirmDeleteRow.files.length > 0
+              ? `Dòng này và ${confirmDeleteRow.files.length} file PDF đính kèm sẽ bị xoá khỏi SharePoint. Không thể hoàn tác.`
+              : 'Dữ liệu của dòng này sẽ bị xoá khỏi báo cáo (chỉ mất hẳn sau khi bấm Lưu).'
+          }
+          confirmLabel="Xoá"
+          onConfirm={() => {
+            const id = confirmDeleteRow.id;
+            setConfirmDeleteId(null);
+            const index = rows.findIndex((r) => r.id === id);
+            if (index >= 0) removeRow(index).catch(() => undefined);
+          }}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
       {linkAsk && (
         <PromptDialog

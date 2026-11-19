@@ -12,6 +12,7 @@ import {
   PromptDialog,
   SearchInput,
   Switch,
+  MoveButtons,
   TileGrid,
   ToastAlert
 } from '../../../core/components';
@@ -44,6 +45,7 @@ export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
   const [chip, setChip] = React.useState<string>('ALL');
   const [query, setQuery] = React.useState<string>('');
   const [guideOn, setGuideOn] = React.useState<boolean>(true);
+  const [guideMove, setGuideMove] = React.useState<number>(1);
   const [guideNum, setGuideNum] = React.useState<string>('14');
   const [kind, setKind] = React.useState<string>('NGHIEM_THU');
   const [kinds, setKinds] = React.useState<string[]>(['KIEM_TRA_ATLD', 'NGHIEM_THU', 'CHI_THI_TVGS']);
@@ -213,6 +215,13 @@ export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
         <div className="admin-guide-row">
           <Switch checked={guideOn} onChange={setGuideOn} label={guideOn ? 'Đang bật' : 'Đang tắt'} />
           <NumberStepper text={guideNum} onChange={setGuideNum} min={1} max={60} unit="ngày" valid={Number(guideNum) >= 1 && Number(guideNum) <= 60} />
+        </div>
+      </SectionBlock>
+
+      <SectionBlock title="MoveButtons" hint={<>Cặp nút mũi tên đưa dòng/mục lên hoặc xuống (mặc định viền xanh; <code>variant=&quot;light&quot;</code> trên banner xanh đậm)</>}>
+        <div className="admin-guide-row">
+          <MoveButtons index={guideMove} count={3} onMove={(d) => setGuideMove(guideMove + d)} />
+          <span>Vị trí: {guideMove + 1}/3</span>
         </div>
       </SectionBlock>
 

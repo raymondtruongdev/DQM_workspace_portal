@@ -3,6 +3,8 @@ import { ReportReadOnlyContext } from './ReportReadOnlyContext';
 import { PhotoGroup, ReportPhotoSection } from '../types/report.types';
 import { Icon, EmptyState } from '../../../core/components';
 import { ReportPhotoManager } from './ReportPhotoManager';
+import { MoveButtons } from '../../../core/components/MoveButtons';
+import { moveItem } from '../../../core/utils/arrayUtils';
 
 export interface IReportPhotoSectionEditorProps {
   section: ReportPhotoSection;
@@ -35,6 +37,8 @@ export const ReportPhotoSectionEditor: React.FC<IReportPhotoSectionEditorProps> 
   const updateGroup = (id: string, patch: Partial<PhotoGroup>): void =>
     onChange({ ...section, groups: section.groups.map((g) => (g.id === id ? { ...g, ...patch } : g)) });
 
+  const moveGroup = (index: number, delta: -1 | 1): void => onChange({ ...section, groups: moveItem(section.groups, index, delta) });
+
   const addGroup = (): void =>
     onChange({
       ...section,
@@ -62,7 +66,7 @@ export const ReportPhotoSectionEditor: React.FC<IReportPhotoSectionEditorProps> 
           />
         ) : (
           <div className="report-photo-group-list">
-            {section.groups.map((g) => (
+            {section.groups.map((g, gi) => (
               <div key={g.id} className="report-photo-group">
                 <div className="report-photo-group__bar">
                   <input
@@ -75,6 +79,7 @@ export const ReportPhotoSectionEditor: React.FC<IReportPhotoSectionEditorProps> 
                     disabled={disabled && !readOnlyMode}
                     readOnly={readOnlyMode}
                   />
+                  <MoveButtons index={gi} count={section.groups.length} onMove={(d) => moveGroup(gi, d)} disabled={disabled || isUploading} itemLabel="bộ phận" variant="light" />
                   <button
                     type="button"
                     className="btn btn--light btn--icon"

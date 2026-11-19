@@ -3,6 +3,8 @@ import { ReportReadOnlyContext } from './ReportReadOnlyContext';
 import { PhotoGroup, ReportPhotoSection } from '../types/report.types';
 import { Icon, EmptyState } from '../../../core/components';
 import { ReportPhotoManager } from './ReportPhotoManager';
+import { MoveButtons } from '../../../core/components/MoveButtons';
+import { moveItem } from '../../../core/utils/arrayUtils';
 import { LAYOUT_GROUP_PREFIX, photoSubfolder } from '../utils/reportFileNaming';
 
 export interface IReportLayoutSectionEditorProps {
@@ -39,6 +41,8 @@ export const ReportLayoutSectionEditor: React.FC<IReportLayoutSectionEditorProps
   const updateRow = (id: string, patch: Partial<PhotoGroup>): void =>
     onChange({ ...section, groups: section.groups.map((g) => (g.id === id ? { ...g, ...patch } : g)) });
 
+  const moveRowAt = (index: number, delta: -1 | 1): void => onChange({ ...section, groups: moveItem(section.groups, index, delta) });
+
   // id = `layout-<số>`: ảnh của mọi hàng nằm chung trong photos/layout/ (giữ nguyên tên file)
   const addRow = (): void =>
     onChange({
@@ -67,7 +71,7 @@ export const ReportLayoutSectionEditor: React.FC<IReportLayoutSectionEditorProps
           />
         ) : (
           <div className="report-layout-list">
-            {section.groups.map((g) => (
+            {section.groups.map((g, gi) => (
               <div key={g.id} className="report-layout-row">
                 <div className="field">
                   <label className="field__label report-layout-label">Tên sơ đồ | Layout name</label>
@@ -109,6 +113,7 @@ export const ReportLayoutSectionEditor: React.FC<IReportLayoutSectionEditorProps
                   </div>
                 </div>
                 <div className="report-layout-actions">
+                  <MoveButtons index={gi} count={section.groups.length} onMove={(d) => moveRowAt(gi, d)} disabled={disabled || isUploading} itemLabel="hàng" />
                   <button
                     type="button"
                     className="btn btn--ghost-danger btn--icon"

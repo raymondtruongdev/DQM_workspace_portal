@@ -10,3 +10,4 @@ export * from './ConfirmDialog';
 export * from './CreatableSelect';
 export * from './Switch';
 export * from './NumberStepper';
+export * from './MoveButtons';

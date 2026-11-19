@@ -299,3 +299,26 @@ test('xem bản in: ô chọn còn trống ("Chọn…") bị báo, "---" (Activ
   wq.rows[0].values.activityId = '---';
   assert.equal(V.getMissingSelectCells(doc).filter((m) => m.colCode === 'activityId' && m.sectionKey === 'workQty').length, 0);
 });
+
+test('moveItem: đổi chỗ lên/xuống, ngoài phạm vi giữ nguyên, không đụng mảng gốc', () => {
+  const { moveItem } = require(path.join(root, 'temp', 'dev', 'js', 'src', 'core', 'utils', 'arrayUtils'));
+  const a = ['x', 'y', 'z'];
+  assert.deepEqual(moveItem(a, 1, -1), ['y', 'x', 'z']);
+  assert.deepEqual(moveItem(a, 1, 1), ['x', 'z', 'y']);
+  assert.equal(moveItem(a, 0, -1), a);
+  assert.equal(moveItem(a, 2, 1), a);
+  assert.deepEqual(a, ['x', 'y', 'z']);
+});
+
+test('đổi thứ tự dòng rồi Lưu/mở lại và Apply template: thứ tự được giữ', () => {
+  const t = tpl();
+  const doc = J.jsonToDoc(J.parseReportJson(sampleText), t);
+  const sec = doc.sections.find((s) => s.key === 'manpower');
+  assert.ok(sec.rows.length >= 2, 'mẫu cần ít nhất 2 dòng nhân lực');
+  const reversed = { ...doc, sections: doc.sections.map((s) => (s === sec ? { ...s, rows: s.rows.slice().reverse() } : s)) };
+  const ids = reversed.sections.find((s) => s.key === 'manpower').rows.map((r) => r.id);
+  const reopened = J.jsonToDoc(J.parseReportJson(J.serializeReportJson(J.docToJson(reversed))), t);
+  assert.deepEqual(reopened.sections.find((s) => s.key === 'manpower').rows.map((r) => r.id), ids);
+  const applied = J.applyTemplate(reopened, t, 'template_DRP_ST01_29991231', { email: 'a@b.c' });
+  assert.deepEqual(applied.sections.find((s) => s.key === 'manpower').rows.map((r) => r.id), ids);
+});

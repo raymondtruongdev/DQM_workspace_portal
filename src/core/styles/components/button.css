@@ -84,3 +84,6 @@
 :where(.app-layout) .btn--icon.btn--sm { width: var(--control-h-sm); }
 
 :where(.app-layout) .btn--block { width: 100%; }
+
+/* Cặp nút mũi tên đưa dòng lên/xuống (<MoveButtons />) */
+:where(.app-layout) .move-buttons { display: inline-flex; align-items: center; gap: var(--space-1); }
