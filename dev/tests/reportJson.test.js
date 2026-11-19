@@ -322,3 +322,19 @@ test('đổi thứ tự dòng rồi Lưu/mở lại và Apply template: thứ t�
   const applied = J.applyTemplate(reopened, t, 'template_DRP_ST01_29991231', { email: 'a@b.c' });
   assert.deepEqual(applied.sections.find((s) => s.key === 'manpower').rows.map((r) => r.id), ids);
 });
+
+test('khôi phục dòng ngày trước: liệt kê dòng thiếu theo id, chèn đúng vị trí, không nhân đôi', () => {
+  const R = require(path.join(root, 'temp', 'dev', 'js', 'src', 'modules', 'report', 'utils', 'reportRestore'));
+  const cols = [{ code: 'a', label: 'A', type: 'text' }];
+  const mk = (id, a) => ({ id, values: { a } });
+  const prev = { columns: cols, rows: [mk('r1', 'x'), mk('r2', 'y'), mk('r3', 'z'), mk('r4', '---')] };
+  const cur = { columns: cols, rows: [mk('r1', 'x'), mk('r4', 'q')] };
+  const miss = R.missingRows(cur, prev);
+  assert.deepEqual(miss.map((m) => m.id), ['r2', 'r3']);
+  assert.equal(miss[0].label, 'y');
+  const out = R.insertRestoredRows(cur, prev, ['r3', 'r2']);
+  assert.deepEqual(out.rows.map((r) => r.id), ['r1', 'r2', 'r3', 'r4']);
+  assert.deepEqual(R.insertRestoredRows(out, prev, ['r2']).rows.map((r) => r.id), ['r1', 'r2', 'r3', 'r4']);
+  assert.deepEqual(R.insertRestoredRows(cur, prev, ['r2']).rows.map((r) => r.id), ['r1', 'r2', 'r4']);
+  assert.equal(R.describeRow(cols, mk('r9', '---')), '(dòng trống)');
+});

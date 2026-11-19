@@ -6,6 +6,8 @@ import { ReportCatalog, applyCatalogLinks, canAddToTable, catalogOptionLabels, c
 import { Icon } from '../../../core/components/Icon';
 import { PromptDialog } from '../../../core/components/PromptDialog';
 import { CreatableSelect } from '../../../core/components/CreatableSelect';
+import { ReportRestoreRowsDialog } from './ReportRestoreRowsDialog';
+import { insertRestoredRows, missingRows, RestorableRow } from '../utils/reportRestore';
 import { ConfirmDialog } from '../../../core/components/ConfirmDialog';
 import { MoveButtons } from '../../../core/components/MoveButtons';
 import { moveItem } from '../../../core/utils/arrayUtils';
@@ -59,6 +61,11 @@ export interface IReportDynamicTableProps {
    * ném lỗi = dự phòng cục bộ.
    */
   onReserveAutoId?: (key: string, atLeast: number) => Promise<number>;
+  /**
+   * Đọc lại mục này từ báo cáo ngày trước (đã tính lại luỹ kế như khi kế thừa) để khôi phục các dòng lỡ xoá.
+   * Trả về bảng của ngày trước và ngày nguồn (dd/MM/yyyy); undefined = không có báo cáo ngày trước. Không truyền = ẩn nút "Khôi phục".
+   */
+  onLoadPreviousRows?: () => Promise<{ table: ReportTable; sourceDate: string } | undefined>;
   /** Thư mục (server-relative) chứa PDF đính kèm của các dòng (mục có `rowPdf`, vd Sự kiện). */
   rowPdfFolder?: string;
   /** Tải PDF đính kèm cho một dòng. Nơi gọi tải lên SharePoint (hỏi Thay thế/Huỷ khi trùng tên) và cập nhật `files` của dòng. */
@@ -100,6 +107,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   onPurgeRowPdf,
   idCounters,
   onReserveAutoId,
+  onLoadPreviousRows,
   dateStr,
   roman,
   anchor,
@@ -290,6 +298,28 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     setRows(moveItem(rows, index, delta));
   };
 
+  // Khôi phục dòng đã xoá từ báo cáo ngày trước
+  const [restore, setRestore] = React.useState<{ previous: ReportTable; sourceDate: string; items: RestorableRow[] } | null>(null);
+  const [restoreMsg, setRestoreMsg] = React.useState<string | null>(null);
+  const [restoreBusy, setRestoreBusy] = React.useState(false);
+  const openRestore = async (): Promise<void> => {
+    if (!onLoadPreviousRows) return;
+    setRestoreBusy(true);
+    setRestoreMsg(null);
+    try {
+      const prev = await onLoadPreviousRows();
+      if (!prev) {
+        setRestoreMsg('Không tìm thấy báo cáo ngày trước để khôi phục.');
+        return;
+      }
+      setRestore({ previous: prev.table, sourceDate: prev.sourceDate, items: missingRows(table, prev.table) });
+    } catch (err: unknown) {
+      setRestoreMsg(`Không đọc được báo cáo ngày trước: ${err instanceof Error ? err.message.slice(0, 120) : 'lỗi không rõ'}`);
+    } finally {
+      setRestoreBusy(false);
+    }
+  };
+
   // Xoá dòng luôn hỏi xác nhận (Xoá / Huỷ) để tránh xoá nhầm
   const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
   const confirmDeleteRow = confirmDeleteId ? rows.find((r) => r.id === confirmDeleteId) : undefined;
@@ -442,11 +472,28 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           {table.titleEn && <span className="section-card__title-sub">| {table.titleEn}</span>}
         </span>
         {!table.single && (
-          <button type="button" className="btn btn--light btn--sm" onClick={addRow} disabled={disabled || adding}>
-            + Thêm dòng
-          </button>
+          <span className="report-table-tools">
+            {onLoadPreviousRows && (
+              <button
+                type="button"
+                className="btn btn--light btn--sm"
+                onClick={() => {
+                  openRestore().catch(() => undefined);
+                }}
+                disabled={disabled || readOnlyMode || restoreBusy}
+                title="Khôi phục các dòng của ngày trước đã bị xoá khỏi bảng này"
+              >
+                <Icon name={restoreBusy ? 'refresh' : 'arrow-undo'} size={16} spin={restoreBusy} />
+                <span>Khôi phục dòng</span>
+              </button>
+            )}
+            <button type="button" className="btn btn--light btn--sm" onClick={addRow} disabled={disabled || adding}>
+              + Thêm dòng
+            </button>
+          </span>
         )}
       </div>
+      {restoreMsg && <div className="report-restore-msg" role="status">{restoreMsg}</div>}
 
       <div className="table-responsive">
         <table className={`portal-table report-grid-table${table.single ? ' report-grid-table--fixed' : ''}`} style={{ minWidth: tableMinWidth }}>
@@ -611,6 +658,19 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           />
         </div>
       </div>
+      )}
+      {restore && (
+        <ReportRestoreRowsDialog
+          sectionTitle={resolveTitle(table.title, dateStr)}
+          sourceDate={restore.sourceDate}
+          items={restore.items}
+          onCancel={() => setRestore(null)}
+          onConfirm={(ids) => {
+            const prev = restore.previous;
+            setRestore(null);
+            onChange(insertRestoredRows(table, prev, ids));
+          }}
+        />
       )}
       {confirmDeleteRow && (
         <ConfirmDialog

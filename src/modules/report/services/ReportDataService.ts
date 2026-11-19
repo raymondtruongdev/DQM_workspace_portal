@@ -264,6 +264,25 @@ export class ReportDataService {
     return { ...result, doc: await this.applyIdCounters(doc), unitGeoTag, numberingIssue };
   }
 
+  /**
+   * Báo cáo ngày trước (gần nhất trước `dateStr`) đã tính lại như khi kế thừa (luỹ kế cộng dồn, cột reset về mặc định, bỏ ảnh/PDF).
+   * Dùng để khôi phục các dòng người dùng lỡ xoá; không ghi gì lên SharePoint. Không có báo cáo ngày trước thì trả undefined.
+   */
+  public async loadPreviousCarriedDoc(
+    docId: string,
+    unit: string,
+    dateStr: string,
+    email: string
+  ): Promise<{ doc: ReportDoc; sourceDateStr: string } | undefined> {
+    const [prev, latest] = await Promise.all([
+      this._fileService.getPreviousReportJson(unit, docId, dateStr),
+      this._templateService.getLatest(unit, docId)
+    ]);
+    if (!prev) return undefined;
+    const prevDoc = jsonToDoc(parseReportJson(prev.text), latest ? latest.template : undefined);
+    return { doc: carryForwardDoc(prevDoc, dateStr, email), sourceDateStr: prev.sourceDateStr };
+  }
+
   private async loadReportCore(
     docId: string,
     unit: string,

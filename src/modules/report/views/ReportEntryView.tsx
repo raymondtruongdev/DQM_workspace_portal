@@ -16,6 +16,7 @@ import { ReportSectionsEditor } from '../components/ReportSectionsEditor';
 import { ReportReadOnlyContext } from '../components/ReportReadOnlyContext';
 import { ReportSignedDocument } from '../components/ReportSignedDocument';
 import { getReportFolderName, isLayoutGroupId, photoSubfolder } from '../utils/reportFileNaming';
+import { formatDMY } from '../utils/reportCalendar';
 import { formatUnlockUntil } from '../utils/reportSettings';
 import { ReportPrintPreviewModal } from '../components/ReportPrintPreviewModal';
 import { Icon, PageHeader, LoadingState, EmptyState, ConfirmDialog } from '../../../core/components';
@@ -1119,6 +1120,16 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             catalog={catalog}
             onAddCatalogItem={handleAddCatalogItem}
             onUpdateCatalogLink={handleUpdateCatalogLink}
+            onLoadPreviousSection={
+              isWeekly
+                ? undefined
+                : async (sectionKey) => {
+                    const prev = await dataService.loadPreviousCarriedDoc(doc.docId, doc.unit, doc.dateStr, currentUserEmail);
+                    const table = prev?.doc.sections.find((x) => x.kind === 'table' && x.key === sectionKey);
+                    if (!prev || !table || table.kind !== 'table') return undefined;
+                    return { table, sourceDate: formatDMY(prev.sourceDateStr) };
+                  }
+            }
             onReserveAutoId={
               dataService.usesAutoIds(doc.docId)
                 ? async (key, atLeast) => {
