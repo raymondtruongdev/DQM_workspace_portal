@@ -13,6 +13,7 @@ import {
   SearchInput,
   Switch,
   MoveButtons,
+  ImageLightbox,
   TileGrid,
   ToastAlert
 } from '../../../core/components';
@@ -45,6 +46,7 @@ export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
   const [chip, setChip] = React.useState<string>('ALL');
   const [query, setQuery] = React.useState<string>('');
   const [guideOn, setGuideOn] = React.useState<boolean>(true);
+  const [guideLightbox, setGuideLightbox] = React.useState<boolean>(false);
   const [guideMove, setGuideMove] = React.useState<number>(1);
   const [guideNum, setGuideNum] = React.useState<string>('14');
   const [kind, setKind] = React.useState<string>('NGHIEM_THU');
@@ -223,6 +225,17 @@ export const StyleGuideView: React.FC<StyleGuideViewProps> = ({ onBack }) => {
           <MoveButtons index={guideMove} count={3} onMove={(d) => setGuideMove(guideMove + d)} />
           <span>Vị trí: {guideMove + 1}/3</span>
         </div>
+      </SectionBlock>
+
+      <SectionBlock title="ImageLightbox" hint={<>Xem ảnh phóng to ngay trong trang: nút +/−, con lăn chuột, nhấp đúp, Vừa / 100%, kéo để di chuyển (Esc hoặc bấm nền để đóng)</>}>
+        <button type="button" className="btn btn--secondary btn--sm" onClick={() => setGuideLightbox(true)}>Mở khung xem ảnh</button>
+        {guideLightbox && (
+          <ImageLightbox
+            name="vi-du.svg"
+            url="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='360'%3E%3Crect width='600' height='360' fill='%23dbeafe'/%3E%3C/svg%3E"
+            onClose={() => setGuideLightbox(false)}
+          />
+        )}
       </SectionBlock>
 
       <SectionBlock title="Trạng thái & thông báo" hint={<><code>LoadingState</code>, <code>EmptyState</code>, <code>ToastAlert</code></>}>

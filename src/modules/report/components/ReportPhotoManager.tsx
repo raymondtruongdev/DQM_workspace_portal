@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Icon } from '../../../core/components/Icon';
+import { ImageLightbox } from '../../../core/components/ImageLightbox';
 
 interface IPhotoCardProps {
   url: string;
@@ -8,18 +9,14 @@ interface IPhotoCardProps {
   onDelete: () => void;
 }
 
-/** Ảnh hiện trường: hình thu nhỏ (bấm để mở ảnh gốc) + tên file + nút xoá. */
+/** Ảnh hiện trường: hình thu nhỏ (bấm để xem phóng to trong trang) + tên file + nút xoá. */
 const PhotoCard: React.FC<IPhotoCardProps> = ({ url, name, disabled, onDelete }) => {
   const [failed, setFailed] = React.useState(false);
+  // Xem ảnh ngay trong trang (không dùng liên kết tới file: SharePoint có thể mở ảnh ở tab hiện tại và mất dữ liệu chưa lưu)
+  const [open, setOpen] = React.useState(false);
   return (
     <figure className="report-photo-item">
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="report-photo-thumb"
-        title={`Mở ảnh: ${name}`}
-      >
+      <button type="button" className="report-photo-thumb" onClick={() => setOpen(true)} title={`Xem ảnh: ${name}`} aria-label={`Xem ảnh ${name}`}>
         {failed ? (
           <span className="report-photo-fallback">
             <Icon name="image" size={24} />
@@ -27,7 +24,8 @@ const PhotoCard: React.FC<IPhotoCardProps> = ({ url, name, disabled, onDelete })
         ) : (
           <img src={url} alt={name} loading="lazy" onError={() => setFailed(true)} />
         )}
-      </a>
+      </button>
+      {open && <ImageLightbox url={url} name={name} onClose={() => setOpen(false)} />}
       <figcaption className="report-photo-caption">
         <span className="report-photo-name" title={name}>
           {name}

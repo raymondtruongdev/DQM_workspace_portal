@@ -11,3 +11,4 @@ export * from './CreatableSelect';
 export * from './Switch';
 export * from './NumberStepper';
 export * from './MoveButtons';
+export * from './ImageLightbox';

@@ -43,6 +43,9 @@ import {
   SubtractRegular,
   TableRegular,
   WarningRegular,
+  ZoomInRegular,
+  ZoomOutRegular,
+  ScaleFitRegular,
 } from '@fluentui/react-icons';
 
 /**
@@ -94,6 +97,9 @@ const ICONS = {
   table: TableRegular,
   upload: ArrowUploadRegular,
   warning: WarningRegular,
+  'zoom-in': ZoomInRegular,
+  'zoom-out': ZoomOutRegular,
+  'scale-fit': ScaleFitRegular,
 } as const;
 
 export type IconName = keyof typeof ICONS;

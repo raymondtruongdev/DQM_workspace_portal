@@ -163,6 +163,17 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     loadData(dateStr).catch(() => {});
   }, [loadData, dateStr]);
 
+  // Còn thay đổi chưa lưu thì trình duyệt hỏi trước khi rời trang (tải lại, đóng tab, bị điều hướng nhầm sang file/ảnh)
+  React.useEffect(() => {
+    if (!hasUnsavedChanges) return undefined;
+    const onBeforeUnload = (e: BeforeUnloadEvent): void => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   // Date change handler with unsaved changes prompt
   const handleDateChange = (newDate: string): void => {
     if (!newDate || newDate === dateStr) return;

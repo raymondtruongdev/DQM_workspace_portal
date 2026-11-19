@@ -40,3 +40,57 @@
 @media (max-width: 480px) {
   :where(.app-layout) .dialog__actions .btn { flex: 1 1 auto; }
 }
+
+/* <ImageLightbox /> – xem ảnh phóng to trong trang (.lightbox > __bar (__name, __zoom) + __stage > __img (--pan)) */
+:where(.app-layout) .lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.85);
+}
+:where(.app-layout) .lightbox__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+}
+:where(.app-layout) .lightbox__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-surface);
+  font-size: var(--text-sm);
+}
+:where(.app-layout) .lightbox__bar { flex-wrap: wrap; }
+:where(.app-layout) .lightbox__zoom {
+  min-width: 3.5em;
+  text-align: center;
+  color: var(--color-surface);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+:where(.app-layout) .lightbox__stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  overflow: hidden;
+  touch-action: none;
+}
+:where(.app-layout) .lightbox__img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: var(--color-surface);
+  transform-origin: center center;
+  cursor: zoom-in;
+  user-select: none;
+}
+:where(.app-layout) .lightbox__img--pan { cursor: grab; }
+:where(.app-layout) .lightbox__img--pan:active { cursor: grabbing; }
