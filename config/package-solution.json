@@ -3,7 +3,7 @@
   "solution": {
     "name": "workspace-portal-solution",
     "id": "0c115257-9f55-4564-8c12-d71fc6759401",
-    "version": "1.0.0.0",
+    "version": "1.1.0.0",
     "includeClientSideAssets": true,
     "skipFeatureDeployment": true,
     "developer": {
@@ -29,7 +29,7 @@
         "title": "workspace-portal-Feature",
         "description": "The feature that activates elements of the workspace-portal solution.",
         "id": "35eeabd7-72b5-49cd-a623-7582a60818a7",
-        "version": "1.0.0.0"
+        "version": "1.1.0.0"
       }
     ]
   },
