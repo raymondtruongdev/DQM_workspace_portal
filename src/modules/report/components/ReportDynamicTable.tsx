@@ -14,7 +14,10 @@ import {
   createRow,
   firstTotalIndex,
   formatNumber,
+  autoIdColumns,
+  autoIdKey,
   hasTotals,
+  maxAutoIdInTable,
   recalcRow,
   resolveTitle,
   sanitizeOption,
@@ -47,6 +50,12 @@ export interface IReportDynamicTableProps {
   onAddCatalogItem?: (ref: string, value: string, byLink: boolean, askLink?: AskCatalogLink) => Promise<CatalogAddResult | undefined>;
   /** Số lớn nhất đã dùng ở các báo cáo khác cho mã tự tăng (Event ID, Issue ID…), để dòng mới nhận số kế tiếp. */
   idCounters?: Record<string, number>;
+  /**
+   * Đặt chỗ số mã tự tăng (Event ID, Issue ID…) với nơi lưu bộ đếm dùng chung khi thêm hàng, để hai người nhập hai báo cáo khác nhau
+   * không nhận cùng số. `key` = khoá bộ đếm (`events.eventid`), `atLeast` = số lớn nhất đang có trong bảng. Không truyền = tính cục bộ từ `idCounters`;
+   * ném lỗi = dự phòng cục bộ.
+   */
+  onReserveAutoId?: (key: string, atLeast: number) => Promise<number>;
   /** Thư mục (server-relative) chứa PDF đính kèm của các dòng (mục có `rowPdf`, vd Sự kiện). */
   rowPdfFolder?: string;
   /** Tải PDF đính kèm cho một dòng. Nơi gọi tải lên SharePoint (hỏi Thay thế/Huỷ khi trùng tên) và cập nhật `files` của dòng. */
@@ -87,6 +96,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
   onDeleteRowPdf,
   onPurgeRowPdf,
   idCounters,
+  onReserveAutoId,
   dateStr,
   roman,
   anchor,
@@ -201,7 +211,34 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
     });
   };
 
-  const addRow = (): void => setRows([...rows, createRow(table, unit, idCounters)]);
+  // Bảng mới nhất: thêm hàng có chờ SharePoint (đặt chỗ mã) nên không dùng `rows` đã cũ của lúc bấm nút
+  const latest = React.useRef({ table, onChange });
+  latest.current = { table, onChange };
+  const [adding, setAdding] = React.useState(false);
+
+  const addRow = async (): Promise<void> => {
+    if (adding) return;
+    const idCols = autoIdColumns(table);
+    let counters = idCounters || {};
+    if (onReserveAutoId && idCols.length > 0) {
+      setAdding(true);
+      try {
+        const reserved: Record<string, number> = { ...counters };
+        for (const c of idCols) {
+          const key = autoIdKey(table, c);
+          const atLeast = Math.max(maxAutoIdInTable(latest.current.table, unit, c), 0);
+          reserved[key] = (await onReserveAutoId(key, atLeast)) - 1; // createRow cộng thêm 1 nên giữ đúng số đã đặt
+        }
+        counters = reserved;
+      } catch (err: unknown) {
+        console.warn('[DRPCounters] Could not reserve ID, using local counter:', err);
+      } finally {
+        setAdding(false);
+      }
+    }
+    const { table: t, onChange: change } = latest.current;
+    change({ ...t, rows: [...t.rows, createRow(t, unit, counters)] });
+  };
 
   const removeRow = async (index: number): Promise<void> => {
     const row = rows[index];
@@ -350,7 +387,7 @@ export const ReportDynamicTable: React.FC<IReportDynamicTableProps> = ({
           {table.titleEn && <span className="section-card__title-sub">| {table.titleEn}</span>}
         </span>
         {!table.single && (
-          <button type="button" className="btn btn--light btn--sm" onClick={addRow} disabled={disabled}>
+          <button type="button" className="btn btn--light btn--sm" onClick={addRow} disabled={disabled || adding}>
             + Thêm dòng
           </button>
         )}

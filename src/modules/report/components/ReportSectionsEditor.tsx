@@ -17,6 +17,8 @@ export interface IReportSectionsEditorProps {
   onAddCatalogItem?: IReportDynamicTableProps['onAddCatalogItem'];
   /** Cập nhật liên kết của mục do người dùng thêm (xem ReportDynamicTable). */
   onUpdateCatalogLink?: IReportDynamicTableProps['onUpdateCatalogLink'];
+  /** Đặt chỗ số mã tự tăng khi thêm hàng (xem ReportDynamicTable). */
+  onReserveAutoId?: IReportDynamicTableProps['onReserveAutoId'];
   /** Thư mục PDF đính kèm sự kiện (server-relative) và các thao tác tải / xoá PDF của dòng (xem ReportDynamicTable). */
   eventPdfFolder?: string;
   onUploadRowPdf?: (sectionKey: string, rowId: string, files: FileList) => Promise<void>;
@@ -40,6 +42,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
   catalog,
   onAddCatalogItem,
   onUpdateCatalogLink,
+  onReserveAutoId,
   eventPdfFolder,
   onUploadRowPdf,
   onDeleteRowPdf,
@@ -72,6 +75,7 @@ export const ReportSectionsEditor: React.FC<IReportSectionsEditorProps> = ({
               onDeleteRowPdf={onDeleteRowPdf ? (rowId, name) => onDeleteRowPdf(sec.key, rowId, name) : undefined}
               onPurgeRowPdf={onPurgeRowPdf ? (rowId, names) => onPurgeRowPdf(sec.key, rowId, names) : undefined}
               idCounters={doc.idCounters}
+              onReserveAutoId={onReserveAutoId}
               dateStr={doc.dateStr}
               roman={roman}
               anchor={anchor}

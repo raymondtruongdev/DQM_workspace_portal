@@ -6,3 +6,4 @@ export * from './ReportDataService';
 export * from './ReportRegistryService';
 export * from './ReportCatalogService';
 export * from './ReportUnitConfigService';
+export * from './ReportCounterService';

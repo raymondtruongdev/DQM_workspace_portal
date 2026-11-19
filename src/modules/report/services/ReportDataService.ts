@@ -15,6 +15,7 @@ import { LoadedTemplate, ReportTemplateService } from './ReportTemplateService';
 import { IReportLock, ISignedTrail, ReportLockedError, ReportRegistryService, canUploadSignedWhileLocked } from './ReportRegistryService';
 import { ReportCatalogService } from './ReportCatalogService';
 import { ReportUnitConfigService } from './ReportUnitConfigService';
+import { ReportCounterService } from './ReportCounterService';
 
 /** Lý do không đánh được số báo cáo: nhà ga chưa cấu hình ngày bắt đầu, ngày báo cáo trước ngày bắt đầu, hoặc không đọc được cấu hình. */
 export type ReportNumberingReason = 'noConfig' | 'beforeStart' | 'configError';
@@ -58,6 +59,7 @@ export class ReportDataService {
   private _registry: ReportRegistryService;
   private _catalogSource: ReportCatalogService;
   private _unitConfig: ReportUnitConfigService;
+  private _counters: ReportCounterService;
 
   private readonly _settings: () => Promise<ReportSettings>;
   private readonly _clock: Clock;
@@ -68,6 +70,7 @@ export class ReportDataService {
     registry: ReportRegistryService,
     catalogSource: ReportCatalogService,
     unitConfig: ReportUnitConfigService,
+    counters: ReportCounterService,
     settings: () => Promise<ReportSettings> = () => Promise.resolve(DEFAULT_REPORT_SETTINGS),
     clock: Clock = LOCAL_CLOCK
   ) {
@@ -78,6 +81,7 @@ export class ReportDataService {
     this._registry = registry;
     this._catalogSource = catalogSource;
     this._unitConfig = unitConfig;
+    this._counters = counters;
   }
 
   private _catalogFile?: { at: number; wb: Promise<{ XLSX: typeof import('xlsx'); wb: import('xlsx').WorkBook } | undefined> };
@@ -183,22 +187,35 @@ export class ReportDataService {
   }
 
   /**
-   * Gắn bộ đếm mã tự tăng (Event ID, Issue ID…) từ sổ DRPRegistry vào báo cáo để dòng mới nhận số kế tiếp liên tục giữa các ngày,
-   * và điền các mã còn trống/còn nguyên mẫu "{n5}". Không đọc được sổ thì chỉ dựa vào các dòng đang có trong báo cáo.
+   * Gắn bộ đếm mã tự tăng (Event ID, Issue ID…) của đơn vị (list DRPCounters) vào báo cáo để dòng mới nhận số kế tiếp liên tục giữa các ngày,
+   * và điền các mã còn trống/còn nguyên mẫu "{n5}". Không đọc được list thì chỉ dựa vào các dòng đang có trong báo cáo (kèm cảnh báo ở console).
    */
   private async applyIdCounters(doc: ReportDoc): Promise<ReportDoc> {
     if (!this.isDaily(doc.docId)) return doc;
     let counters: Record<string, number> = {};
     try {
-      counters = await this._registry.getCounters(doc.unit, doc.docId);
+      counters = await this._counters.get(doc.unit, doc.docId);
     } catch (err: unknown) {
-      console.warn('[DRPRegistry] Could not read ID counters:', err);
+      console.warn('[DRPCounters] Could not read ID counters:', err);
     }
     return {
       ...doc,
       idCounters: counters,
       sections: doc.sections.map((s): ReportSection => (s.kind === 'table' ? fillAutoIds(s, doc.unit, counters) : s))
     };
+  }
+
+  /**
+   * Đặt chỗ số mã tự tăng kế tiếp của đơn vị (Event ID, Issue ID…) khi người dùng thêm hàng; xem `ReportCounterService.reserve`.
+   * `atLeast` = số lớn nhất đang có trong bảng. Ném lỗi nếu không đặt chỗ được (nơi gọi dự phòng bằng số cục bộ).
+   */
+  public reserveAutoId(unit: string, docId: string, key: string, atLeast: number): Promise<number> {
+    return this._counters.reserve(unit, docId, key, atLeast);
+  }
+
+  /** Báo cáo ngày mới có đặt chỗ mã tự tăng theo đơn vị (báo cáo tuần chưa dùng). */
+  public usesAutoIds(docId: string): boolean {
+    return this.isDaily(docId);
   }
 
   /** Cờ cập nhật template: báo cáo (đã lưu hoặc kế thừa) dùng template cũ hơn bản mới nhất trong _template/. */
@@ -327,7 +344,7 @@ export class ReportDataService {
   public async saveReport(
     doc: ReportDoc,
     userEmail: string
-  ): Promise<{ serverRelativeUrl: string; eTag?: string; metadata: ReportMetadata; registryWarning?: string; htmlWarning?: string }> {
+  ): Promise<{ serverRelativeUrl: string; eTag?: string; metadata: ReportMetadata; idCounters?: Record<string, number>; registryWarning?: string; htmlWarning?: string }> {
     await this.assertUnlocked(doc.unit, doc.docId, doc.dateStr);
     // Số báo cáo theo ngày bắt đầu của nhà ga; chưa cấu hình hoặc ngày trước ngày bắt đầu thì không lưu được (báo cáo tuần không đánh số)
     let base = doc;
@@ -359,17 +376,26 @@ export class ReportDataService {
     }
 
     let registryWarning: string | undefined;
+    let idCounters: Record<string, number> | undefined;
     if (this.isDaily(doc.docId)) {
       try {
-        // Bộ đếm cộng dồn: số lớn nhất của báo cáo này và của các báo cáo trước (để ngày/báo cáo sau không dùng lại số)
-        const counters = collectAutoIdCounters(toSave.sections, doc.unit, toSave.idCounters);
-        await this._registry.recordSave(doc.unit, doc.docId, doc.dateStr, metadata.reportNo, metadata.email, counters);
+        await this._registry.recordSave(doc.unit, doc.docId, doc.dateStr, metadata.reportNo, metadata.email);
       } catch (err: unknown) {
         console.warn('[DRPRegistry] Could not record save:', err);
         registryWarning = `Đã lưu báo cáo nhưng chưa ghi được vào sổ DRPRegistry (kiểm tra list và quyền ghi). ${errorDetail(err)}`;
       }
+      try {
+        // Nâng bộ đếm của đơn vị (max, không bao giờ giảm) để báo cáo của bất kỳ ngày nào về sau không dùng lại số đã cấp
+        const counters = collectAutoIdCounters(toSave.sections, doc.unit, toSave.idCounters);
+        idCounters = counters;
+        await this._counters.raise(doc.unit, doc.docId, counters);
+      } catch (err: unknown) {
+        console.warn('[DRPCounters] Could not raise ID counters:', err);
+        const msg = `Đã lưu báo cáo nhưng chưa ghi được bộ đếm mã tự tăng vào list DRPCounters (kiểm tra list và quyền ghi), mã Event/Issue ID của báo cáo sau có thể trùng. ${errorDetail(err)}`;
+        registryWarning = registryWarning ? `${registryWarning} ${msg}` : msg;
+      }
     }
-    return { ...res, metadata, registryWarning, htmlWarning };
+    return { ...res, metadata, idCounters, registryWarning, htmlWarning };
   }
 
   /** Logo và ảnh hiện trường (đã thu nhỏ) để nhúng vào file HTML; ảnh/logo không đọc được thì bỏ qua (HTML hiện chữ/khung trống). */

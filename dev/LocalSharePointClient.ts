@@ -134,8 +134,9 @@ function evalFilter(filter: string, row: Record<string, unknown>): boolean {
 /** Cột chuẩn của các list; "Hiển thị=Nội bộ" khi tên nội bộ khác tên hiển thị (vd DisplayName là cột Title). */
 const FIELD_MAPS: Record<string, string[]> = {
   DRPRole: ['DisplayName=Title', 'Email', 'Unit', 'DocID', 'DocTitle', 'Active'],
-  DRPRegistry: ['Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'Counters', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy', 'Locked'],
+  DRPRegistry: ['Title', 'Unit', 'DocID', 'ReportDate', 'ReportNo', 'Reporter', 'Status', 'SavedAt', 'SignedAt', 'SignedUploadBy', 'SignedRemovedAt', 'SignedRemovedBy', 'Locked'],
   DRPUnitConfig: ['Title', 'Unit', 'StartDate', 'GeoTag', 'Active'],
+  DRPCounters: ['Title', 'Counters'],
   DRPCatalogItems: ['Title', 'Unit', 'Catalog', 'Code', 'Link', 'NameVN', 'NameEN', 'Note', 'Active', 'AddedByAdmin']
 };
 
@@ -170,6 +171,12 @@ export class SharePointClient implements ISharePointClient {
     return Promise.resolve(rows as unknown as T[]);
   }
 
+  public queryItemsWithETag<T>(siteUrl: string, listTitle: string, query: string): Promise<Array<{ item: T; eTag: string }>> {
+    return this.queryItems<Record<string, unknown>>(siteUrl, listTitle, query).then((rows) =>
+      rows.map((r) => ({ item: r as unknown as T, eTag: `"${(r.__v as number) || 1}"` }))
+    );
+  }
+
   public getServerTime(_siteUrl: string): Promise<number> {
     return Promise.resolve(Date.now());
   }
@@ -191,10 +198,13 @@ export class SharePointClient implements ISharePointClient {
     return Promise.resolve();
   }
 
-  public updateItem<T>(_siteUrl: string, listTitle: string, id: number, data: Partial<T>): Promise<void> {
+  public updateItem<T>(_siteUrl: string, listTitle: string, id: number, data: Partial<T>, eTag?: string): Promise<void> {
     const row = (lists[listTitle] || []).filter((r) => r.Id === id)[0];
     if (!row) return Promise.reject(new Error('Item not found (404)'));
+    const version = (row.__v as number) || 1;
+    if (eTag && eTag !== `"${version}"`) return Promise.reject(new Error('Failed to update item (412): Precondition Failed'));
     Object.assign(row, data);
+    row.__v = version + 1;
     return Promise.resolve();
   }
 

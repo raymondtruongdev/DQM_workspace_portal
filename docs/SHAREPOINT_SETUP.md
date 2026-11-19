@@ -14,7 +14,8 @@ Tất cả file cần để cài đặt nằm trong `docs/sharepoint_setup/`: c�
 | `DailyReportLibrary` | Thư viện tài liệu | Template, danh mục Activity, logo, báo cáo hằng ngày | Xem bảng ở mục 2 |
 | `UserProfiles` | List | Nhận diện người đăng nhập, vai trò admin/user | Chỉ admin |
 | `DRPRole` | List | Ai được làm báo cáo của đơn vị nào (một người có thể nhiều dòng) | Chỉ admin |
-| `DRPRegistry` | List | Sổ báo cáo: trạng thái từng ngày, tab Tổng quan, lịch 14 ngày, bộ đếm mã tự tăng | Người báo cáo thêm/sửa, admin toàn quyền |
+| `DRPRegistry` | List | Sổ báo cáo: trạng thái từng ngày, tab Tổng quan, lịch (chỉ để thống kê, không dùng để tính số) | Người báo cáo thêm/sửa, admin toàn quyền |
+| `DRPCounters` | List | Bộ đếm mã tự tăng (Event ID, Issue ID) của từng nhà ga | Người báo cáo thêm/sửa (không xoá), admin toàn quyền |
 | `DRPUnitConfig` | List | Cấu hình từng nhà ga: ngày bắt đầu đánh số báo cáo (`StartDate`) và tọa độ (`GeoTag`) | Chỉ admin |
 | `DRPCatalogItems` | List | Danh mục cho dropdown (Element, nhân lực, thiết bị, vật tư, thời tiết, trạng thái, đơn vị thi công…) | Người báo cáo chỉ thêm, admin toàn quyền |
 | `SiteAssets/portal_config.json` | File | Chế độ bảo trì (Shutdown Server) | Admin (tự tạo khi bật bảo trì lần đầu) |
@@ -81,9 +82,9 @@ Dòng 1: `ActivityID | Unit | Description | Active`; mỗi dòng sau một Activ
 3. Nên chỉ admin được **xoá** file bản ký (`*_signed.pdf`): dùng mức quyền tuỳ chỉnh "Contribute không xoá" cho người báo cáo.
 4. Bật versioning cho thư viện (mỗi lần ghi đè `.json` có bản lịch sử).
 
-## 3. Năm list trên site
+## 3. Sáu list trên site
 
-Đủ năm list: `UserProfiles`, `DRPRole`, `DRPRegistry`, `DRPCatalogItems`, `DRPUnitConfig`. Mỗi file `docs/sharepoint_setup/*_list.xlsx` có sẵn sheet `Huong_dan` mô tả từng bước và kiểu cột; phần dưới tóm tắt những điểm bắt buộc.
+Đủ sáu list: `UserProfiles`, `DRPRole`, `DRPRegistry`, `DRPCounters`, `DRPCatalogItems`, `DRPUnitConfig`. Mỗi file `docs/sharepoint_setup/*_list.xlsx` có sẵn sheet `Huong_dan` mô tả từng bước và kiểu cột; phần dưới tóm tắt những điểm bắt buộc.
 
 > **Lưu ý khi tạo list từ Excel (UserProfiles và DRPRole):** SharePoint lấy **cột chữ đầu tiên** của bảng làm cột `Title` và đặt tên hiển thị là `Title`, nên tên tiêu đề của cột đó (thường là `DisplayName`) biến mất khỏi list; các cột còn lại giữ nguyên tên. Web part đã xử lý: không có cột `DisplayName` thì dùng `Title` làm tên hiển thị. Vì vậy trong file Excel, cột chữ đầu tiên phải là `DisplayName` (không phải `Email`), và tiêu đề từng cột phải đúng dữ liệu bên dưới; nếu `Email` bị lấy làm `Title` thì web part không tìm thấy cột `Email`.
 
@@ -101,10 +102,17 @@ Dòng 1: `ActivityID | Unit | Description | Active`; mỗi dòng sau một Activ
 - Quyền: người báo cáo chỉ **đọc**; chỉ admin thêm/sửa/xoá. Bật versioning.
 
 ### 3.3 `DRPRegistry` (từ `docs/sharepoint_setup/DRPRegistry_list.xlsx`)
-- Tạo list từ Excel (bảng `DRPRegistry`); cột tuỳ chọn `No` (Number, 0 số lẻ, Indexed) để web tự đánh số thứ tự khi tạo dòng mới; cột `ReportDate`, `SavedAt`, `SignedAt`, `Status`, `Counters`, `SignedUploadBy`, `SignedRemovedAt`, `SignedRemovedBy` (ba cột cuối tuỳ chọn: người upload bản ký hiện tại, lần xoá bản ký gần nhất) đều chọn **Single line of text** (không chọn Date/Choice); `ReportNo` kiểu Number, **0 chữ số thập phân**.
+- Tạo list từ Excel (bảng `DRPRegistry`); cột tuỳ chọn `No` (Number, 0 số lẻ, Indexed) để web tự đánh số thứ tự khi tạo dòng mới; cột `ReportDate`, `SavedAt`, `SignedAt`, `Status`, `SignedUploadBy`, `SignedRemovedAt`, `SignedRemovedBy` (ba cột cuối tuỳ chọn: người upload bản ký hiện tại, lần xoá bản ký gần nhất) đều chọn **Single line of text** (không chọn Date/Choice); `ReportNo` kiểu Number, **0 chữ số thập phân**.
 - Xoá dòng mẫu `DRP_20000101_ST00` sau khi tạo.
 - List settings: cột `Title` bật **Indexed** và **Enforce unique values**; tạo Index cho `Title`, `Unit`, `ReportDate`, `ReportNo` (tránh ngưỡng 5000 dòng); bật versioning.
-- Quyền: người báo cáo được **thêm và sửa**, **không xoá** ("Contribute không xoá"); admin toàn quyền. Không xoá dòng cũ (mất lịch sử báo cáo và bộ đếm mã tự tăng).
+- Quyền: người báo cáo được **thêm và sửa**, **không xoá** ("Contribute không xoá"); admin toàn quyền. Không xoá dòng cũ (mất lịch sử báo cáo).
+
+### 3.3b `DRPCounters` (từ `docs/sharepoint_setup/DRPCounters_list.xlsx`): bộ đếm mã tự tăng
+- Mỗi nhà ga × loại báo cáo **một dòng**, do web tự tạo ở lần Lưu đầu tiên. Cột: `Title` (= `<Unit>|<DocID>`, vd `ST01|DRP`; bật **Indexed** và **Enforce unique values**) và `Counters` (Single line of text, JSON bộ đếm lớn nhất đã cấp, vd `{"events.eventid":8,"issues.issueid":4}`). Xoá dòng mẫu `ST00|DRP` sau khi tạo.
+- **Đây là nguồn duy nhất để tính mã Event ID / Issue ID kế tiếp** (mã mới = số trong `Counters` + 1, chỉ tăng, không giảm), nên không trùng dù nhập báo cáo không theo thứ tự ngày. Sổ `DRPRegistry` không còn dùng để tính.
+- **Đặt chỗ khi thêm hàng:** mỗi lần người dùng bấm "Thêm hàng" (Sự kiện, Vướng mắc), web tăng bộ đếm trong list này ngay và hàng mới nhận đúng số đó, nên hai người nhập hai báo cáo khác nhau của cùng nhà ga không nhận cùng mã. Hàng bị xoá hoặc báo cáo bỏ dở để lại chỗ trống trong dãy mã (không trùng, không cấp lại). Vì vậy người báo cáo cần quyền **sửa** list này ngay khi thêm hàng, không chỉ lúc Lưu.
+- Web ghi bằng ETag: hai người ghi cùng lúc thì người sau tự đọc lại, gộp lấy số lớn hơn rồi ghi lại. Không có list hoặc không có quyền ghi thì Lưu vẫn được nhưng hiện cảnh báo "chưa ghi được bộ đếm mã tự tăng" (mã báo cáo sau có thể trùng).
+- Quyền: người báo cáo được **thêm và sửa**, **không xoá** ("Contribute không xoá"); admin toàn quyền; bật versioning. Không xoá dòng (mất bộ đếm thì mã bị dùng lại). Admin chỉ nâng số khi cần, không hạ xuống thấp hơn mã đã dùng.
 
 ### 3.4 `DRPCatalogItems` (từ `docs/sharepoint_setup/DRPCatalogItems_list.xlsx`)
 - Tạo list từ Excel (bảng `DRPCatalogItems`), mọi cột **Single line of text**, riêng `Active` chọn **Number** (0 số lẻ, mặc định 1). File đã gồm 77 dòng: mã nhân lực/thiết bị dùng chung (`Unit = ALL`), Element và Vật tư theo từng đơn vị, và các danh sách chọn dùng chung (`ALL`): `weather`, `event_type`, `event_status`, `supplier`, `equipment_status`, `issue_severity`, `issue_status`, `subcontractor`.
@@ -153,7 +161,7 @@ Web part tự lấy site hiện hành từ `pageContext.web.absoluteUrl` (hoặc
 5. Tạo sẵn thư mục `data/ST06` và cấp quyền Contribute cho nhóm của đơn vị (nếu phân quyền theo đơn vị; xem mục 2.5).
 
 ## 7. Sao lưu
-Mỗi báo cáo là một thư mục tự chứa: `.json` là dữ liệu gốc, `.html` là bản xem/in độc lập (mở offline), `photos/` là ảnh, `*_signed.pdf` là bản ký. Sao chép thư mục `data/` là đủ để sao lưu; sổ `DRPRegistry` chỉ là chỉ mục có thể dựng lại.
+Mỗi báo cáo là một thư mục tự chứa: `.json` là dữ liệu gốc, `.html` là bản xem/in độc lập (mở offline), `photos/` là ảnh, `*_signed.pdf` là bản ký. Sao chép thư mục `data/` là đủ để sao lưu; sổ `DRPRegistry` chỉ là chỉ mục có thể dựng lại; riêng `DRPCounters` (bộ đếm mã tự tăng) không dựng lại được từ thư mục, nên sao lưu CSV như mục 7.1.
 SharePoint Online thường buộc file `.html` trong thư viện **tải về** thay vì mở trực tiếp: người dùng tải về rồi mở bằng trình duyệt.
 
 ### 7.1 Sao lưu và khôi phục dữ liệu của các list (CSV)
@@ -203,6 +211,7 @@ Sau khi tạo xong làm lại phần thiết lập của list (index, Enforce un
 | "Chưa đọc được danh mục dùng chung (kiểm tra list DRPCatalogItems…)" | List chưa tạo/sai tên, thiếu quyền đọc | Tạo list `DRPCatalogItems`, cấp quyền đọc |
 | "Chưa thêm được vào danh mục dùng chung" | Thiếu quyền thêm hoặc sai tên cột | Cấp quyền Add; giữ nguyên tên hiển thị 5 cột |
 | "Đã lưu báo cáo nhưng chưa ghi được vào sổ DRPRegistry…" | List chưa tạo, sai kiểu cột (Date/Choice), thiếu quyền | Làm lại mục 3.2; đọc phần "Chi tiết" trong thông báo |
+| "Đã lưu báo cáo nhưng chưa ghi được bộ đếm mã tự tăng vào list DRPCounters…" | List `DRPCounters` chưa tạo, người báo cáo thiếu quyền thêm/sửa, cột `Counters` sai tên | Làm lại mục 3.3b; đọc phần "Chi tiết" trong thông báo |
 | "Đã lưu dữ liệu báo cáo nhưng chưa tạo được file HTML xem độc lập" | Thiếu quyền ghi hoặc tenant chặn `.html` | Kiểm tra quyền; dữ liệu `.json` vẫn an toàn |
 | Lưu lỗi "412 / Precondition failed" | Người khác vừa lưu cùng báo cáo | Bấm **Làm mới** rồi sửa lại |
 | Không thấy ô báo cáo nào ("Chưa được phân quyền…") | Email chưa có dòng `Active = Yes` trong list `DRPRole` (hoặc chưa có trong `UserProfiles`) | Thêm/sửa dòng phân quyền |

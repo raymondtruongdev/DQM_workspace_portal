@@ -32,11 +32,11 @@ seedList('DRPRegistry', [
     Reporter: 'truongquoctoan1@thadico.com',
     Status: 'done',
     SavedAt: '2026-11-10T09:30:00.000Z',
-    SignedAt: '2026-11-11T02:00:00.000Z',
-    Counters: '{"events.eventid":4,"issues.issueid":4}'
+    SignedAt: '2026-11-11T02:00:00.000Z'
   }
 ]);
 seedList('DRPCatalogItems', seed.catalogRows);
+seedList('DRPCounters', [{ Title: 'ST01|DRP', Counters: '{"events.eventid":4,"issues.issueid":4}' }]);
 // ?nocfg=1: không tạo list DRPUnitConfig để thử thông báo "chưa cấu hình"
 if (new URLSearchParams(window.location.search).get('nocfg') !== '1') seedList('DRPUnitConfig', seed.unitConfigRows);
 // ?norole=1: không tạo list DRPRole để thử thông báo lỗi

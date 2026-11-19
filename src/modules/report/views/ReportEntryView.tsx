@@ -775,7 +775,10 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
     try {
       const res = await dataService.saveReport(doc, currentUserEmail);
       // Số báo cáo/mã tài liệu có thể đã được cấp lại theo sổ DRPRegistry lúc lưu
-      setDoc((prev) => (prev ? { ...prev, isExisting: true, eTag: res.eTag, metadata: res.metadata } : null));
+      // Nền bộ đếm mã tự tăng cũng lấy lại theo bộ đếm vừa lưu (hàng đã lưu rồi xoá không bị cấp lại trong cùng lần mở)
+      setDoc((prev) =>
+        prev ? { ...prev, isExisting: true, eTag: res.eTag, metadata: res.metadata, idCounters: res.idCounters || prev.idCounters } : null
+      );
       setHasUnsavedChanges(false);
       const warning = res.registryWarning || res.htmlWarning;
       setToast(
@@ -1105,6 +1108,22 @@ export const ReportEntryView: React.FC<IReportEntryViewProps> = ({
             catalog={catalog}
             onAddCatalogItem={handleAddCatalogItem}
             onUpdateCatalogLink={handleUpdateCatalogLink}
+            onReserveAutoId={
+              dataService.usesAutoIds(doc.docId)
+                ? async (key, atLeast) => {
+                    try {
+                      return await dataService.reserveAutoId(doc.unit, doc.docId, key, atLeast);
+                    } catch (err: unknown) {
+                      // Dự phòng cục bộ ở bảng; báo rõ để admin kiểm tra list DRPCounters (mã có thể trùng với người khác)
+                      setToast({
+                        type: 'error',
+                        text: `Chưa đặt chỗ được mã tự tăng ở list DRPCounters nên mã mới chỉ tính trên máy này và có thể trùng với người khác. Hãy báo Admin kiểm tra list DRPCounters (đã tạo chưa, quyền thêm/sửa, tên cột Title/Counters). ${err instanceof Error ? err.message.slice(0, 160) : ''}`
+                      });
+                      throw err;
+                    }
+                  }
+                : undefined
+            }
             eventPdfFolder={eventPdfFolder}
             onUploadRowPdf={handleUploadRowPdf}
             onDeleteRowPdf={handleDeleteRowPdf}

@@ -64,12 +64,22 @@
         { "name": "Status", "type": "Text" },
         { "name": "SavedAt", "type": "Text" },
         { "name": "SignedAt", "type": "Text" },
-        { "name": "Counters", "type": "Text" },
         { "name": "SignedUploadBy", "type": "Text" },
         { "name": "SignedRemovedAt", "type": "Text" },
         { "name": "SignedRemovedBy", "type": "Text" },
         { "name": "Locked", "type": "Number", "decimals": 0 },
         { "name": "UnlockUntil", "type": "Text" }
+      ],
+      "seed": { "mode": "none" }
+    },
+    {
+      "name": "DRPCounters",
+      "description": "Bộ đếm mã tự tăng (Event ID, Issue ID) của từng nhà ga: một dòng mỗi <Unit>|<DocID>, cột Counters là JSON. Người báo cáo được thêm và sửa (không xoá).",
+      "titleRequired": true,
+      "titleUnique": true,
+      "versioning": true,
+      "columns": [
+        { "name": "Counters", "type": "Text" }
       ],
       "seed": { "mode": "none" }
     },

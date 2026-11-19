@@ -223,6 +223,11 @@ export function autoIdKey(table: ReportTable, col: TableColumn): string {
   return `${table.key}.${col.code}`.toLowerCase();
 }
 
+/** Số lớn nhất đang có trong bảng cho một cột mã tự tăng (0 nếu chưa có dòng nào). */
+export function maxAutoIdInTable(table: ReportTable, unit: string, col: TableColumn): number {
+  return scanMaxAutoId(col.defaultValue as string, unit, table, col.code);
+}
+
 /** Bộ đếm cần ghi vào sổ: với mỗi cột mã tự tăng, số lớn nhất của báo cáo này và của các báo cáo trước (`floor`). */
 export function collectAutoIdCounters(
   sections: { kind: string }[],

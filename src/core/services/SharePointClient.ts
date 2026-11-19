@@ -19,7 +19,10 @@ export interface ISharePointClient {
   /** Giờ máy chủ SharePoint (ms UTC), đọc từ header `Date` của phản hồi. Ném lỗi nếu không đọc được. */
   getServerTime(siteUrl: string): Promise<number>;
   createItem<T>(siteUrl: string, listTitle: string, data: Partial<T>): Promise<void>;
-  updateItem<T>(siteUrl: string, listTitle: string, id: number, data: Partial<T>): Promise<void>;
+  /** `eTag` có thì chỉ ghi khi dòng chưa bị người khác sửa (SharePoint trả 412, thông báo lỗi chứa "(412)"); không có thì ghi đè. */
+  updateItem<T>(siteUrl: string, listTitle: string, id: number, data: Partial<T>, eTag?: string): Promise<void>;
+  /** Như `queryItems` nhưng kèm ETag của từng dòng (dùng cho `updateItem` có kiểm tra xung đột). */
+  queryItemsWithETag<T>(siteUrl: string, listTitle: string, query: string): Promise<Array<{ item: T; eTag: string }>>;
   getFileWithMeta(siteUrl: string, serverRelativeUrl: string): Promise<{ buffer: ArrayBuffer; eTag: string } | undefined>;
   getFileBuffer(siteUrl: string, serverRelativeUrl: string): Promise<ArrayBuffer | undefined>;
   uploadFile(
@@ -95,6 +98,26 @@ export class SharePointClient implements ISharePointClient {
     return (json.value || []) as T[];
   }
 
+  /** Như `queryItems` nhưng kèm ETag của từng dòng (`odata.etag` trong định dạng minimalmetadata). */
+  public async queryItemsWithETag<T>(siteUrl: string, listTitle: string, query: string): Promise<Array<{ item: T; eTag: string }>> {
+    const response: SPHttpClientResponse = await this._spHttpClient.get(
+      `${this._itemsUrl(siteUrl, listTitle)}?${query}`,
+      SPHttpClient.configurations.v1,
+      { headers: { 'Accept': 'application/json;odata=minimalmetadata' } }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`SharePoint API Error (${response.status}): ${errText}`);
+    }
+
+    const json = await response.json();
+    return ((json.value || []) as Array<Record<string, unknown>>).map((row) => ({
+      item: row as unknown as T,
+      eTag: String(row['odata.etag'] || '')
+    }));
+  }
+
   /**
    * Visible columns of a list as { displayTitle: internalName } (internal names can differ from titles, e.g. "Unit0").
    */
@@ -155,7 +178,7 @@ export class SharePointClient implements ISharePointClient {
   /**
    * Update (MERGE) an item in a list
    */
-  public async updateItem<T>(siteUrl: string, listTitle: string, id: number, data: Partial<T>): Promise<void> {
+  public async updateItem<T>(siteUrl: string, listTitle: string, id: number, data: Partial<T>, eTag?: string): Promise<void> {
     const response: SPHttpClientResponse = await this._spHttpClient.post(
       this._itemsUrl(siteUrl, listTitle, id),
       SPHttpClient.configurations.v1,
@@ -164,7 +187,7 @@ export class SharePointClient implements ISharePointClient {
           'Accept': 'application/json;odata=nometadata',
           'Content-Type': 'application/json;odata=nometadata',
           'X-HTTP-Method': 'MERGE',
-          'If-Match': '*'
+          'If-Match': eTag || '*'
         },
         body: JSON.stringify(data)
       }
@@ -172,7 +195,7 @@ export class SharePointClient implements ISharePointClient {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Failed to update item: ${errText}`);
+      throw new Error(`Failed to update item (${response.status}): ${errText}`);
     }
   }
 
